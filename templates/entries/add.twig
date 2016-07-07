@@ -1,0 +1,40 @@
+{% extends "points/_layouts/base" %}
+
+{% import "_includes/forms" as forms %}
+
+{% if rowId is defined %}
+	{% set object = craft.points.entryById(rowId) %}
+{% endif %}
+
+{% set content %}
+
+    <form method="post" accept-charset="UTF-8" data-saveshortcut>
+        {{ getCsrfInput() }}
+        <input type="hidden" name="action" value="points/saveEntry">
+        <input type="hidden" name="redirect" value="points/entries">
+        {% if rowId is defined %}<input type="hidden" name="id" value="{{ rowId }}">{% endif %}
+        
+		{{ forms.elementSelect({
+		    id: 'user',
+		    name: 'user',
+		    elementType: craft.elements.getElementType("User"),
+		    elements: object is defined ? object.user : null,
+		    addButtonLabel: 'Select user',
+		    limit: 1
+		}) }}
+
+		{{ forms.selectField({
+		    label: 'Event'|t,
+		    id: 'eventHandle',
+		    name: 'eventHandle',
+		    value: object is defined ? object.eventHandle : null,
+			options: craft.points.eventOptions,
+		    required: true
+		}) }}
+
+        <div class="buttons">
+            <input type="submit" class="btn submit" value="{{ 'Save'|t }}">
+        </div>
+    </form>
+
+{% endset %}

@@ -1,0 +1,19 @@
+{% extends "_layouts/cp" %}
+
+{% includeCssResource 'points/css/style.css' %}
+{% includeJsResource 'points/js/script.js' %}
+
+{% set subnav = {
+  entries: {
+    label: "Entries"|t,
+    url: url('points/entries')
+  },
+  events: {
+    label: "Events"|t,
+    url: url('points/events')
+  }
+} %}
+
+{% set selectedSubnavItem = craft.request.segment(2) ? craft.request.segment(2) : 'entries' %}
+
+{% set title = "Points"|t %}

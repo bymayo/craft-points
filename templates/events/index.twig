@@ -1,0 +1,60 @@
+{% extends "points/_layouts/base" %}
+
+{% set extraPageHeaderHtml %}
+    <div class="buttons right">
+        <a href="{{ url('points/events/add') }}" class="btn submit add icon">{{ "Add Event"|t }}</a>
+    </div>
+{% endset %}
+
+{% set events = craft.points.events() %}
+
+{% set content %}
+
+	<div class="grid first">
+	    <div class="item">
+	        <div id="fields">
+	        
+	        	<h2>Events</h2>
+	        
+	        	{% if events|length %}
+	
+					<table id="navItems" class="data fullwidth collapsible">
+						<thead>
+							<tr>
+								<th>Event</th>
+								<th>Event Handle</th>
+								<th>Points</th>
+								<th>Allow Multiple?</th>
+								<th>Date Created</th>
+								<th>Date Updated</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for row in events %}
+								<tr>
+									<td><a href="{{ url('points/events/add/' ~ row.id) }}">{{ row.event }}</a></td>
+									<td><code>{{ row.eventHandle }}</code></td>
+									<td><div class="points-number">{{ row.points }}</div></td>
+									<td>{% if row.multiple %}Yes{% else %}No{% endif %}</td>
+									<td>{{ row.dateCreated.localeDate() }}</td>
+									<td>{{ row.dateUpdated.localeDate() }}</td>
+									<td class="thin">
+										<a href="{{ actionUrl('points/deleteEvent', { id: row.id }) }}" class="delete icon" title="{{ 'Delete'|t }}"></a>
+									</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				
+				{% else %}
+				
+					<div class="alert">No Events</div>
+				
+				{% endif %}
+		
+	        </div>
+	    </div>
+	</div>
+
+{% endset %}
