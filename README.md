@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/madebyshape/points/master/screenshots/icon.png" width="50">
+
 # Points
 
 Points is a Craft CMS plugin that allows you create a points / scoring / credits system and assign these to a user.
@@ -92,3 +94,7 @@ Points also comes with a widget to see the latest points assigned to users direc
 - Leaderboard
 - More Widgets - Leaderboard Widget, Events Widget
 - Delay - Set a delay multiple points can be assigned to a user
+
+## Credits
+
+- Diamond by Edward Boatman from the Noun Project (https://thenounproject.com/edward/)
