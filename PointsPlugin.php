@@ -30,12 +30,12 @@ class PointsPlugin extends BasePlugin
 
     public function getDocumentationUrl()
     {
-        return 'https://github.com/bymayo/points/blob/master/README.md';
+        return 'https://github.com/madebyshape/points/blob/master/README.md';
     }
 
     public function getReleaseFeedUrl()
     {
-        return 'https://raw.githubusercontent.com/bymayo/points/master/releases.json';
+        return 'https://raw.githubusercontent.com/madebyshape/points/master/releases.json';
     }
 
     public function getVersion()
