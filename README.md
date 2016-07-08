@@ -50,9 +50,9 @@ This will assign the points from the `SignedUpToNewsletter` event to the current
 		}
 	) }}
 	
-You can assign the `userId` dynamically by creating a variable and passing it to the add method. The below example takes the user ID from the segment 1 of the URL.
+You can assign the `userId` dynamically by creating a variable and passing it to the add method. The below example takes the user from the segment 1 of the URL.
 
-	{% set user = craft.user.slug(craft.request.getSegment(1)).first() %}
+	{% set user = craft.user.username(craft.request.getSegment(1)).first() %}
 
 	{{ craft.points.add(
 		{ 
