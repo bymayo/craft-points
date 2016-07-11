@@ -35,7 +35,7 @@ class PointsPlugin extends BasePlugin
 
     public function getReleaseFeedUrl()
     {
-        return 'https://raw.githubusercontent.com/madebyshape/points/master/releases.json';
+        return 'https://raw.githubusercontent.com/madebyshape/points/master/releases.json'; 
     }
 
     public function getVersion()
