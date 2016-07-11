@@ -80,7 +80,7 @@ class PointsService extends BaseApplicationComponent
 	 * @param array $options
 	 *
      */
-	public function add($options)
+	public function addEntry($options)
 	{
 		
 		// Check to see if event allows multiple 
@@ -118,7 +118,7 @@ class PointsService extends BaseApplicationComponent
 	 * @param array $options
 	 *
      */
-	public function remove($options) 
+	public function removeEntry($options) 
 	{
 		
         $entriesRecord = Points_EntriesRecord::model()->findByAttributes(
@@ -164,6 +164,37 @@ class PointsService extends BaseApplicationComponent
         }
         return false;
     }
+    
+    /**
+     * Event - Add
+     *
+	 * @param array $options
+	 *
+     */
+     public function addEvent($options) {
+	     
+        $eventRecord = Points_EventsRecord::model()->findByAttributes(
+						        							array(
+						        								'eventHandle' => $options['eventHandle']
+						        							)
+														);
+														
+		if (!$eventRecord) {
+			
+	        $event = new Points_EventsModel();
+		     
+	        $event->setAttributes(array(
+	            'event' => $options['event'],
+	            'eventHandle' => $options['eventHandle'],
+	            'points' => $options['points'],
+	            'multiple' => $options['multiple']
+	        ));
+		     
+			craft()->points->saveEvent($event);
+			
+		}
+	     
+     }
     
     /**
      * Entry - Save
@@ -304,7 +335,7 @@ class PointsService extends BaseApplicationComponent
 	 *
 	 * @return string
      */	
-    public function total($userId) {
+    public function totalEntries($userId) {
 
 		$result = craft()->db->createCommand()
 			->select('entries.user, sum(events.points) as count')

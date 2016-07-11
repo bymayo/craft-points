@@ -82,6 +82,17 @@ class PointsVariable
 	}
 	
     /**
+     * Entries - Add
+     *
+	 * @param array $options
+	 *
+     */
+	public function addEvent($options)
+	{
+		return craft()->points->addEvent($options);
+	}
+	
+    /**
      * Entry - By ID
 	 *
 	 * @param int $id
@@ -100,9 +111,9 @@ class PointsVariable
 	 * @param array $options
 	 *
      */
-	public function add($options)
+	public function addEntry($options)
 	{
-		return craft()->points->add($options);
+		return craft()->points->addEntry($options);
 	}
 	
     /**
@@ -111,23 +122,23 @@ class PointsVariable
 	 * @param array $options
 	 *
      */
-	public function remove($options)
+	public function removeEntry($options)
 	{
-		return craft()->points->remove($options);
+		return craft()->points->removeEntry($options);
 	}
 	
     /**
-     * Entries - Total Sum
+     * Entries - Total
 	 *
 	 * @param int $userId
 	 *
 	 * @return string
      */	
-	public function total($userId = null)
+	public function totalEntries($userId = null)
 	{
 		
 		$userId = ($userId) ? $userId : craft()->points->userLoggedIn();
-		return craft()->points->total($userId);
+		return craft()->points->totalEntries($userId);
 	}
 
 }
