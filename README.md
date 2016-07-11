@@ -31,11 +31,11 @@ To then assign points to a user you can do this via the CMS `Points -> Entries` 
 
 ## Templating
 
-### Add
+### Add Entry
 
-To add points to a user you only really need to specify an events `eventHandle`.
+To add Points (Entry) to a user you only really need to specify an events `eventHandle`.
 
-	{{ craft.points.add(
+	{{ craft.points.addEntry(
 		{ 
 			eventHandle: 'SignedUpToNewsletter'
 		}
@@ -43,7 +43,7 @@ To add points to a user you only really need to specify an events `eventHandle`.
 	
 This will assign the points from the `SignedUpToNewsletter` event to the current logged in user. If you want to add points to a user that is not currently logged in, just specify the `userId` parameter.
 	
-	{{ craft.points.add(
+	{{ craft.points.addEntry(
 		{ 
 			userId: 5
 			eventHandle: 'SignedUpToNewsletter'
@@ -54,34 +54,47 @@ You can assign the `userId` dynamically by creating a variable and passing it to
 
 	{% set user = craft.user.username(craft.request.getSegment(1)).first() %}
 
-	{{ craft.points.add(
+	{{ craft.points.addEntry(
 		{ 
 			userId: user.id
 			eventHandle: 'SignedUpToNewsletter'
 		}
 	) }}
 
-### Remove
+### Remove Entry
 
 You can also remove points from a user in the same way as adding points. Optionally adding in the `userId` parameter. It's important to remember that if you have selected 'Multiple' on the event, that removing points only removes 1 instance, not all.
 
-	{{ craft.points.remove(
+	{{ craft.points.removeEntry(
 		{ 
 			eventHandle: 'SignedUpToNewsletter'
 		}
 	) }}
 
-### Total
+### Total Entries
 
 To get a total amount of points a user has, use the `.total` option.
 
-	{{ craft.points.total() }}
+	{{ craft.points.totalEntries() }}
 	
 Again, the `userId` parameter is totally optional, but can be added in if need be.
 
-	{{ craft.points.total(
+	{{ craft.points.totalEntries(
 		{ 
 			userId: 5
+		}
+	) }}
+	
+### Add Event
+
+If you want to make more events dynamic then you can create Events on the fly. ALL of the attributes are required.
+
+	{{ craft.points.addEvent(
+		{
+			event: 'Viewed ' ~ entry.title,
+			eventHandle: 'viewed' ~ entry.title|camel,
+			points: '20',
+			multiple: false
 		}
 	) }}
 
@@ -94,6 +107,7 @@ Points also comes with a widget to see the latest points assigned to users direc
 - Leaderboard
 - More Widgets - Leaderboard Widget, Events Widget
 - Delay - Set a delay multiple points can be assigned to a user
+- Hook to create events after entries are created
 
 ## Credits
 
