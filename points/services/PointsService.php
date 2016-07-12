@@ -306,6 +306,29 @@ class PointsService extends BaseApplicationComponent
     }
     
     /**
+     * Event - By Handle
+	 *
+	 * @param string $eventHandle
+	 *
+	 * @return EventsModel
+     */	
+    public function eventByHandle($eventHandle)
+    {
+        
+        $eventModel = new Points_EventsModel();
+        
+        $eventRecord = Points_EventsRecord::model()->findByAttributes(array('eventHandle' => $eventHandle));
+
+        if ($eventRecord)
+        {
+            $eventModel = Points_EventsModel::populateModel($eventRecord);
+        }
+
+        return $eventModel;
+	    
+    }
+    
+    /**
      * Entry - By ID
 	 *
 	 * @param int $id
@@ -317,7 +340,7 @@ class PointsService extends BaseApplicationComponent
         
         $entryModel = new Points_EntriesModel();
         
-        $entryRecord = Points_EventsRecord::model()->findByAttributes(array('id' => $id));
+        $entryRecord = Points_EntriesRecord::model()->findByAttributes(array('id' => $id));
 
         if ($entryRecord)
         {
@@ -325,6 +348,29 @@ class PointsService extends BaseApplicationComponent
         }
 
         return $entryModel;
+	    
+    }
+    
+    /**
+     * Entries - By User
+	 *
+	 * @param int $id
+	 *
+	 * @return EntriesModel
+     */	
+    public function entriesByUser($userId)
+    {
+	    
+		$defaults = craft()->db->createCommand()
+			->select('*')
+			->from('points_entries')
+			->where('user=' . $userId)
+			->order('dateCreated')
+			->queryAll();
+
+		$model = Points_EntriesModel::populateModels($defaults);
+
+		return $model;
 	    
     }
     

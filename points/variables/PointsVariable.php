@@ -82,6 +82,19 @@ class PointsVariable
 	}
 	
     /**
+     * Event - By Handle
+	 *
+	 * @param string $eventHandle
+	 *
+	 * @return EventsModel
+     */	
+	public function eventByHandle($eventHandle) 
+	{
+			
+		return craft()->points->eventByHandle($eventHandle);
+	}
+	
+    /**
      * Entries - Add
      *
 	 * @param array $options
@@ -103,6 +116,17 @@ class PointsVariable
 	{
 			
 		return craft()->points->entryById($id);
+	}
+	
+    /**
+     * Entries - By User
+     *
+	 * @return EntriesModel
+     */
+	public function entriesByUser($userId = null)
+	{
+		$userId = ($userId) ? $userId : craft()->points->userLoggedIn();
+		return craft()->points->entriesByUser($userId);
 	}
 	
     /**

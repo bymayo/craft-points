@@ -1,5 +1,13 @@
 [
     {
+        "version": "1.0.3",
+        "downloadUrl": "https://github.com/madebyshape/points/archive/master.zip",
+        "date": "2016-07-12T10:00:00-08:00",
+        "notes": [
+            "[Added] Event By Handle and Entries By User"
+        ]
+    },
+    {
         "version": "1.0.2",
         "downloadUrl": "https://github.com/madebyshape/points/archive/master.zip",
         "date": "2016-07-12T10:00:00-08:00",
