@@ -1,5 +1,14 @@
 [
     {
+        "version": "1.0.2",
+        "downloadUrl": "https://github.com/madebyshape/points/archive/master.zip",
+        "date": "2016-07-12T10:00:00-08:00",
+        "notes": [
+            "[Added] .totalEntries option",
+            "[Improved] Renamed .totalEntries to .sumEntries",
+        ]
+    },
+    {
         "version": "1.0.1",
         "downloadUrl": "https://github.com/madebyshape/points/archive/master.zip",
         "date": "2016-07-11T10:00:00-08:00",

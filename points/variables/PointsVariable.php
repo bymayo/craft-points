@@ -128,6 +128,20 @@ class PointsVariable
 	}
 	
     /**
+     * Entries - Sum
+	 *
+	 * @param int $userId
+	 *
+	 * @return string
+     */	
+	public function sumEntries($userId = null)
+	{
+		
+		$userId = ($userId) ? $userId : craft()->points->userLoggedIn();
+		return craft()->points->sumEntries($userId);
+	}
+	
+    /**
      * Entries - Total
 	 *
 	 * @param int $userId

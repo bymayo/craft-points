@@ -71,19 +71,25 @@ You can also remove points from a user in the same way as adding points. Optiona
 		}
 	) }}
 
+### Sum Entries
+
+To get a sum amount of points a user has (E.g. 30pts), use the `.sumEntries` option.
+
+	{{ craft.points.sumEntries() }}
+	
+To get the Sum Entries for a specific user you just need to specify the user ID.
+
+	{{ craft.points.sumEntries(5) }}
+	
 ### Total Entries
 
-To get a total amount of points a user has, use the `.total` option.
+To get the total amount of entries a user has (E.g. 3 Entries), use the `.totalEntries` option.
 
 	{{ craft.points.totalEntries() }}
 	
-Again, the `userId` parameter is totally optional, but can be added in if need be.
+To get the Total Entries for a specific user you just need to specify the user ID.
 
-	{{ craft.points.totalEntries(
-		{ 
-			userId: 5
-		}
-	) }}
+	{{ craft.points.totalEntries(5) }}
 	
 ### Add Event
 

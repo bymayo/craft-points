@@ -329,13 +329,13 @@ class PointsService extends BaseApplicationComponent
     }
     
     /**
-     * Entries - Total Sum
+     * Entries - Sum
 	 *
 	 * @param int $userId
 	 *
 	 * @return string
      */	
-    public function totalEntries($userId) {
+    public function sumEntries($userId) {
 
 		$result = craft()->db->createCommand()
 			->select('entries.user, sum(events.points) as count')
@@ -353,6 +353,25 @@ class PointsService extends BaseApplicationComponent
 		}
 	    
 	    return $count;
+	    
+    }
+    
+    /**
+     * Entries - Total
+	 *
+	 * @param int $userId
+	 *
+	 * @return string
+     */	
+    public function totalEntries($userId) {
+
+		$result = craft()->db->createCommand()
+			->select('*')
+			->from('points_entries')
+			->where('user=' . $userId)
+			->queryAll();
+	    
+	    return count($result);
 	    
     }
 	    
