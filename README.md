@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/madebyshape/points/master/screenshots/icon.png" width="50">
+<img src="https://raw.githubusercontent.com/bymayo/points/master/screenshots/icon.png" width="50">
 
 # Points
 
