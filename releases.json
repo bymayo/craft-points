@@ -1,7 +1,7 @@
 [
     {
         "version": "1.0.3",
-        "downloadUrl": "https://github.com/madebyshape/points/archive/master.zip",
+        "downloadUrl": "https://github.com/bymayo/points/archive/master.zip",
         "date": "2016-07-12T10:00:00-08:00",
         "notes": [
             "[Added] Event By Handle and Entries By User"
@@ -9,7 +9,7 @@
     },
     {
         "version": "1.0.2",
-        "downloadUrl": "https://github.com/madebyshape/points/archive/master.zip",
+        "downloadUrl": "https://github.com/bymayo/points/archive/master.zip",
         "date": "2016-07-12T10:00:00-08:00",
         "notes": [
             "[Added] .totalEntries option",
@@ -18,7 +18,7 @@
     },
     {
         "version": "1.0.1",
-        "downloadUrl": "https://github.com/madebyshape/points/archive/master.zip",
+        "downloadUrl": "https://github.com/bymayo/points/archive/master.zip",
         "date": "2016-07-11T10:00:00-08:00",
         "notes": [
             "[Added] Create events on the fly with the 'addEvent' twig tag",
@@ -27,7 +27,7 @@
     },
     {
         "version": "1.0.0",
-        "downloadUrl": "https://github.com/madebyshape/points/archive/master.zip",
+        "downloadUrl": "https://github.com/bymayo/points/archive/master.zip",
         "date": "2016-06-24T10:00:00-08:00",
         "notes": [
             "[Added] Initial Release"
