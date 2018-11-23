@@ -1,3 +1,5 @@
+⚡️**Looking for Craft 3 Support?** ⚡️Luckily for you, I'm working on it 🚧
+
 <img src="https://raw.githubusercontent.com/bymayo/points/master/screenshots/icon.png" width="50">
 
 # Points
