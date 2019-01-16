@@ -1,4 +1,4 @@
-⚡️**Looking for Craft 3 Support?** ⚡️Luckily for you, I'm working on it 🚧
+⚡️**Looking for Craft CMS 3 Support?** Lucky for you, I'm working on it 🚧
 
 <img src="https://raw.githubusercontent.com/bymayo/points/master/screenshots/icon.png" width="50">
 
