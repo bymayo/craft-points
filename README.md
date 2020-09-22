@@ -1,6 +1,4 @@
-⚡️**Looking for Craft CMS 3 Support?** Lucky for you, I'm working on it 🚧
-
-<img src="https://raw.githubusercontent.com/bymayo/points/master/screenshots/icon.png" width="50">
+<img src="https://raw.githubusercontent.com/bymayo/craft-points/blob/craft-2/screenshots/icon.png" width="70">
 
 # Points
 
