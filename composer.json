@@ -1,11 +1,42 @@
 {
-    "require-dev": {
-        "craftcms/generator": "^1.8"
-    },
-    "config": {
-        "allow-plugins": {
-            "yiisoft/yii2-composer": true,
-            "craftcms/plugin-installer": true
-        }
+  "name": "bymayo/craft-points",
+  "description": "Description",
+  "type": "craft-plugin",
+  "license": "proprietary",
+  "support": {
+    "email": "jason@bymayo.co.uk",
+    "issues": "https://github.com/bymayo/craft-points/issues?state=open",
+    "source": "https://github.com/bymayo/craft-points",
+    "docs": "https://github.com/bymayo/craft-points",
+    "rss": "https://github.com/bymayo/craft-points/releases.atom"
+  },
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.6.0"
+  },
+  "require-dev": {
+    "craftcms/phpstan": "dev-main"
+  },
+  "autoload": {
+    "psr-4": {
+      "bymayo\\points\\": "src/"
     }
+  },
+  "extra": {
+    "handle": "points",
+    "name": "Points",
+    "developer": "ByMayo",
+    "documentationUrl": "https://github.com/bymayo/craft-points",
+    "class": "bymayo\\points\\Points"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    },
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true,
+      "craftcms/plugin-installer": true
+    }
+  }
 }
