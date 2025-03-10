@@ -1,0 +1,11 @@
+{
+    "require-dev": {
+        "craftcms/generator": "^1.8"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
+    }
+}
