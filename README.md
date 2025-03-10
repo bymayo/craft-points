@@ -1,8 +1,8 @@
 <img src="https://raw.githubusercontent.com/bymayo/craft-points/master/resources/icon.png" width="70">
 
-# Points for Craft CMS 3.x
+# Points for Craft CMS 5.x
 
-Points is a Craft CMS plugin that allows you to assign points to a user, or assign store credit to a user to spend in a Craft Commerce 3 store.
+Points is a Craft CMS plugin that allows you to assign points to a user, or assign store credit to a user to spend in a Craft Commerce 5 store.
 
 Points are assigned to a user by either creating an 'event' such as Signing Up to Newsletter = 20pts, or Purchasing a Product = 10pts.
 
