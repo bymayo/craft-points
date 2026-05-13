@@ -8,6 +8,7 @@
 - `pointsSnapshot` field on entries — captures the event's point value at award time so editing an event later doesn't retroactively change historical totals
 - `Levels` — tiered loyalty thresholds with optional colour and icon (Bronze/Silver/Gold style)
 - **Leaderboard** — CP page (Points → Leaderboard) and dashboard widget showing top users by accumulated points, with level badges
+- **Latest Entries** dashboard widget — shows the most recent points awarded with user, event, and relative timestamp (Craft 2 parity)
 - User permissions: `points-manageEvents`, `points-manageEntries`, `points-manageLevels`
 - Outline SVG icon for the CP sidebar, separate from the marketing icon
 - Twig API back-compatible with the Craft 2 plugin: `craft.points.addEntry`, `removeEntry`, `sumEntries`, `totalEntries`, `addEvent`, `entriesByUser`, `eventOptions`, etc.

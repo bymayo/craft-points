@@ -16,7 +16,6 @@ Award points to users for actions they perform, build leaderboards, and unlock t
 
 ## Coming soon
 
-- Latest entries dashboard widget (Craft 2 parity)
 - Craft Commerce integration — award points on purchase, with flat or percentage-of-price rules
 - Plugin events for extensibility (`EVENT_AFTER_ADD_ENTRY`, `EVENT_LEVEL_CHANGED`, …)
 - GraphQL types
@@ -129,6 +128,13 @@ A user's level is the highest one whose threshold is ≤ their current point sum
 ```
 
 Each row is `{ user: User, points: int, level: Level|null }`. The CP page lives at **Points → Leaderboard**, and there's a "Points Leaderboard" dashboard widget you can drop on the Craft dashboard.
+
+### Dashboard widgets
+
+Two widgets ship with the plugin (Dashboard → + New widget):
+
+- **Points Leaderboard** — top N users by total points, with their level badges
+- **Latest Points Entries** — most recent N entries, with user, event, points awarded, and relative time
 
 ### Dynamic events
 
