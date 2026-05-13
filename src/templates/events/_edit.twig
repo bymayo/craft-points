@@ -69,15 +69,15 @@
     }) }}
 
     <div id="points-trigger-configs">
-        {% for triggerClass in scopedTriggers %}
-            {% set isActive = (event.trigger == triggerClass.handle()) %}
+        {% for trigger in scopedTriggers %}
+            {% set isActive = (event.trigger == trigger.handle) %}
             {% set selectedScopeIds = isActive ? (event.triggerConfig.scopeIds ?? []) : [] %}
-            <div data-trigger="{{ triggerClass.handle() }}"{% if not isActive %} class="hidden"{% endif %}>
+            <div data-trigger="{{ trigger.handle }}"{% if not isActive %} class="hidden"{% endif %}>
                 {{ forms.checkboxSelectField({
-                    label: ('Limit to ' ~ triggerClass.scopedTo())|t('points'),
-                    instructions: 'Leave all unchecked to apply to every {scope}.'|t('points', { scope: triggerClass.scopedTo() }),
-                    name: 'triggerConfig[' ~ triggerClass.handle() ~ '][scopeIds]',
-                    options: triggerClass.getScopeOptions(),
+                    label: ('Limit to ' ~ trigger.scopedTo)|t('points'),
+                    instructions: 'Leave all unchecked to apply to every {scope}.'|t('points', { scope: trigger.scopedTo }),
+                    name: 'triggerConfig[' ~ trigger.handle ~ '][scopeIds]',
+                    options: trigger.scopeOptions,
                     values: selectedScopeIds,
                     showAllOption: false,
                 }) }}

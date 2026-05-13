@@ -43,7 +43,7 @@ class EventsController extends Controller
                 ? $event->name
                 : Craft::t('points', 'New event'),
             'triggerOptions' => $triggersService->getSelectOptions(),
-            'scopedTriggers' => $triggersService->getScopedTriggers(),
+            'scopedTriggers' => $triggersService->getScopedTriggersForTemplate(),
         ]);
     }
 

@@ -62,6 +62,22 @@ class Triggers extends Component
     }
 
     /**
+     * Flattens scoped triggers into arrays for Twig consumption — Twig can't call
+     * static methods on class-name strings.
+     *
+     * @return array<int, array{handle: string, label: string, scopedTo: string, scopeOptions: array}>
+     */
+    public function getScopedTriggersForTemplate(): array
+    {
+        return array_map(fn(string $class) => [
+            'handle' => $class::handle(),
+            'label' => $class::label(),
+            'scopedTo' => $class::scopedTo(),
+            'scopeOptions' => $class::getScopeOptions(),
+        ], $this->getScopedTriggers());
+    }
+
+    /**
      * Returns options array for a Craft select field — grouped by trigger group.
      */
     public function getSelectOptions(): array
