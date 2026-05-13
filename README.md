@@ -309,19 +309,6 @@ Two widgets ship with the plugin (Dashboard → + New widget):
 - **Points Leaderboard** — top N users by total points, with their level badges
 - **Latest Points Entries** — most recent N entries, with user, event, points awarded, and relative time
 
-### Dynamic events
-
-Create events on the fly from Twig — returns the existing event if one with that handle already exists:
-
-```twig
-{{ craft.points.addEvent({
-    event: 'Viewed ' ~ entry.title,
-    eventHandle: 'viewed' ~ entry.title|camel,
-    points: 5,
-    multiple: false,
-}) }}
-```
-
 ### Awards for a user
 
 ```twig
@@ -353,7 +340,6 @@ Create events on the fly from Twig — returns the existing event if one with th
 | `craft.points.levelById(id)` | `Level\|null` |
 | `craft.points.levelByHandle(handle)` | `Level\|null` |
 | `craft.points.leaderboard(limit?, offset?)` | `array` — rows of `{user, points, level}` |
-| `craft.points.addEvent(options)` | `Event\|null` |
 | `craft.points.currency` | `string` — singular currency label (e.g. "Coin") |
 | `craft.points.currencyPlural` | `string` — plural label (e.g. "Coins") |
 | `craft.points.isPro` | `bool` — true on Pro edition |
@@ -398,7 +384,7 @@ The Twig API has been **renamed**:
 | `craft.points.entriesByUser(userId?)` | `craft.points.awardsByUser(userId?)` |
 | `craft.points.entries` | `craft.points.awards` |
 | `craft.points.entryById(id)` | `craft.points.awardById(id)` |
-| `craft.points.addEvent(opts)` | `craft.points.addEvent(opts)` (unchanged) |
+| `craft.points.addEvent(opts)` | **Removed.** Manage events in the CP only. |
 
 The database schema is **not** back-compatible: Craft 2 stored entries with an `eventHandle` string and no audit trail. The Craft 5 version uses an `eventId` foreign key and a `pointsSnapshot` column. There is no automatic data migration — you'll need to re-create events and award points fresh.
 

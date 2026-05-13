@@ -10,6 +10,7 @@
 - `craft.points.isPro` Twig helper for conditional templating
 
 ### Breaking
+- **Removed `craft.points.addEvent`** — events are now CMS-managed only. Creating events from Twig caused event sprawl, bypassed admin curation, and didn't sync via project config. To award points per-content, use a single event (e.g. `articleViewed`) with `multiple: true` and let `craft.points.addAward({eventHandle:'articleViewed'})` be called from your template.
 - **"Entry" renamed to "Award" throughout** to avoid clashing with Craft's own Entry element. This affects:
   - DB table: `points_entries` → `points_awards` (versioned migration handles the rename, data preserved)
   - Element class: `PointEntry` → `PointAward`

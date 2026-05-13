@@ -64,32 +64,6 @@ class PointsVariable
         return Points::getInstance()->events->getEventByHandle($handle);
     }
 
-    /**
-     * Create an event on the fly if one with this handle doesn't already exist.
-     *
-     * Usage: {{ craft.points.addEvent({ event: 'Signed Up', eventHandle: 'signedUp', points: 20, multiple: false }) }}
-     */
-    public function addEvent(array $options): ?Event
-    {
-        if (empty($options['eventHandle'])) {
-            return null;
-        }
-
-        $existing = $this->eventByHandle($options['eventHandle']);
-        if ($existing) {
-            return $existing;
-        }
-
-        $event = new Event();
-        $event->name = $options['event'] ?? '';
-        $event->handle = $options['eventHandle'];
-        $event->points = (int)($options['points'] ?? 0);
-        $event->pointsType = (string)($options['pointsType'] ?? 'flat');
-        $event->multiple = (bool)($options['multiple'] ?? false);
-
-        return Points::getInstance()->events->saveEvent($event) ? $event : null;
-    }
-
     public function awardById(int $id): ?PointAward
     {
         return Points::getInstance()->awards->getAwardById($id);
