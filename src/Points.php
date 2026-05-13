@@ -47,9 +47,20 @@ use yii\base\Event;
  */
 class Points extends Plugin
 {
+    public const EDITION_LITE = 'lite';
+    public const EDITION_PRO = 'pro';
+
     public string $schemaVersion = '1.4.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
+
+    public static function editions(): array
+    {
+        return [
+            self::EDITION_LITE,
+            self::EDITION_PRO,
+        ];
+    }
 
     public static function config(): array
     {
@@ -76,7 +87,7 @@ class Points extends Plugin
     public function getCpNavItem(): ?array
     {
         $item = parent::getCpNavItem();
-        $item['label'] = Craft::t('points', 'Points');
+        $item['label'] = $this->getSettings()->currencyNamePlural;
 
         $user = Craft::$app->getUser();
         $subnav = [];
@@ -185,7 +196,7 @@ class Points extends Plugin
             UserPermissions::EVENT_REGISTER_PERMISSIONS,
             function(RegisterUserPermissionsEvent $event) {
                 $event->permissions[] = [
-                    'heading' => Craft::t('points', 'Points'),
+                    'heading' => $this->getSettings()->currencyNamePlural,
                     'permissions' => [
                         'points-manageEvents' => [
                             'label' => Craft::t('points', 'Manage events'),

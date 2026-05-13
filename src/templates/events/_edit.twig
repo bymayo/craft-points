@@ -6,7 +6,7 @@
 {% set fullPageForm = true %}
 
 {% set crumbs = [
-    { label: 'Points'|t('points'), url: url('points') },
+    { label: craft.points.currencyPlural, url: url('points') },
     { label: 'Events'|t('points'), url: url('points/events') },
 ] %}
 
@@ -38,14 +38,17 @@
         errors: event.getErrors('handle'),
     }) }}
 
+    {% set pointsTypeOptions = [{ label: 'Flat amount'|t('points'), value: 'flat' }] %}
+    {% if isPro %}
+        {% set pointsTypeOptions = pointsTypeOptions|merge([{ label: 'Percentage of order total'|t('points'), value: 'percent' }]) %}
+    {% endif %}
+
     {{ forms.selectField({
         label: 'Points type'|t('points'),
+        instructions: isPro ? null : 'Percentage of order total is available on the Pro edition.'|t('points'),
         id: 'pointsType',
         name: 'pointsType',
-        options: [
-            { label: 'Flat amount'|t('points'), value: 'flat' },
-            { label: 'Percentage of order total'|t('points'), value: 'percent' },
-        ],
+        options: pointsTypeOptions,
         value: event.pointsType ?? 'flat',
     }) }}
 

@@ -3,4 +3,42 @@
 
 {% import '_includes/forms.twig' as forms %}
 
-{# ... #}
+<h2>{{ 'Terminology'|t('points') }}</h2>
+
+<p>{{ 'Rename the currency the plugin uses in the UI. The plugin handle, URLs and database don\'t change — only what your editors see.'|t('points') }}</p>
+
+{{ forms.textField({
+    first: true,
+    label: 'Currency name'|t('points'),
+    instructions: 'Singular. e.g. Point, Coin, Credit, Star.'|t('points'),
+    id: 'currencyName',
+    name: 'currencyName',
+    value: settings.currencyName,
+    required: true,
+    errors: settings.getErrors('currencyName'),
+}) }}
+
+{{ forms.textField({
+    label: 'Currency name (plural)'|t('points'),
+    instructions: 'Plural. e.g. Points, Coins, Credits, Stars.'|t('points'),
+    id: 'currencyNamePlural',
+    name: 'currencyNamePlural',
+    value: settings.currencyNamePlural,
+    required: true,
+    errors: settings.getErrors('currencyNamePlural'),
+}) }}
+
+<hr>
+
+<h2>{{ 'Edition'|t('points') }}</h2>
+
+<p>
+    {{ 'Current edition:'|t('points') }}
+    <strong>{{ plugin.edition|capitalize }}</strong>
+</p>
+
+{% if plugin.is('lite') and not plugin.is('pro') %}
+    <p class="light">
+        {{ 'Upgrade to Pro to award points from Craft Commerce orders and subscriptions, and to use percentage-of-order point awards.'|t('points') }}
+    </p>
+{% endif %}

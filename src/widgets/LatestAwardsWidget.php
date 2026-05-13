@@ -12,7 +12,7 @@ class LatestAwardsWidget extends Widget
 
     public static function displayName(): string
     {
-        return Craft::t('points', 'Latest Points Awards');
+        return 'Latest ' . Points::getInstance()->getSettings()->currencyName . ' Awards';
     }
 
     public static function icon(): ?string

@@ -197,6 +197,24 @@ class PointsVariable
         return Points::getInstance()->awards->leaderboard($limit, $offset);
     }
 
+    /** Singular currency label from plugin settings (e.g. "Coin"). */
+    public function currency(): string
+    {
+        return Points::getInstance()->getSettings()->currencyName;
+    }
+
+    /** Plural currency label from plugin settings (e.g. "Coins"). */
+    public function currencyPlural(): string
+    {
+        return Points::getInstance()->getSettings()->currencyNamePlural;
+    }
+
+    /** True if the plugin is running on Pro edition. */
+    public function isPro(): bool
+    {
+        return Points::getInstance()->is(Points::EDITION_PRO);
+    }
+
     private function currentUserId(): ?int
     {
         $user = Craft::$app->getUser()->getIdentity();

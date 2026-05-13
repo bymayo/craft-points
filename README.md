@@ -4,12 +4,31 @@
 
 Award points to users for actions they perform, build leaderboards, and unlock tiered loyalty programmes — all from inside Craft.
 
+## Editions
+
+| | Lite (free) | Pro |
+|---|---|---|
+| Events, Awards, Levels | ✅ | ✅ |
+| Leaderboard + widgets | ✅ | ✅ |
+| Automatic triggers (Entry / Category / User / Asset) | ✅ | ✅ |
+| Twig & GraphQL APIs | ✅ | ✅ |
+| Plugin events | ✅ | ✅ |
+| Configurable currency name | ✅ | ✅ |
+| **Craft Commerce triggers** (Order completed, Subscription created) | — | ✅ |
+| **Percentage-of-order-total** point awards | — | ✅ |
+
+Switch edition during development via `config/project/project.yaml`:
+
+```yaml
+plugins.points.edition: pro
+```
+
 ## Features
 
 - **Events** — define point-awarding actions (e.g. "Signed up to newsletter" = 20pts)
 - **Automatic triggers** — fire events on Entry create/update/delete, Category save/delete, User register/login/update, Asset upload/delete — with per-section / per-group / per-volume scoping
 - **Extensible** — other plugins can register their own triggers via `Triggers::EVENT_REGISTER_TRIGGERS`
-- **Entries** — award those events to users from the CP or Twig
+- **Awards** — award those events to users from the CP or Twig
 - **Levels** — tier users by accumulated points (Bronze/Silver/Gold style) with colour and icon
 - **Leaderboard** — CP page and dashboard widget showing top users by total points, with their current level
 - **Element index** — entries are a first-class element type with search, sort, filters, and bulk delete
@@ -40,8 +59,10 @@ php craft plugin/install points
 | Term | Meaning |
 |---|---|
 | **Event** | A named action worth a fixed number of points, e.g. `signedUp` = 20 |
-| **Entry** | A record of an event being awarded to a specific user, at a specific time |
+| **Award** | A record of an event being awarded to a specific user, at a specific time |
 | **Level** | A named tier reached once a user's point sum crosses a threshold |
+
+The default currency is "Points", but you can rename it in **Points → Settings** (e.g. Coins, Credits, Stars). The chosen name appears throughout the CP and is available in Twig as `{{ craft.points.currency }}` / `{{ craft.points.currencyPlural }}`.
 
 ## Usage
 
@@ -86,32 +107,32 @@ Event::on(Triggers::class, Triggers::EVENT_REGISTER_TRIGGERS, function(RegisterT
 });
 ```
 
-### Listening for entry / level events
+### Listening for award / level events
 
 ```php
-use bymayo\points\events\EntryEvent;
+use bymayo\points\events\AwardEvent;
 use bymayo\points\events\LevelChangedEvent;
-use bymayo\points\services\Entries;
+use bymayo\points\services\Awards;
 use bymayo\points\services\Levels;
 use yii\base\Event;
 
-// Cancel an entry award (e.g. fraud check)
-Event::on(Entries::class, Entries::EVENT_BEFORE_ADD_ENTRY, function(EntryEvent $e) {
+// Cancel an award (e.g. fraud check)
+Event::on(Awards::class, Awards::EVENT_BEFORE_ADD_AWARD, function(AwardEvent $e) {
     if (suspiciousActivity($e->userId)) {
         $e->isValid = false;
     }
 });
 
 // Modify the points being awarded
-Event::on(Entries::class, Entries::EVENT_BEFORE_ADD_ENTRY, function(EntryEvent $e) {
+Event::on(Awards::class, Awards::EVENT_BEFORE_ADD_AWARD, function(AwardEvent $e) {
     if (isVip($e->userId)) {
         $e->pointsToAward = $e->pointsToAward * 2;
     }
 });
 
-// React after an entry is awarded
-Event::on(Entries::class, Entries::EVENT_AFTER_ADD_ENTRY, function(EntryEvent $e) {
-    sendThankYouEmail($e->userId, $e->event, $e->entry);
+// React after an award is created
+Event::on(Awards::class, Awards::EVENT_AFTER_ADD_AWARD, function(AwardEvent $e) {
+    sendThankYouEmail($e->userId, $e->event, $e->award);
 });
 
 // React when a user crosses a level threshold (up or down)
@@ -126,10 +147,10 @@ Available events:
 
 | Constant | Cancellable | When |
 |---|---|---|
-| `Entries::EVENT_BEFORE_ADD_ENTRY` | Yes | Before an entry is saved. Handler may modify `pointsToAward`. |
-| `Entries::EVENT_AFTER_ADD_ENTRY` | — | After the entry is saved. |
-| `Entries::EVENT_BEFORE_REMOVE_ENTRY` | Yes | Before an entry is deleted. |
-| `Entries::EVENT_AFTER_REMOVE_ENTRY` | — | After the entry is deleted. |
+| `Awards::EVENT_BEFORE_ADD_AWARD` | Yes | Before an award is saved. Handler may modify `pointsToAward`. |
+| `Awards::EVENT_AFTER_ADD_AWARD` | — | After the award is saved. |
+| `Awards::EVENT_BEFORE_REMOVE_AWARD` | Yes | Before an award is deleted. |
+| `Awards::EVENT_AFTER_REMOVE_AWARD` | — | After the award is deleted. |
 | `Levels::EVENT_LEVEL_CHANGED` | — | When add/remove caused the user to change level. |
 
 ## GraphQL
@@ -159,9 +180,9 @@ query Top10 {
   }
 }
 
-# Recent entries for a user
+# Recent awards for a user
 query Recent($userId: Int!) {
-  pointsEntries(userId: $userId, limit: 20) {
+  pointsAwards(userId: $userId, limit: 20) {
     id
     pointsSnapshot
     dateCreated
@@ -198,52 +219,52 @@ Available queries:
 | `pointsEvent` | `handle: String!` | `PointsEvent` |
 | `pointsLevels` | — | `[PointsLevel]` |
 | `pointsLevelForUser` | `userId: Int!` | `PointsLevel` |
-| `pointsEntries` | `userId, eventId, limit, offset` | `[PointsEntry]` |
+| `pointsAwards` | `userId, eventId, limit, offset` | `[PointsAward]` |
 | `pointsSumForUser` | `userId: Int!` | `Int` |
-| `pointsTotalForUser` | `userId: Int!` | `Int` |
+| `pointsCountForUser` | `userId: Int!` | `Int` |
 | `pointsLeaderboard` | `limit, offset` | `[PointsLeaderboardRow]` |
 
 ### Awarding points
 
-From the CP — **Points → Entries → New entry** — or via Twig:
+From the CP — **Points → Awards → New award** — or via Twig:
 
 ```twig
 {# Award points to the current logged-in user #}
-{{ craft.points.addEntry({ eventHandle: 'signedUp' }) }}
+{{ craft.points.addAward({ eventHandle: 'signedUp' }) }}
 
 {# Award to a specific user #}
-{{ craft.points.addEntry({ userId: 5, eventHandle: 'signedUp' }) }}
+{{ craft.points.addAward({ userId: 5, eventHandle: 'signedUp' }) }}
 ```
 
-If the event has **Allow multiple** off and the user already has an entry for it, `addEntry` is a silent no-op.
+If the event has **Allow multiple** off and the user already has an award for it, `addAward` is a silent no-op.
 
 ### Removing points
 
 ```twig
-{# Remove the oldest matching entry for the current user #}
-{{ craft.points.removeEntry({ eventHandle: 'signedUp' }) }}
+{# Remove the oldest matching award for the current user #}
+{{ craft.points.removeAward({ eventHandle: 'signedUp' }) }}
 
 {# Or for a specific user #}
-{{ craft.points.removeEntry({ userId: 5, eventHandle: 'signedUp' }) }}
+{{ craft.points.removeAward({ userId: 5, eventHandle: 'signedUp' }) }}
 ```
 
-`removeEntry` removes a single entry. To clear all of a user's entries for an event, call it in a loop.
+`removeAward` removes a single award. To clear all of a user's awards for an event, call it in a loop.
 
 ### Reading totals
 
 ```twig
 {# Current user's total points #}
-{{ craft.points.sumEntries() }}
+{{ craft.points.sumForUser() }}
 
 {# Specific user #}
-{{ craft.points.sumEntries(5) }}
+{{ craft.points.sumForUser(5) }}
 
-{# Entry count #}
-{{ craft.points.totalEntries() }}
-{{ craft.points.totalEntries(5) }}
+{# Award count #}
+{{ craft.points.countForUser() }}
+{{ craft.points.countForUser(5) }}
 ```
 
-Sums are based on each entry's `pointsSnapshot` (the event's value at award time), not the event's *current* value. This means editing an event's points value later doesn't retroactively change history.
+Sums are based on each award's `pointsSnapshot` (the event's value at award time), not the event's *current* value. This means editing an event's points value later doesn't retroactively change history.
 
 ### Levels
 
@@ -301,11 +322,11 @@ Create events on the fly from Twig — returns the existing event if one with th
 }) }}
 ```
 
-### Entries for a user
+### Awards for a user
 
 ```twig
-{% for entry in craft.points.entriesByUser() %}
-    {{ entry.event.name }} — {{ entry.pointsSnapshot }} pts ({{ entry.dateCreated|datetime }})
+{% for award in craft.points.awardsByUser() %}
+    {{ award.event.name }} — {{ award.pointsSnapshot }} pts ({{ award.dateCreated|datetime }})
 {% endfor %}
 ```
 
@@ -313,7 +334,7 @@ Create events on the fly from Twig — returns the existing event if one with th
 
 | Call | Returns |
 |---|---|
-| `craft.points.entries` | `PointEntry[]` — all entries, newest first |
+| `craft.points.awards` | `PointAward[]` — all awards, newest first |
 | `craft.points.events` | `Event[]` |
 | `craft.points.levels` | `Level[]` — ordered by threshold ascending |
 | `craft.points.user(id)` | `User\|null` |
@@ -321,18 +342,21 @@ Create events on the fly from Twig — returns the existing event if one with th
 | `craft.points.eventById(id)` | `Event\|null` |
 | `craft.points.eventByHandle(handle)` | `Event\|null` |
 | `craft.points.eventOptions` | `array` — for select fields |
-| `craft.points.entryById(id)` | `PointEntry\|null` |
-| `craft.points.entriesByUser(id?)` | `PointEntry[]` — defaults to current user |
-| `craft.points.addEntry(options)` | `PointEntry\|null` |
-| `craft.points.removeEntry(options)` | `bool` |
-| `craft.points.sumEntries(id?)` | `int` |
-| `craft.points.totalEntries(id?)` | `int` |
+| `craft.points.awardById(id)` | `PointAward\|null` |
+| `craft.points.awardsByUser(id?)` | `PointAward[]` — defaults to current user |
+| `craft.points.addAward(options)` | `PointAward\|null` |
+| `craft.points.removeAward(options)` | `bool` |
+| `craft.points.sumForUser(id?)` | `int` |
+| `craft.points.countForUser(id?)` | `int` |
 | `craft.points.levelForUser(id?)` | `Level\|null` |
 | `craft.points.levelForPoints(points)` | `Level\|null` |
 | `craft.points.levelById(id)` | `Level\|null` |
 | `craft.points.levelByHandle(handle)` | `Level\|null` |
 | `craft.points.leaderboard(limit?, offset?)` | `array` — rows of `{user, points, level}` |
 | `craft.points.addEvent(options)` | `Event\|null` |
+| `craft.points.currency` | `string` — singular currency label (e.g. "Coin") |
+| `craft.points.currencyPlural` | `string` — plural label (e.g. "Coins") |
+| `craft.points.isPro` | `bool` — true on Pro edition |
 
 ## Element query
 
@@ -363,7 +387,18 @@ Safer patterns:
 
 ## Migrating from the Craft 2 plugin
 
-The Twig API is back-compatible — your existing `craft.points.addEntry / removeEntry / sumEntries / totalEntries / addEvent` calls work unchanged.
+The Twig API has been **renamed**:
+
+| Craft 2 | Craft 5 |
+|---|---|
+| `craft.points.addEntry(opts)` | `craft.points.addAward(opts)` |
+| `craft.points.removeEntry(opts)` | `craft.points.removeAward(opts)` |
+| `craft.points.sumEntries(userId?)` | `craft.points.sumForUser(userId?)` |
+| `craft.points.totalEntries(userId?)` | `craft.points.countForUser(userId?)` |
+| `craft.points.entriesByUser(userId?)` | `craft.points.awardsByUser(userId?)` |
+| `craft.points.entries` | `craft.points.awards` |
+| `craft.points.entryById(id)` | `craft.points.awardById(id)` |
+| `craft.points.addEvent(opts)` | `craft.points.addEvent(opts)` (unchanged) |
 
 The database schema is **not** back-compatible: Craft 2 stored entries with an `eventHandle` string and no audit trail. The Craft 5 version uses an `eventId` foreign key and a `pointsSnapshot` column. There is no automatic data migration — you'll need to re-create events and award points fresh.
 

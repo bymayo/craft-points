@@ -122,8 +122,9 @@ class Triggers extends Component
             AssetDeletedTrigger::class,
         ];
 
-        // Conditionally add Commerce triggers if Commerce is enabled.
-        if (Craft::$app->getPlugins()->isPluginEnabled('commerce')) {
+        // Commerce triggers are Pro-only and require Commerce to be installed.
+        $isPro = Points::getInstance()->is(Points::EDITION_PRO);
+        if ($isPro && Craft::$app->getPlugins()->isPluginEnabled('commerce')) {
             $defaults[] = OrderCompletedTrigger::class;
             if (class_exists('craft\\commerce\\elements\\Subscription')) {
                 $defaults[] = SubscriptionCreatedTrigger::class;

@@ -4,7 +4,7 @@
 {% set selectedSubnavItem = 'events' %}
 
 {% set crumbs = [
-    { label: 'Points'|t('points'), url: url('points') },
+    { label: craft.points.currencyPlural, url: url('points') },
 ] %}
 
 {% block actionButton %}
@@ -20,7 +20,7 @@
                 <tr>
                     <th scope="col">{{ 'Name'|t('points') }}</th>
                     <th scope="col">{{ 'Handle'|t('points') }}</th>
-                    <th scope="col">{{ 'Points'|t('points') }}</th>
+                    <th scope="col">{{ craft.points.currencyPlural }}</th>
                     <th scope="col">{{ 'Multiple'|t('points') }}</th>
                     <th scope="col">{{ 'Trigger'|t('points') }}</th>
                     <th scope="col"></th>

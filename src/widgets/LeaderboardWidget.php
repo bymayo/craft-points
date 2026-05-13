@@ -12,7 +12,7 @@ class LeaderboardWidget extends Widget
 
     public static function displayName(): string
     {
-        return Craft::t('points', 'Points Leaderboard');
+        return Points::getInstance()->getSettings()->currencyNamePlural . ' Leaderboard';
     }
 
     public static function icon(): ?string

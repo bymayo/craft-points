@@ -4,7 +4,7 @@
 {% set selectedSubnavItem = 'leaderboard' %}
 
 {% set crumbs = [
-    { label: 'Points'|t('points'), url: url('points') },
+    { label: craft.points.currencyPlural, url: url('points') },
 ] %}
 
 {% block content %}
@@ -15,7 +15,7 @@
                     <th scope="col" class="thin">{{ '#'|t('points') }}</th>
                     <th scope="col">{{ 'User'|t('points') }}</th>
                     <th scope="col">{{ 'Level'|t('points') }}</th>
-                    <th scope="col">{{ 'Points'|t('points') }}</th>
+                    <th scope="col">{{ craft.points.currencyPlural }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,7 +35,7 @@
         </table>
     {% else %}
         <div class="zilch">
-            <p>{{ 'No entries yet.'|t('points') }}</p>
+            <p>{{ 'No awards yet.'|t('points') }}</p>
         </div>
     {% endif %}
 {% endblock %}

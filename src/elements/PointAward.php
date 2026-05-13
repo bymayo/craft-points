@@ -25,22 +25,22 @@ class PointAward extends Element
 
     public static function displayName(): string
     {
-        return Craft::t('points', 'Point Award');
+        return Points::getInstance()->getSettings()->currencyName . ' Award';
     }
 
     public static function lowerDisplayName(): string
     {
-        return Craft::t('points', 'point award');
+        return strtolower(Points::getInstance()->getSettings()->currencyName) . ' award';
     }
 
     public static function pluralDisplayName(): string
     {
-        return Craft::t('points', 'Point Awards');
+        return Points::getInstance()->getSettings()->currencyName . ' Awards';
     }
 
     public static function pluralLowerDisplayName(): string
     {
-        return Craft::t('points', 'point awards');
+        return strtolower(Points::getInstance()->getSettings()->currencyName) . ' awards';
     }
 
     public static function refHandle(): ?string

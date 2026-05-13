@@ -44,6 +44,7 @@ class EventsController extends Controller
                 : Craft::t('points', 'New event'),
             'triggerOptions' => $triggersService->getSelectOptions(),
             'scopedTriggers' => $triggersService->getScopedTriggersForTemplate(),
+            'isPro' => Points::getInstance()->is(Points::EDITION_PRO),
         ]);
     }
 

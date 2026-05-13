@@ -6,14 +6,15 @@
 {% set fullPageForm = true %}
 
 {% set crumbs = [
-    { label: 'Points'|t('points'), url: url('points') },
+    { label: craft.points.currencyPlural, url: url('points') },
     { label: 'Awards'|t('points'), url: url('points/awards') },
 ] %}
 
 {% set eventOptions = [{ label: '----'|t('points'), value: '' }] %}
 {% for event in events %}
+    {% set suffix = event.pointsType == 'percent' ? '%' : ' ' ~ craft.points.currencyPlural %}
     {% set eventOptions = eventOptions|merge([{
-        label: event.name ~ ' (' ~ event.points ~ (event.pointsType == 'percent' ? '%' : ' pts') ~ ')',
+        label: event.name ~ ' (' ~ event.points ~ suffix ~ ')',
         value: event.id,
     }]) %}
 {% endfor %}
@@ -49,7 +50,7 @@
 
     {% if award.id %}
         {{ forms.textField({
-            label: 'Points'|t('points'),
+            label: craft.points.currencyPlural,
             instructions: 'Snapshot of the event\'s points value when this award was created. Editing the event later won\'t change this.'|t('points'),
             id: 'pointsSnapshot',
             name: 'pointsSnapshot',

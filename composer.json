@@ -31,7 +31,8 @@
     "developer": "ByMayo",
     "documentationUrl": "https://github.com/bymayo/craft-points",
     "changelogUrl": "https://raw.githubusercontent.com/bymayo/craft-points/craft-5/CHANGELOG.md",
-    "class": "bymayo\\points\\Points"
+    "class": "bymayo\\points\\Points",
+    "editions": ["lite", "pro"]
   },
   "config": {
     "sort-packages": true,

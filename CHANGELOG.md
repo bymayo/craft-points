@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added (continued)
+- **Plugin editions** — Lite (free) and Pro. Lite is the full gamification feature set (events, awards, levels, leaderboard, widgets, triggers for Entry/Category/User/Asset, Twig + GraphQL APIs, plugin events). Pro adds:
+  - Commerce triggers (Order completed, Subscription created)
+  - Percentage-of-order-total point awards
+- **Configurable currency name** — plugin settings let you rename "Points" to anything (Coins, Credits, Stars, Tokens…). The label appears in the CP nav, element type names, widget titles, page breadcrumbs, and frontend Twig via `craft.points.currency` / `craft.points.currencyPlural`. Plugin handle, URLs, table names, and Twig API namespaces are unchanged — only display labels are affected.
+- `craft.points.isPro` Twig helper for conditional templating
+
 ### Breaking
 - **"Entry" renamed to "Award" throughout** to avoid clashing with Craft's own Entry element. This affects:
   - DB table: `points_entries` → `points_awards` (versioned migration handles the rename, data preserved)

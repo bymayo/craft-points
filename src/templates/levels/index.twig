@@ -4,7 +4,7 @@
 {% set selectedSubnavItem = 'levels' %}
 
 {% set crumbs = [
-    { label: 'Points'|t('points'), url: url('points') },
+    { label: craft.points.currencyPlural, url: url('points') },
 ] %}
 
 {% block actionButton %}
