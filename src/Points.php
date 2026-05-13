@@ -2,16 +2,30 @@
 
 namespace bymayo\points;
 
-use Craft;
+use bymayo\points\elements\PointEntry;
 use bymayo\points\models\Settings;
+use bymayo\points\services\Entries;
+use bymayo\points\services\Events;
+use bymayo\points\variables\PointsVariable;
+use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\events\RegisterComponentTypesEvent;
+use craft\events\RegisterUrlRulesEvent;
+use craft\events\RegisterUserPermissionsEvent;
+use craft\services\Elements;
+use craft\services\UserPermissions;
+use craft\web\twig\variables\CraftVariable;
+use craft\web\UrlManager;
+use yii\base\Event;
 
 /**
  * Points plugin
  *
  * @method static Points getInstance()
  * @method Settings getSettings()
+ * @property-read Events $events
+ * @property-read Entries $entries
  * @author ByMayo <jason@bymayo.co.uk>
  * @copyright ByMayo
  * @license https://craftcms.github.io/license/ Craft License
@@ -20,12 +34,14 @@ class Points extends Plugin
 {
     public string $schemaVersion = '1.0.0';
     public bool $hasCpSettings = true;
+    public bool $hasCpSection = true;
 
     public static function config(): array
     {
         return [
             'components' => [
-                // Define component configs here...
+                'events' => Events::class,
+                'entries' => Entries::class,
             ],
         ];
     }
@@ -35,12 +51,23 @@ class Points extends Plugin
         parent::init();
 
         $this->attachEventHandlers();
+    }
 
-        // Any code that creates an element query or loads Twig should be deferred until
-        // after Craft is fully initialized, to avoid conflicts with other plugins/modules
-        Craft::$app->onInit(function() {
-            // ...
-        });
+    public function getCpNavItem(): ?array
+    {
+        $item = parent::getCpNavItem();
+        $item['label'] = Craft::t('points', 'Points');
+        $item['subnav'] = [
+            'entries' => ['label' => Craft::t('points', 'Entries'), 'url' => 'points/entries'],
+            'events' => ['label' => Craft::t('points', 'Events'), 'url' => 'points/events'],
+        ];
+        return $item;
+    }
+
+    protected function cpNavIconPath(): ?string
+    {
+        $path = $this->basePath . DIRECTORY_SEPARATOR . 'icon-outline.svg';
+        return file_exists($path) ? $path : parent::cpNavIconPath();
     }
 
     protected function createSettingsModel(): ?Model
@@ -58,7 +85,56 @@ class Points extends Plugin
 
     private function attachEventHandlers(): void
     {
-        // Register event handlers here ...
-        // (see https://craftcms.com/docs/5.x/extend/events.html to get started)
+        Event::on(
+            Elements::class,
+            Elements::EVENT_REGISTER_ELEMENT_TYPES,
+            function(RegisterComponentTypesEvent $event) {
+                $event->types[] = PointEntry::class;
+            }
+        );
+
+        Event::on(
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_CP_URL_RULES,
+            function(RegisterUrlRulesEvent $event) {
+                $event->rules['points'] = 'points/entries/index';
+
+                $event->rules['points/entries'] = 'points/entries/index';
+                $event->rules['points/entries/new'] = 'points/entries/edit';
+                $event->rules['points/entries/<entryId:\d+>'] = 'points/entries/edit';
+
+                $event->rules['points/events'] = 'points/events/index';
+                $event->rules['points/events/new'] = 'points/events/edit';
+                $event->rules['points/events/<eventId:\d+>'] = 'points/events/edit';
+            }
+        );
+
+        Event::on(
+            CraftVariable::class,
+            CraftVariable::EVENT_INIT,
+            function(Event $event) {
+                /** @var CraftVariable $variable */
+                $variable = $event->sender;
+                $variable->set('points', PointsVariable::class);
+            }
+        );
+
+        Event::on(
+            UserPermissions::class,
+            UserPermissions::EVENT_REGISTER_PERMISSIONS,
+            function(RegisterUserPermissionsEvent $event) {
+                $event->permissions[] = [
+                    'heading' => Craft::t('points', 'Points'),
+                    'permissions' => [
+                        'points-manageEvents' => [
+                            'label' => Craft::t('points', 'Manage events'),
+                        ],
+                        'points-manageEntries' => [
+                            'label' => Craft::t('points', 'Manage entries'),
+                        ],
+                    ],
+                ];
+            }
+        );
     }
 }

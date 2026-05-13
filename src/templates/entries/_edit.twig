@@ -1,0 +1,61 @@
+{% extends '_layouts/cp' %}
+
+{% import '_includes/forms.twig' as forms %}
+
+{% set selectedSubnavItem = 'entries' %}
+{% set fullPageForm = true %}
+
+{% set crumbs = [
+    { label: 'Points'|t('points'), url: url('points') },
+    { label: 'Entries'|t('points'), url: url('points/entries') },
+] %}
+
+{% set eventOptions = [{ label: '----'|t('points'), value: '' }] %}
+{% for event in events %}
+    {% set eventOptions = eventOptions|merge([{
+        label: event.name ~ ' (' ~ event.points ~ ' pts)',
+        value: event.id,
+    }]) %}
+{% endfor %}
+
+{% block content %}
+    {{ actionInput('points/entries/save') }}
+    {{ redirectInput('points/entries') }}
+    {% if entry.id %}
+        <input type="hidden" name="entryId" value="{{ entry.id }}">
+    {% endif %}
+
+    {{ forms.elementSelectField({
+        first: true,
+        label: 'User'|t('points'),
+        id: 'userId',
+        name: 'userId',
+        elementType: 'craft\\elements\\User',
+        elements: entry.user ? [entry.user] : null,
+        limit: 1,
+        required: true,
+        errors: entry.getErrors('userId'),
+    }) }}
+
+    {{ forms.selectField({
+        label: 'Event'|t('points'),
+        id: 'eventId',
+        name: 'eventId',
+        options: eventOptions,
+        value: entry.eventId,
+        required: true,
+        errors: entry.getErrors('eventId'),
+    }) }}
+
+    {% if entry.id %}
+        {{ forms.textField({
+            label: 'Points'|t('points'),
+            instructions: 'Snapshot of the event\'s points value when this entry was created. Editing the event later won\'t change this.'|t('points'),
+            id: 'pointsSnapshot',
+            name: 'pointsSnapshot',
+            type: 'number',
+            value: entry.pointsSnapshot,
+            disabled: true,
+        }) }}
+    {% endif %}
+{% endblock %}

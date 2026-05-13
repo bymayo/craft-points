@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/bymayo/craft-points/master/resources/icon.png" width="70">
+<img src="https://raw.githubusercontent.com/bymayo/craft-points/craft-5/src/icon.svg" width="70">
 
 # Points for Craft CMS 5.x
 

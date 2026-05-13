@@ -1,0 +1,59 @@
+{% extends '_layouts/cp' %}
+
+{% import '_includes/forms.twig' as forms %}
+
+{% set selectedSubnavItem = 'events' %}
+{% set fullPageForm = true %}
+
+{% set crumbs = [
+    { label: 'Points'|t('points'), url: url('points') },
+    { label: 'Events'|t('points'), url: url('points/events') },
+] %}
+
+{% block content %}
+    {{ actionInput('points/events/save') }}
+    {{ redirectInput('points/events') }}
+    {% if event.id %}
+        <input type="hidden" name="eventId" value="{{ event.id }}">
+    {% endif %}
+
+    {{ forms.textField({
+        first: true,
+        label: 'Name'|t('points'),
+        id: 'name',
+        name: 'name',
+        value: event.name,
+        autofocus: true,
+        required: true,
+        errors: event.getErrors('name'),
+    }) }}
+
+    {{ forms.textField({
+        label: 'Handle'|t('points'),
+        id: 'handle',
+        name: 'handle',
+        class: 'code',
+        value: event.handle,
+        required: true,
+        errors: event.getErrors('handle'),
+    }) }}
+
+    {{ forms.textField({
+        label: 'Points'|t('points'),
+        instructions: 'Number of points awarded when this event is triggered.'|t('points'),
+        id: 'points',
+        name: 'points',
+        type: 'number',
+        value: event.points,
+        required: true,
+        errors: event.getErrors('points'),
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: 'Allow multiple'|t('points'),
+        instructions: 'When on, a user can be awarded points from this event more than once.'|t('points'),
+        id: 'multiple',
+        name: 'multiple',
+        on: event.multiple,
+    }) }}
+{% endblock %}
