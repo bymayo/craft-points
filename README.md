@@ -18,7 +18,7 @@ Award points to users for actions they perform, build leaderboards, and unlock t
 
 ## Coming soon
 
-- Craft Commerce integration — award points on purchase, with flat or percentage-of-price rules
+- Percentage-of-order-total points awards (Commerce-only)
 - Plugin events for extensibility (`EVENT_AFTER_ADD_ENTRY`, `EVENT_LEVEL_CHANGED`, …)
 - GraphQL types
 
@@ -65,6 +65,10 @@ When you pick a trigger that's not "Manual", the plugin listens for that system 
 | Category created/updated/deleted | Active CP user |
 | User registered / updated / logged in | The user themselves |
 | Asset uploaded / deleted | Asset uploader |
+| Order completed (Commerce) | Order customer |
+| Subscription created (Commerce) | Subscriber |
+
+Commerce triggers only appear in the dropdown when `craftcms/commerce` is installed and enabled.
 
 The Event's `multiple` flag still applies — so an `Entry updated` event with `multiple: false` only awards the first time a given user updates an entry.
 

@@ -9,6 +9,8 @@ use bymayo\points\triggers\AssetUploadedTrigger;
 use bymayo\points\triggers\CategoryCreatedTrigger;
 use bymayo\points\triggers\CategoryDeletedTrigger;
 use bymayo\points\triggers\CategoryUpdatedTrigger;
+use bymayo\points\triggers\commerce\OrderCompletedTrigger;
+use bymayo\points\triggers\commerce\SubscriptionCreatedTrigger;
 use bymayo\points\triggers\EntryCreatedTrigger;
 use bymayo\points\triggers\EntryDeletedTrigger;
 use bymayo\points\triggers\EntryUpdatedTrigger;
@@ -119,6 +121,14 @@ class Triggers extends Component
             AssetUploadedTrigger::class,
             AssetDeletedTrigger::class,
         ];
+
+        // Conditionally add Commerce triggers if Commerce is enabled.
+        if (Craft::$app->getPlugins()->isPluginEnabled('commerce')) {
+            $defaults[] = OrderCompletedTrigger::class;
+            if (class_exists('craft\\commerce\\elements\\Subscription')) {
+                $defaults[] = SubscriptionCreatedTrigger::class;
+            }
+        }
 
         $event = new RegisterTriggersEvent(['triggers' => $defaults]);
         $this->trigger(self::EVENT_REGISTER_TRIGGERS, $event);
