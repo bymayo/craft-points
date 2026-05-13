@@ -36,4 +36,12 @@ interface TriggerInterface
 
     /** Options for the scope multi-select in the CP edit form. */
     public static function getScopeOptions(): array;
+
+    /**
+     * Return the monetary amount for this event (e.g. order total), if applicable.
+     *
+     * Used by percentage-of-amount point awards. Triggers that don't have an
+     * amount context (most non-Commerce ones) should return null.
+     */
+    public static function getAmountForEvent($event): ?float;
 }

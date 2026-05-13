@@ -67,6 +67,7 @@ class EventsController extends Controller
         $event->name = (string) $request->getBodyParam('name', $event->name);
         $event->handle = (string) $request->getBodyParam('handle', $event->handle);
         $event->points = (int) $request->getBodyParam('points', $event->points);
+        $event->pointsType = (string)($request->getBodyParam('pointsType') ?: 'flat');
         $event->multiple = (bool) $request->getBodyParam('multiple', $event->multiple);
         $event->trigger = $request->getBodyParam('trigger') ?: null;
 

@@ -19,4 +19,11 @@ class OrderCompletedTrigger extends BaseTrigger
         $order = $event->sender;
         return $order->customerId ?: null;
     }
+
+    public static function getAmountForEvent($event): ?float
+    {
+        /** @var Order $order */
+        $order = $event->sender;
+        return (float)$order->getTotalPrice();
+    }
 }

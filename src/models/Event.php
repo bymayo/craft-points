@@ -14,6 +14,7 @@ class Event extends Model
     public string $name = '';
     public string $handle = '';
     public int $points = 0;
+    public string $pointsType = 'flat';
     public bool $multiple = false;
     public ?string $trigger = null;
     public ?array $triggerConfig = null;
@@ -24,6 +25,7 @@ class Event extends Model
         return [
             [['name', 'handle'], 'required'],
             [['points'], 'integer'],
+            [['pointsType'], 'in', 'range' => ['flat', 'percent']],
             [['multiple'], 'boolean'],
             [['handle'], HandleValidator::class],
             [

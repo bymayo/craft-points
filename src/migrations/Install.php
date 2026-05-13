@@ -13,6 +13,7 @@ class Install extends Migration
             'name' => $this->string()->notNull(),
             'handle' => $this->string()->notNull(),
             'points' => $this->integer()->notNull()->defaultValue(0),
+            'pointsType' => $this->string(20)->notNull()->defaultValue('flat'),
             'multiple' => $this->boolean()->notNull()->defaultValue(false),
             'trigger' => $this->string(),
             'triggerConfig' => $this->text(),

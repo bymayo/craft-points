@@ -3,6 +3,8 @@
 namespace bymayo\points\services;
 
 use bymayo\points\elements\PointEntry;
+use bymayo\points\events\EntryEvent;
+use bymayo\points\events\LevelChangedEvent;
 use bymayo\points\Points;
 use Craft;
 use craft\db\Query;
@@ -11,6 +13,11 @@ use yii\base\Component;
 
 class Entries extends Component
 {
+    public const EVENT_BEFORE_ADD_ENTRY = 'beforeAddEntry';
+    public const EVENT_AFTER_ADD_ENTRY = 'afterAddEntry';
+    public const EVENT_BEFORE_REMOVE_ENTRY = 'beforeRemoveEntry';
+    public const EVENT_AFTER_REMOVE_ENTRY = 'afterRemoveEntry';
+
     public function getEntryById(int $id): ?PointEntry
     {
         /** @var PointEntry|null $entry */
@@ -44,7 +51,7 @@ class Entries extends Component
         return (int)PointEntry::find()->userId($userId)->count();
     }
 
-    public function addEntry(int $userId, string $eventHandle): ?PointEntry
+    public function addEntry(int $userId, string $eventHandle, ?int $pointsOverride = null): ?PointEntry
     {
         $event = Points::getInstance()->events->getEventByHandle($eventHandle);
         if (!$event) {
@@ -61,14 +68,43 @@ class Entries extends Component
             }
         }
 
+        $pointsToAward = $pointsOverride ?? $event->points;
+
+        if ($this->hasEventHandlers(self::EVENT_BEFORE_ADD_ENTRY)) {
+            $beforeEvent = new EntryEvent([
+                'userId' => $userId,
+                'event' => $event,
+                'pointsToAward' => $pointsToAward,
+            ]);
+            $this->trigger(self::EVENT_BEFORE_ADD_ENTRY, $beforeEvent);
+            if (!$beforeEvent->isValid) {
+                return null;
+            }
+            // Allow handlers to alter the points value.
+            $pointsToAward = $beforeEvent->pointsToAward;
+        }
+
+        $beforeLevel = Points::getInstance()->levels->levelForUser($userId);
+
         $entry = new PointEntry();
         $entry->userId = $userId;
         $entry->eventId = $event->id;
-        $entry->pointsSnapshot = $event->points;
+        $entry->pointsSnapshot = $pointsToAward;
 
         if (!Craft::$app->getElements()->saveElement($entry)) {
             return null;
         }
+
+        if ($this->hasEventHandlers(self::EVENT_AFTER_ADD_ENTRY)) {
+            $this->trigger(self::EVENT_AFTER_ADD_ENTRY, new EntryEvent([
+                'userId' => $userId,
+                'event' => $event,
+                'entry' => $entry,
+                'pointsToAward' => $pointsToAward,
+            ]));
+        }
+
+        $this->fireLevelChangedIfChanged($userId, $beforeLevel);
 
         return $entry;
     }
@@ -136,6 +172,59 @@ class Entries extends Component
             return false;
         }
 
-        return Craft::$app->getElements()->deleteElement($entry);
+        if ($this->hasEventHandlers(self::EVENT_BEFORE_REMOVE_ENTRY)) {
+            $beforeEvent = new EntryEvent([
+                'userId' => $userId,
+                'event' => $event,
+                'entry' => $entry,
+                'pointsToAward' => $entry->pointsSnapshot,
+            ]);
+            $this->trigger(self::EVENT_BEFORE_REMOVE_ENTRY, $beforeEvent);
+            if (!$beforeEvent->isValid) {
+                return false;
+            }
+        }
+
+        $beforeLevel = Points::getInstance()->levels->levelForUser($userId);
+
+        if (!Craft::$app->getElements()->deleteElement($entry)) {
+            return false;
+        }
+
+        if ($this->hasEventHandlers(self::EVENT_AFTER_REMOVE_ENTRY)) {
+            $this->trigger(self::EVENT_AFTER_REMOVE_ENTRY, new EntryEvent([
+                'userId' => $userId,
+                'event' => $event,
+                'entry' => $entry,
+                'pointsToAward' => $entry->pointsSnapshot,
+            ]));
+        }
+
+        $this->fireLevelChangedIfChanged($userId, $beforeLevel);
+
+        return true;
+    }
+
+    private function fireLevelChangedIfChanged(int $userId, ?\bymayo\points\models\Level $beforeLevel): void
+    {
+        $levelsService = Points::getInstance()->levels;
+        if (!$levelsService->hasEventHandlers(\bymayo\points\services\Levels::EVENT_LEVEL_CHANGED)) {
+            return;
+        }
+
+        $afterLevel = $levelsService->levelForUser($userId);
+        $beforeId = $beforeLevel?->id;
+        $afterId = $afterLevel?->id;
+
+        if ($beforeId === $afterId) {
+            return;
+        }
+
+        $levelsService->trigger(\bymayo\points\services\Levels::EVENT_LEVEL_CHANGED, new LevelChangedEvent([
+            'userId' => $userId,
+            'previousLevel' => $beforeLevel,
+            'currentLevel' => $afterLevel,
+            'currentPoints' => $this->sumForUser($userId),
+        ]));
     }
 }

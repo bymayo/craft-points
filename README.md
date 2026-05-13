@@ -14,11 +14,12 @@ Award points to users for actions they perform, build leaderboards, and unlock t
 - **Leaderboard** — CP page and dashboard widget showing top users by total points, with their current level
 - **Element index** — entries are a first-class element type with search, sort, filters, and bulk delete
 - **Audit trail** — each entry stores the event's points value at the time it was awarded, so editing an event later doesn't retroactively rewrite history
-- **Twig API** — drop-in compatible with the Craft 2 Points plugin
+- **Twig & GraphQL APIs** — drop-in Twig compatibility with the Craft 2 Points plugin, plus first-class GraphQL queries
+- **Extensible** — plugin events (`EVENT_BEFORE_ADD_ENTRY`, `EVENT_LEVEL_CHANGED`, …) and per-user permissions
 
 ## Coming soon
 
-- Percentage-of-order-total points awards (Commerce-only)
+- Full element-query GraphQL integration for entries (filter by section, search, eager loading)
 - Plugin events for extensibility (`EVENT_AFTER_ADD_ENTRY`, `EVENT_LEVEL_CHANGED`, …)
 - GraphQL types
 
@@ -50,7 +51,8 @@ Navigate to **Points → Events** in the CP. Create an event with:
 
 - **Name** — display label, e.g. "Signed up to newsletter"
 - **Handle** — short identifier you'll use in Twig, e.g. `signedUp`
-- **Points** — how many points this event is worth
+- **Points type** — Flat (fixed number of points) or Percent (percentage of order total — Commerce only)
+- **Value** — the number of points (flat) or the percentage (percent)
 - **Allow multiple** — when off, a user can only receive this event's points once; when on, the event is repeatable
 - **Trigger** — when should this fire? "Manual" means only via Twig / CP. Pick a system event (Entry created, User logged in, Asset uploaded, …) to fire automatically.
 - **Scope** (when applicable) — limit a trigger to specific sections, category groups, or volumes. Leave empty to apply to all.
@@ -83,6 +85,123 @@ Event::on(Triggers::class, Triggers::EVENT_REGISTER_TRIGGERS, function(RegisterT
     $e->triggers[] = MyTrigger::class; // extends \bymayo\points\triggers\BaseTrigger
 });
 ```
+
+### Listening for entry / level events
+
+```php
+use bymayo\points\events\EntryEvent;
+use bymayo\points\events\LevelChangedEvent;
+use bymayo\points\services\Entries;
+use bymayo\points\services\Levels;
+use yii\base\Event;
+
+// Cancel an entry award (e.g. fraud check)
+Event::on(Entries::class, Entries::EVENT_BEFORE_ADD_ENTRY, function(EntryEvent $e) {
+    if (suspiciousActivity($e->userId)) {
+        $e->isValid = false;
+    }
+});
+
+// Modify the points being awarded
+Event::on(Entries::class, Entries::EVENT_BEFORE_ADD_ENTRY, function(EntryEvent $e) {
+    if (isVip($e->userId)) {
+        $e->pointsToAward = $e->pointsToAward * 2;
+    }
+});
+
+// React after an entry is awarded
+Event::on(Entries::class, Entries::EVENT_AFTER_ADD_ENTRY, function(EntryEvent $e) {
+    sendThankYouEmail($e->userId, $e->event, $e->entry);
+});
+
+// React when a user crosses a level threshold (up or down)
+Event::on(Levels::class, Levels::EVENT_LEVEL_CHANGED, function(LevelChangedEvent $e) {
+    if ($e->currentLevel && $e->previousLevel?->threshold < $e->currentLevel->threshold) {
+        congratulate($e->userId, $e->currentLevel);
+    }
+});
+```
+
+Available events:
+
+| Constant | Cancellable | When |
+|---|---|---|
+| `Entries::EVENT_BEFORE_ADD_ENTRY` | Yes | Before an entry is saved. Handler may modify `pointsToAward`. |
+| `Entries::EVENT_AFTER_ADD_ENTRY` | — | After the entry is saved. |
+| `Entries::EVENT_BEFORE_REMOVE_ENTRY` | Yes | Before an entry is deleted. |
+| `Entries::EVENT_AFTER_REMOVE_ENTRY` | — | After the entry is deleted. |
+| `Levels::EVENT_LEVEL_CHANGED` | — | When add/remove caused the user to change level. |
+
+## GraphQL
+
+The plugin registers GraphQL queries automatically. Available in any GraphQL schema that's allowed to use them (admin schemas get them by default).
+
+```graphql
+# Get a user's total points and current level
+query Player($userId: Int!) {
+  points: pointsSumForUser(userId: $userId)
+  total:  pointsTotalForUser(userId: $userId)
+  level: pointsLevelForUser(userId: $userId) {
+    name
+    handle
+    threshold
+    colour
+  }
+}
+
+# Leaderboard
+query Top10 {
+  pointsLeaderboard(limit: 10) {
+    userId
+    userName
+    points
+    level { name colour }
+  }
+}
+
+# Recent entries for a user
+query Recent($userId: Int!) {
+  pointsEntries(userId: $userId, limit: 20) {
+    id
+    pointsSnapshot
+    dateCreated
+    event { name handle pointsType }
+  }
+}
+
+# Look up an event by handle
+query Event {
+  pointsEvent(handle: "signedUp") {
+    name
+    points
+    pointsType
+    multiple
+    trigger
+  }
+}
+
+# List all defined levels
+query Levels {
+  pointsLevels {
+    name
+    threshold
+    colour
+  }
+}
+```
+
+Available queries:
+
+| Query | Args | Returns |
+|---|---|---|
+| `pointsEvents` | — | `[PointsEvent]` |
+| `pointsEvent` | `handle: String!` | `PointsEvent` |
+| `pointsLevels` | — | `[PointsLevel]` |
+| `pointsLevelForUser` | `userId: Int!` | `PointsLevel` |
+| `pointsEntries` | `userId, eventId, limit, offset` | `[PointsEntry]` |
+| `pointsSumForUser` | `userId: Int!` | `Int` |
+| `pointsTotalForUser` | `userId: Int!` | `Int` |
+| `pointsLeaderboard` | `limit, offset` | `[PointsLeaderboardRow]` |
 
 ### Awarding points
 

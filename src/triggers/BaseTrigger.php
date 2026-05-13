@@ -26,6 +26,11 @@ abstract class BaseTrigger implements TriggerInterface
         return null;
     }
 
+    public static function getAmountForEvent($event): ?float
+    {
+        return null;
+    }
+
     public static function getScopeOptions(): array
     {
         switch (static::scopedTo()) {

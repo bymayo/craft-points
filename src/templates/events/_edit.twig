@@ -38,9 +38,20 @@
         errors: event.getErrors('handle'),
     }) }}
 
+    {{ forms.selectField({
+        label: 'Points type'|t('points'),
+        id: 'pointsType',
+        name: 'pointsType',
+        options: [
+            { label: 'Flat amount'|t('points'), value: 'flat' },
+            { label: 'Percentage of order total'|t('points'), value: 'percent' },
+        ],
+        value: event.pointsType ?? 'flat',
+    }) }}
+
     {{ forms.textField({
-        label: 'Points'|t('points'),
-        instructions: 'Number of points awarded when this event is triggered.'|t('points'),
+        label: 'Value'|t('points'),
+        instructions: 'Flat: number of points awarded. Percent: percentage of order total — only fires from Commerce triggers that provide an amount.'|t('points'),
         id: 'points',
         name: 'points',
         type: 'number',

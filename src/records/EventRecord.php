@@ -9,7 +9,10 @@ use craft\db\ActiveRecord;
  * @property string $name
  * @property string $handle
  * @property int $points
+ * @property string $pointsType
  * @property bool $multiple
+ * @property string|null $trigger
+ * @property string|null $triggerConfig
  * @property string $uid
  */
 class EventRecord extends ActiveRecord

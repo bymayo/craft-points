@@ -33,7 +33,7 @@
                             <a href="{{ url('points/events/' ~ event.id) }}">{{ event.name }}</a>
                         </td>
                         <td><code>{{ event.handle }}</code></td>
-                        <td>{{ event.points }}</td>
+                        <td>{{ event.points }}{% if event.pointsType == 'percent' %}%{% endif %}</td>
                         <td>{{ event.multiple ? 'Yes'|t('points') : 'No'|t('points') }}</td>
                         <td>
                             {% if event.trigger %}

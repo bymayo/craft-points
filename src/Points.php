@@ -3,6 +3,10 @@
 namespace bymayo\points;
 
 use bymayo\points\elements\PointEntry;
+use bymayo\points\gql\types\EventType;
+use bymayo\points\gql\types\LeaderboardRowType;
+use bymayo\points\gql\types\LevelType;
+use bymayo\points\gql\types\PointEntryType;
 use bymayo\points\models\Settings;
 use bymayo\points\services\Entries;
 use bymayo\points\services\Events;
@@ -17,9 +21,13 @@ use craft\base\Plugin;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\events\RegisterGqlQueriesEvent;
+use craft\events\RegisterGqlTypesEvent;
 use craft\services\Dashboard;
 use craft\services\Elements;
+use craft\services\Gql;
 use craft\services\UserPermissions;
+use GraphQL\Type\Definition\Type;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use yii\base\Event;
@@ -39,7 +47,7 @@ use yii\base\Event;
  */
 class Points extends Plugin
 {
-    public string $schemaVersion = '1.2.0';
+    public string $schemaVersion = '1.3.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -69,12 +77,29 @@ class Points extends Plugin
     {
         $item = parent::getCpNavItem();
         $item['label'] = Craft::t('points', 'Points');
-        $item['subnav'] = [
-            'entries' => ['label' => Craft::t('points', 'Entries'), 'url' => 'points/entries'],
-            'events' => ['label' => Craft::t('points', 'Events'), 'url' => 'points/events'],
-            'levels' => ['label' => Craft::t('points', 'Levels'), 'url' => 'points/levels'],
-            'leaderboard' => ['label' => Craft::t('points', 'Leaderboard'), 'url' => 'points/leaderboard'],
-        ];
+
+        $user = Craft::$app->getUser();
+        $subnav = [];
+
+        if ($user->checkPermission('points-manageEntries')) {
+            $subnav['entries'] = ['label' => Craft::t('points', 'Entries'), 'url' => 'points/entries'];
+        }
+        if ($user->checkPermission('points-manageEvents')) {
+            $subnav['events'] = ['label' => Craft::t('points', 'Events'), 'url' => 'points/events'];
+        }
+        if ($user->checkPermission('points-manageLevels')) {
+            $subnav['levels'] = ['label' => Craft::t('points', 'Levels'), 'url' => 'points/levels'];
+        }
+        if ($user->checkPermission('points-manageEntries')) {
+            $subnav['leaderboard'] = ['label' => Craft::t('points', 'Leaderboard'), 'url' => 'points/leaderboard'];
+        }
+
+        // Suppress the entire nav item if the user can't access any subpage.
+        if (empty($subnav)) {
+            return null;
+        }
+
+        $item['subnav'] = $subnav;
         return $item;
     }
 
@@ -148,6 +173,13 @@ class Points extends Plugin
             }
         );
 
+        $this->registerGraphQl();
+
+        $this->attachUserPermissions();
+    }
+
+    private function attachUserPermissions(): void
+    {
         Event::on(
             UserPermissions::class,
             UserPermissions::EVENT_REGISTER_PERMISSIONS,
@@ -165,6 +197,111 @@ class Points extends Plugin
                             'label' => Craft::t('points', 'Manage levels'),
                         ],
                     ],
+                ];
+            }
+        );
+    }
+
+    private function registerGraphQl(): void
+    {
+        Event::on(
+            Gql::class,
+            Gql::EVENT_REGISTER_GQL_TYPES,
+            function(RegisterGqlTypesEvent $event) {
+                $event->types[] = EventType::class;
+                $event->types[] = LevelType::class;
+                $event->types[] = PointEntryType::class;
+                $event->types[] = LeaderboardRowType::class;
+            }
+        );
+
+        Event::on(
+            Gql::class,
+            Gql::EVENT_REGISTER_GQL_QUERIES,
+            function(RegisterGqlQueriesEvent $event) {
+                $event->queries['pointsEvents'] = [
+                    'type' => Type::listOf(EventType::getType()),
+                    'args' => [],
+                    'resolve' => fn() => self::getInstance()->events->getAllEvents(),
+                    'description' => 'All Points events.',
+                ];
+
+                $event->queries['pointsEvent'] = [
+                    'type' => EventType::getType(),
+                    'args' => ['handle' => Type::nonNull(Type::string())],
+                    'resolve' => fn($source, array $args) => self::getInstance()->events->getEventByHandle($args['handle']),
+                    'description' => 'A single Points event by handle.',
+                ];
+
+                $event->queries['pointsLevels'] = [
+                    'type' => Type::listOf(LevelType::getType()),
+                    'args' => [],
+                    'resolve' => fn() => self::getInstance()->levels->getAllLevels(),
+                    'description' => 'All Points levels, ordered by threshold ascending.',
+                ];
+
+                $event->queries['pointsLevelForUser'] = [
+                    'type' => LevelType::getType(),
+                    'args' => ['userId' => Type::nonNull(Type::int())],
+                    'resolve' => fn($source, array $args) => self::getInstance()->levels->levelForUser((int)$args['userId']),
+                    'description' => "The user's current level.",
+                ];
+
+                $event->queries['pointsEntries'] = [
+                    'type' => Type::listOf(PointEntryType::getType()),
+                    'args' => [
+                        'userId' => Type::int(),
+                        'eventId' => Type::int(),
+                        'limit' => Type::int(),
+                        'offset' => Type::int(),
+                    ],
+                    'resolve' => function($source, array $args) {
+                        $query = \bymayo\points\elements\PointEntry::find()
+                            ->orderBy(['dateCreated' => SORT_DESC]);
+                        if (isset($args['userId'])) {
+                            $query->userId((int)$args['userId']);
+                        }
+                        if (isset($args['eventId'])) {
+                            $query->eventId((int)$args['eventId']);
+                        }
+                        if (isset($args['limit'])) {
+                            $query->limit((int)$args['limit']);
+                        }
+                        if (isset($args['offset'])) {
+                            $query->offset((int)$args['offset']);
+                        }
+                        return $query->all();
+                    },
+                    'description' => 'Query Points entries.',
+                ];
+
+                $event->queries['pointsSumForUser'] = [
+                    'type' => Type::int(),
+                    'args' => ['userId' => Type::nonNull(Type::int())],
+                    'resolve' => fn($source, array $args) => self::getInstance()->entries->sumForUser((int)$args['userId']),
+                    'description' => "The user's total points.",
+                ];
+
+                $event->queries['pointsTotalForUser'] = [
+                    'type' => Type::int(),
+                    'args' => ['userId' => Type::nonNull(Type::int())],
+                    'resolve' => fn($source, array $args) => self::getInstance()->entries->totalForUser((int)$args['userId']),
+                    'description' => "Count of entries for the user.",
+                ];
+
+                $event->queries['pointsLeaderboard'] = [
+                    'type' => Type::listOf(LeaderboardRowType::getType()),
+                    'args' => [
+                        'limit' => Type::int(),
+                        'offset' => Type::int(),
+                    ],
+                    'resolve' => function($source, array $args) {
+                        return self::getInstance()->entries->leaderboard(
+                            (int)($args['limit'] ?? 10),
+                            (int)($args['offset'] ?? 0)
+                        );
+                    },
+                    'description' => 'Top users by total points.',
                 ];
             }
         );

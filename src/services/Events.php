@@ -57,6 +57,7 @@ class Events extends Component
         $record->name = $event->name;
         $record->handle = $event->handle;
         $record->points = $event->points;
+        $record->pointsType = $event->pointsType ?: 'flat';
         $record->multiple = $event->multiple;
         $record->trigger = $event->trigger ?: null;
         $record->triggerConfig = $event->triggerConfig
@@ -88,6 +89,7 @@ class Events extends Component
         $event->name = (string) $r->name;
         $event->handle = (string) $r->handle;
         $event->points = (int) $r->points;
+        $event->pointsType = (string)($r->pointsType ?: 'flat');
         $event->multiple = (bool) $r->multiple;
         $event->trigger = $r->trigger ?: null;
         $event->triggerConfig = $r->triggerConfig

@@ -10,6 +10,8 @@ use yii\base\Exception;
 
 class Levels extends Component
 {
+    public const EVENT_LEVEL_CHANGED = 'levelChanged';
+
     /**
      * @return Level[] Levels ordered by threshold ascending.
      */

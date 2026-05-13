@@ -86,6 +86,7 @@ class PointsVariable
         $event->name = $options['event'] ?? '';
         $event->handle = $options['eventHandle'];
         $event->points = (int)($options['points'] ?? 0);
+        $event->pointsType = (string)($options['pointsType'] ?? 'flat');
         $event->multiple = (bool)($options['multiple'] ?? false);
 
         return Points::getInstance()->events->saveEvent($event) ? $event : null;

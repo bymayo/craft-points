@@ -11,6 +11,15 @@
 - **Latest Entries** dashboard widget — shows the most recent points awarded with user, event, and relative timestamp (Craft 2 parity)
 - **Automatic triggers** — Events can now fire automatically on system events: Entry created/updated/deleted, Category created/updated/deleted, User registered/updated/logged in, Asset uploaded/deleted
 - **Craft Commerce triggers** (optional dep) — Order completed and Subscription created. Registered automatically when Commerce is enabled. Points go to the order's customer / subscription's user.
+- **Percentage-of-amount points** — Events have a new `pointsType` field (`flat` or `percent`). When set to `percent` and fired from a trigger that provides an amount (currently `Order completed`), points awarded = `floor(amount * value / 100)`. Percent on a non-amount trigger silently skips.
+- **Plugin events** for extensibility:
+  - `Entries::EVENT_BEFORE_ADD_ENTRY` — cancellable; handlers can modify `pointsToAward`
+  - `Entries::EVENT_AFTER_ADD_ENTRY`
+  - `Entries::EVENT_BEFORE_REMOVE_ENTRY` — cancellable
+  - `Entries::EVENT_AFTER_REMOVE_ENTRY`
+  - `Levels::EVENT_LEVEL_CHANGED` — fires when adding or removing an entry causes a user to cross a level threshold
+- CP sidebar subnav is now filtered by permissions — users only see the sections they can access; the whole Points nav item is hidden for users with no Points permissions
+- **GraphQL support** — new queries: `pointsEvents`, `pointsEvent`, `pointsLevels`, `pointsLevelForUser`, `pointsEntries`, `pointsSumForUser`, `pointsTotalForUser`, `pointsLeaderboard`. Object types: `PointsEvent`, `PointsLevel`, `PointsEntry`, `PointsLeaderboardRow`.
 - Per-trigger scope filtering — limit "Entry updated" to specific sections, "Asset uploaded" to specific volumes, etc.
 - `Triggers::EVENT_REGISTER_TRIGGERS` plugin event — other plugins (e.g. Commerce, Formie) can register their own trigger classes that show up in the same picker
 - User permissions: `points-manageEvents`, `points-manageEntries`, `points-manageLevels`

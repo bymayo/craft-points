@@ -183,6 +183,7 @@ class Triggers extends Component
         }
 
         $scopeId = $triggerClass::scopedTo() ? $triggerClass::scopeIdForEvent($yiiEvent) : null;
+        $amount = $triggerClass::getAmountForEvent($yiiEvent);
 
         foreach ($pointsEvents as $pointsEvent) {
             if ($triggerClass::scopedTo()) {
@@ -194,7 +195,19 @@ class Triggers extends Component
                 }
             }
 
-            Points::getInstance()->entries->addEntry($userId, $pointsEvent->handle);
+            $pointsOverride = null;
+            if ($pointsEvent->pointsType === 'percent') {
+                // Percent only works when the trigger provides an amount.
+                if ($amount === null) {
+                    continue;
+                }
+                $pointsOverride = (int)floor($amount * $pointsEvent->points / 100);
+                if ($pointsOverride <= 0) {
+                    continue;
+                }
+            }
+
+            Points::getInstance()->entries->addEntry($userId, $pointsEvent->handle, $pointsOverride);
         }
     }
 }
