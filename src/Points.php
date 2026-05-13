@@ -8,12 +8,15 @@ use bymayo\points\services\Entries;
 use bymayo\points\services\Events;
 use bymayo\points\services\Levels;
 use bymayo\points\variables\PointsVariable;
+use bymayo\points\widgets\LatestEntriesWidget;
+use bymayo\points\widgets\LeaderboardWidget;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\services\Dashboard;
 use craft\services\Elements;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
@@ -64,6 +67,7 @@ class Points extends Plugin
             'entries' => ['label' => Craft::t('points', 'Entries'), 'url' => 'points/entries'],
             'events' => ['label' => Craft::t('points', 'Events'), 'url' => 'points/events'],
             'levels' => ['label' => Craft::t('points', 'Levels'), 'url' => 'points/levels'],
+            'leaderboard' => ['label' => Craft::t('points', 'Leaderboard'), 'url' => 'points/leaderboard'],
         ];
         return $item;
     }
@@ -98,6 +102,15 @@ class Points extends Plugin
         );
 
         Event::on(
+            Dashboard::class,
+            Dashboard::EVENT_REGISTER_WIDGET_TYPES,
+            function(RegisterComponentTypesEvent $event) {
+                $event->types[] = LeaderboardWidget::class;
+                $event->types[] = LatestEntriesWidget::class;
+            }
+        );
+
+        Event::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function(RegisterUrlRulesEvent $event) {
@@ -114,6 +127,8 @@ class Points extends Plugin
                 $event->rules['points/levels'] = 'points/levels/index';
                 $event->rules['points/levels/new'] = 'points/levels/edit';
                 $event->rules['points/levels/<levelId:\d+>'] = 'points/levels/edit';
+
+                $event->rules['points/leaderboard'] = 'points/leaderboard/index';
             }
         );
 

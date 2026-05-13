@@ -1,0 +1,41 @@
+{% extends '_layouts/cp' %}
+
+{% set title = 'Leaderboard'|t('points') %}
+{% set selectedSubnavItem = 'leaderboard' %}
+
+{% set crumbs = [
+    { label: 'Points'|t('points'), url: url('points') },
+] %}
+
+{% block content %}
+    {% if rows|length %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col" class="thin">{{ '#'|t('points') }}</th>
+                    <th scope="col">{{ 'User'|t('points') }}</th>
+                    <th scope="col">{{ 'Level'|t('points') }}</th>
+                    <th scope="col">{{ 'Points'|t('points') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td class="thin"><strong>{{ loop.index }}</strong></td>
+                        <td><a href="{{ row.user.getCpEditUrl() }}">{{ row.user.name }}</a></td>
+                        <td>
+                            {% if row.level %}
+                                <span style="display:inline-block; padding:2px 8px; border-radius:3px; color:#fff; background:{{ row.level.colour|default('#666') }};">{{ row.level.name }}</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ row.points }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="zilch">
+            <p>{{ 'No entries yet.'|t('points') }}</p>
+        </div>
+    {% endif %}
+{% endblock %}

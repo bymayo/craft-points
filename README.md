@@ -9,13 +9,13 @@ Award points to users for actions they perform, build leaderboards, and unlock t
 - **Events** — define point-awarding actions (e.g. "Signed up to newsletter" = 20pts)
 - **Entries** — award those events to users from the CP or Twig
 - **Levels** — tier users by accumulated points (Bronze/Silver/Gold style) with colour and icon
+- **Leaderboard** — CP page and dashboard widget showing top users by total points, with their current level
 - **Element index** — entries are a first-class element type with search, sort, filters, and bulk delete
 - **Audit trail** — each entry stores the event's points value at the time it was awarded, so editing an event later doesn't retroactively rewrite history
 - **Twig API** — drop-in compatible with the Craft 2 Points plugin
 
 ## Coming soon
 
-- Leaderboard CP page and widget
 - Latest entries dashboard widget (Craft 2 parity)
 - Craft Commerce integration — award points on purchase, with flat or percentage-of-price rules
 - Plugin events for extensibility (`EVENT_AFTER_ADD_ENTRY`, `EVENT_LEVEL_CHANGED`, …)
@@ -119,6 +119,17 @@ A user's level is the highest one whose threshold is ≤ their current point sum
 {{ craft.points.levelForPoints(250).name }}
 ```
 
+### Leaderboard
+
+```twig
+{% for row in craft.points.leaderboard(10) %}
+    {{ loop.index }}. {{ row.user.name }} — {{ row.points }} pts
+    {% if row.level %}({{ row.level.name }}){% endif %}
+{% endfor %}
+```
+
+Each row is `{ user: User, points: int, level: Level|null }`. The CP page lives at **Points → Leaderboard**, and there's a "Points Leaderboard" dashboard widget you can drop on the Craft dashboard.
+
 ### Dynamic events
 
 Create events on the fly from Twig — returns the existing event if one with that handle already exists:
@@ -162,6 +173,7 @@ Create events on the fly from Twig — returns the existing event if one with th
 | `craft.points.levelForPoints(points)` | `Level\|null` |
 | `craft.points.levelById(id)` | `Level\|null` |
 | `craft.points.levelByHandle(handle)` | `Level\|null` |
+| `craft.points.leaderboard(limit?, offset?)` | `array` — rows of `{user, points, level}` |
 | `craft.points.addEvent(options)` | `Event\|null` |
 
 ## Element query

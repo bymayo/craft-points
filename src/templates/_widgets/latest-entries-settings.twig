@@ -1,0 +1,11 @@
+{% import '_includes/forms.twig' as forms %}
+
+{{ forms.textField({
+    label: 'Limit'|t('points'),
+    instructions: 'How many recent entries to show.'|t('points'),
+    id: 'limit',
+    name: 'limit',
+    type: 'number',
+    value: widget.limit,
+    errors: widget.getErrors('limit'),
+}) }}

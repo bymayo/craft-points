@@ -7,10 +7,11 @@
 - `PointEntry` element type — entries are first-class elements with index, search, sort, and per-event source filtering
 - `pointsSnapshot` field on entries — captures the event's point value at award time so editing an event later doesn't retroactively change historical totals
 - `Levels` — tiered loyalty thresholds with optional colour and icon (Bronze/Silver/Gold style)
+- **Leaderboard** — CP page (Points → Leaderboard) and dashboard widget showing top users by accumulated points, with level badges
 - User permissions: `points-manageEvents`, `points-manageEntries`, `points-manageLevels`
 - Outline SVG icon for the CP sidebar, separate from the marketing icon
 - Twig API back-compatible with the Craft 2 plugin: `craft.points.addEntry`, `removeEntry`, `sumEntries`, `totalEntries`, `addEvent`, `entriesByUser`, `eventOptions`, etc.
-- New Twig methods: `craft.points.levels`, `levelForUser`, `levelForPoints`, `levelById`, `levelByHandle`
+- New Twig methods: `craft.points.levels`, `levelForUser`, `levelForPoints`, `levelById`, `levelByHandle`, `leaderboard`
 
 ### Changed
 - Minimum requirements: Craft 5.6, PHP 8.2

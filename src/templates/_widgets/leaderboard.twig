@@ -1,0 +1,15 @@
+{% if rows|length %}
+    <ol style="margin:0; padding-left:1.5em;">
+        {% for row in rows %}
+            <li style="padding:4px 0; display:flex; align-items:center; gap:8px;">
+                <a href="{{ row.user.getCpEditUrl() }}" style="flex:1;">{{ row.user.name }}</a>
+                {% if row.level %}
+                    <span style="display:inline-block; padding:1px 6px; border-radius:3px; color:#fff; background:{{ row.level.colour|default('#666') }}; font-size:11px;">{{ row.level.name }}</span>
+                {% endif %}
+                <strong>{{ row.points }}</strong>
+            </li>
+        {% endfor %}
+    </ol>
+{% else %}
+    <p>{{ 'No entries yet.'|t('points') }}</p>
+{% endif %}

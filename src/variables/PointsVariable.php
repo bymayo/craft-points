@@ -188,6 +188,14 @@ class PointsVariable
         return Points::getInstance()->levels->getLevelByHandle($handle);
     }
 
+    /**
+     * @return array<int, array{user: User, points: int, level: ?Level}>
+     */
+    public function leaderboard(int $limit = 10, int $offset = 0): array
+    {
+        return Points::getInstance()->entries->leaderboard($limit, $offset);
+    }
+
     private function currentUserId(): ?int
     {
         $user = Craft::$app->getUser()->getIdentity();
