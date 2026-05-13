@@ -4,6 +4,7 @@ namespace bymayo\points\variables;
 
 use bymayo\points\elements\PointEntry;
 use bymayo\points\models\Event;
+use bymayo\points\models\Level;
 use bymayo\points\Points;
 use Craft;
 use craft\elements\User;
@@ -154,6 +155,37 @@ class PointsVariable
         return $userId
             ? Points::getInstance()->entries->totalForUser($userId)
             : 0;
+    }
+
+    /**
+     * @return Level[]
+     */
+    public function levels(): array
+    {
+        return Points::getInstance()->levels->getAllLevels();
+    }
+
+    public function levelForUser(?int $userId = null): ?Level
+    {
+        $userId = $userId ?? $this->currentUserId();
+        return $userId
+            ? Points::getInstance()->levels->levelForUser($userId)
+            : null;
+    }
+
+    public function levelForPoints(int $points): ?Level
+    {
+        return Points::getInstance()->levels->levelForPoints($points);
+    }
+
+    public function levelById(int $id): ?Level
+    {
+        return Points::getInstance()->levels->getLevelById($id);
+    }
+
+    public function levelByHandle(string $handle): ?Level
+    {
+        return Points::getInstance()->levels->getLevelByHandle($handle);
     }
 
     private function currentUserId(): ?int

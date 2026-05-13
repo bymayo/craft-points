@@ -1,6 +1,6 @@
 {
   "name": "bymayo/craft-points",
-  "description": "Description",
+  "description": "Loyalty points, leaderboards, and tiered user levels for Craft CMS.",
   "type": "craft-plugin",
   "license": "proprietary",
   "support": {
@@ -27,6 +27,7 @@
     "name": "Points",
     "developer": "ByMayo",
     "documentationUrl": "https://github.com/bymayo/craft-points",
+    "changelogUrl": "https://raw.githubusercontent.com/bymayo/craft-points/craft-5/CHANGELOG.md",
     "class": "bymayo\\points\\Points"
   },
   "config": {

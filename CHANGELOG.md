@@ -1,4 +1,22 @@
 # Release Notes for Points
 
-## 1.0.0
-- Initial release
+## Unreleased
+
+### Added
+- Complete rewrite for Craft CMS 5
+- `PointEntry` element type — entries are first-class elements with index, search, sort, and per-event source filtering
+- `pointsSnapshot` field on entries — captures the event's point value at award time so editing an event later doesn't retroactively change historical totals
+- `Levels` — tiered loyalty thresholds with optional colour and icon (Bronze/Silver/Gold style)
+- User permissions: `points-manageEvents`, `points-manageEntries`, `points-manageLevels`
+- Outline SVG icon for the CP sidebar, separate from the marketing icon
+- Twig API back-compatible with the Craft 2 plugin: `craft.points.addEntry`, `removeEntry`, `sumEntries`, `totalEntries`, `addEvent`, `entriesByUser`, `eventOptions`, etc.
+- New Twig methods: `craft.points.levels`, `levelForUser`, `levelForPoints`, `levelById`, `levelByHandle`
+
+### Changed
+- Minimum requirements: Craft 5.6, PHP 8.2
+- Entries reference events by `eventId` (FK) rather than by handle string — renaming an event no longer orphans entries
+- Namespace: `Craft\PointsPlugin` → `bymayo\points\Points`
+
+## 1.0.3 - 2016
+
+Final Craft 2 release. See the [`craft-2`](https://github.com/bymayo/craft-points/tree/craft-2) branch.

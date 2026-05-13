@@ -6,6 +6,7 @@ use bymayo\points\elements\PointEntry;
 use bymayo\points\models\Settings;
 use bymayo\points\services\Entries;
 use bymayo\points\services\Events;
+use bymayo\points\services\Levels;
 use bymayo\points\variables\PointsVariable;
 use Craft;
 use craft\base\Model;
@@ -26,13 +27,14 @@ use yii\base\Event;
  * @method Settings getSettings()
  * @property-read Events $events
  * @property-read Entries $entries
+ * @property-read Levels $levels
  * @author ByMayo <jason@bymayo.co.uk>
  * @copyright ByMayo
  * @license https://craftcms.github.io/license/ Craft License
  */
 class Points extends Plugin
 {
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.1.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -42,6 +44,7 @@ class Points extends Plugin
             'components' => [
                 'events' => Events::class,
                 'entries' => Entries::class,
+                'levels' => Levels::class,
             ],
         ];
     }
@@ -60,6 +63,7 @@ class Points extends Plugin
         $item['subnav'] = [
             'entries' => ['label' => Craft::t('points', 'Entries'), 'url' => 'points/entries'],
             'events' => ['label' => Craft::t('points', 'Events'), 'url' => 'points/events'],
+            'levels' => ['label' => Craft::t('points', 'Levels'), 'url' => 'points/levels'],
         ];
         return $item;
     }
@@ -106,6 +110,10 @@ class Points extends Plugin
                 $event->rules['points/events'] = 'points/events/index';
                 $event->rules['points/events/new'] = 'points/events/edit';
                 $event->rules['points/events/<eventId:\d+>'] = 'points/events/edit';
+
+                $event->rules['points/levels'] = 'points/levels/index';
+                $event->rules['points/levels/new'] = 'points/levels/edit';
+                $event->rules['points/levels/<levelId:\d+>'] = 'points/levels/edit';
             }
         );
 
@@ -131,6 +139,9 @@ class Points extends Plugin
                         ],
                         'points-manageEntries' => [
                             'label' => Craft::t('points', 'Manage entries'),
+                        ],
+                        'points-manageLevels' => [
+                            'label' => Craft::t('points', 'Manage levels'),
                         ],
                     ],
                 ];

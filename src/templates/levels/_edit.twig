@@ -1,0 +1,69 @@
+{% extends '_layouts/cp' %}
+
+{% import '_includes/forms.twig' as forms %}
+
+{% set selectedSubnavItem = 'levels' %}
+{% set fullPageForm = true %}
+
+{% set crumbs = [
+    { label: 'Points'|t('points'), url: url('points') },
+    { label: 'Levels'|t('points'), url: url('points/levels') },
+] %}
+
+{% block content %}
+    {{ actionInput('points/levels/save') }}
+    {{ redirectInput('points/levels') }}
+    {% if level.id %}
+        <input type="hidden" name="levelId" value="{{ level.id }}">
+    {% endif %}
+
+    {{ forms.textField({
+        first: true,
+        label: 'Name'|t('points'),
+        id: 'name',
+        name: 'name',
+        value: level.name,
+        autofocus: true,
+        required: true,
+        errors: level.getErrors('name'),
+    }) }}
+
+    {{ forms.textField({
+        label: 'Handle'|t('points'),
+        id: 'handle',
+        name: 'handle',
+        class: 'code',
+        value: level.handle,
+        required: true,
+        errors: level.getErrors('handle'),
+    }) }}
+
+    {{ forms.textField({
+        label: 'Threshold'|t('points'),
+        instructions: 'Minimum number of points a user needs to reach this level.'|t('points'),
+        id: 'threshold',
+        name: 'threshold',
+        type: 'number',
+        value: level.threshold,
+        required: true,
+        errors: level.getErrors('threshold'),
+    }) }}
+
+    {{ forms.colorField({
+        label: 'Colour'|t('points'),
+        instructions: 'Optional — used for badge styling.'|t('points'),
+        id: 'colour',
+        name: 'colour',
+        value: level.colour,
+        errors: level.getErrors('colour'),
+    }) }}
+
+    {{ forms.textField({
+        label: 'Icon'|t('points'),
+        instructions: 'Optional — a Font Awesome class, icon name, or path. Free-text for now.'|t('points'),
+        id: 'icon',
+        name: 'icon',
+        value: level.icon,
+        errors: level.getErrors('icon'),
+    }) }}
+{% endblock %}

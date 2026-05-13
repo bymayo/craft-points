@@ -36,11 +36,27 @@ class Install extends Migration
         $this->addForeignKey(null, '{{%points_entries}}', ['eventId'], '{{%points_events}}', ['id'], 'CASCADE');
         $this->addForeignKey(null, '{{%points_entries}}', ['userId'], '{{%users}}', ['id'], 'CASCADE');
 
+        $this->createTable('{{%points_levels}}', [
+            'id' => $this->primaryKey(),
+            'name' => $this->string()->notNull(),
+            'handle' => $this->string()->notNull(),
+            'threshold' => $this->integer()->notNull()->defaultValue(0),
+            'colour' => $this->string(7),
+            'icon' => $this->string(),
+            'dateCreated' => $this->dateTime()->notNull(),
+            'dateUpdated' => $this->dateTime()->notNull(),
+            'uid' => $this->uid(),
+        ]);
+
+        $this->createIndex(null, '{{%points_levels}}', ['handle'], true);
+        $this->createIndex(null, '{{%points_levels}}', ['threshold']);
+
         return true;
     }
 
     public function safeDown(): bool
     {
+        $this->dropTableIfExists('{{%points_levels}}');
         $this->dropTableIfExists('{{%points_entries}}');
         $this->dropTableIfExists('{{%points_events}}');
         return true;

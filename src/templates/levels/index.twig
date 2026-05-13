@@ -1,0 +1,59 @@
+{% extends '_layouts/cp' %}
+
+{% set title = 'Levels'|t('points') %}
+{% set selectedSubnavItem = 'levels' %}
+
+{% set crumbs = [
+    { label: 'Points'|t('points'), url: url('points') },
+] %}
+
+{% block actionButton %}
+    <a href="{{ url('points/levels/new') }}" class="btn submit add icon">
+        {{ 'New level'|t('points') }}
+    </a>
+{% endblock %}
+
+{% block content %}
+    {% if levels|length %}
+        <table class="data fullwidth collapsible">
+            <thead>
+                <tr>
+                    <th scope="col">{{ 'Name'|t('points') }}</th>
+                    <th scope="col">{{ 'Handle'|t('points') }}</th>
+                    <th scope="col">{{ 'Threshold'|t('points') }}</th>
+                    <th scope="col">{{ 'Colour'|t('points') }}</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for level in levels %}
+                    <tr>
+                        <td>
+                            <a href="{{ url('points/levels/' ~ level.id) }}">{{ level.name }}</a>
+                        </td>
+                        <td><code>{{ level.handle }}</code></td>
+                        <td>{{ level.threshold }}</td>
+                        <td>
+                            {% if level.colour %}
+                                <span style="display:inline-block; width:16px; height:16px; vertical-align:middle; border-radius:3px; background:{{ level.colour }}; border:1px solid rgba(0,0,0,.1);"></span>
+                                <code>{{ level.colour }}</code>
+                            {% endif %}
+                        </td>
+                        <td class="thin">
+                            <form method="post" onsubmit="return confirm('{{ 'Delete this level?'|t('points') }}');">
+                                {{ csrfInput() }}
+                                {{ actionInput('points/levels/delete') }}
+                                <input type="hidden" name="id" value="{{ level.id }}">
+                                <button type="submit" class="btn small delete icon" title="{{ 'Delete'|t('app') }}"></button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="zilch">
+            <p>{{ 'No levels yet.'|t('points') }}</p>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -2,18 +2,201 @@
 
 # Points for Craft CMS 5.x
 
-Points is a Craft CMS plugin that allows you to assign points to a user, or assign store credit to a user to spend in a Craft Commerce 5 store.
-
-Points are assigned to a user by either creating an 'event' such as Signing Up to Newsletter = 20pts, or Purchasing a Product = 10pts.
+Award points to users for actions they perform, build leaderboards, and unlock tiered loyalty programmes — all from inside Craft.
 
 ## Features
 
-- Store Credit / Loyalty Programme
-- Add or Remove points to a user with events
-- Add or Remove points based on user purchases based off percentages or flat values
-- Control panel to points and events
-- Point levels e.g. Gold = 100pts, Silver = 50pts etc.
-- Leaderboard
-- Hooks & Events
+- **Events** — define point-awarding actions (e.g. "Signed up to newsletter" = 20pts)
+- **Entries** — award those events to users from the CP or Twig
+- **Levels** — tier users by accumulated points (Bronze/Silver/Gold style) with colour and icon
+- **Element index** — entries are a first-class element type with search, sort, filters, and bulk delete
+- **Audit trail** — each entry stores the event's points value at the time it was awarded, so editing an event later doesn't retroactively rewrite history
+- **Twig API** — drop-in compatible with the Craft 2 Points plugin
 
-## Coming Soon
+## Coming soon
+
+- Leaderboard CP page and widget
+- Latest entries dashboard widget (Craft 2 parity)
+- Craft Commerce integration — award points on purchase, with flat or percentage-of-price rules
+- Plugin events for extensibility (`EVENT_AFTER_ADD_ENTRY`, `EVENT_LEVEL_CHANGED`, …)
+- GraphQL types
+
+## Requirements
+
+- Craft CMS 5.6 or later
+- PHP 8.2 or later
+
+## Installation
+
+```bash
+composer require bymayo/craft-points
+php craft plugin/install points
+```
+
+## Concepts
+
+| Term | Meaning |
+|---|---|
+| **Event** | A named action worth a fixed number of points, e.g. `signedUp` = 20 |
+| **Entry** | A record of an event being awarded to a specific user, at a specific time |
+| **Level** | A named tier reached once a user's point sum crosses a threshold |
+
+## Usage
+
+### Events
+
+Navigate to **Points → Events** in the CP. Create an event with:
+
+- **Name** — display label, e.g. "Signed up to newsletter"
+- **Handle** — short identifier you'll use in Twig, e.g. `signedUp`
+- **Points** — how many points this event is worth
+- **Allow multiple** — when off, a user can only receive this event's points once; when on, the event is repeatable
+
+### Awarding points
+
+From the CP — **Points → Entries → New entry** — or via Twig:
+
+```twig
+{# Award points to the current logged-in user #}
+{{ craft.points.addEntry({ eventHandle: 'signedUp' }) }}
+
+{# Award to a specific user #}
+{{ craft.points.addEntry({ userId: 5, eventHandle: 'signedUp' }) }}
+```
+
+If the event has **Allow multiple** off and the user already has an entry for it, `addEntry` is a silent no-op.
+
+### Removing points
+
+```twig
+{# Remove the oldest matching entry for the current user #}
+{{ craft.points.removeEntry({ eventHandle: 'signedUp' }) }}
+
+{# Or for a specific user #}
+{{ craft.points.removeEntry({ userId: 5, eventHandle: 'signedUp' }) }}
+```
+
+`removeEntry` removes a single entry. To clear all of a user's entries for an event, call it in a loop.
+
+### Reading totals
+
+```twig
+{# Current user's total points #}
+{{ craft.points.sumEntries() }}
+
+{# Specific user #}
+{{ craft.points.sumEntries(5) }}
+
+{# Entry count #}
+{{ craft.points.totalEntries() }}
+{{ craft.points.totalEntries(5) }}
+```
+
+Sums are based on each entry's `pointsSnapshot` (the event's value at award time), not the event's *current* value. This means editing an event's points value later doesn't retroactively change history.
+
+### Levels
+
+Navigate to **Points → Levels**. Each level has a name, handle, threshold (minimum points needed), optional colour, and optional icon.
+
+A user's level is the highest one whose threshold is ≤ their current point sum. If two levels share a threshold, the most recently created wins.
+
+```twig
+{# Current user's level #}
+{% set level = craft.points.levelForUser() %}
+{% if level %}
+    <span style="color: {{ level.colour }}">{{ level.name }}</span>
+{% endif %}
+
+{# Specific user's level #}
+{{ craft.points.levelForUser(5).name }}
+
+{# All levels (ordered by threshold ascending) #}
+{% for level in craft.points.levels %}
+    {{ level.name }} — {{ level.threshold }} pts
+{% endfor %}
+
+{# What level a hypothetical point total would reach #}
+{{ craft.points.levelForPoints(250).name }}
+```
+
+### Dynamic events
+
+Create events on the fly from Twig — returns the existing event if one with that handle already exists:
+
+```twig
+{{ craft.points.addEvent({
+    event: 'Viewed ' ~ entry.title,
+    eventHandle: 'viewed' ~ entry.title|camel,
+    points: 5,
+    multiple: false,
+}) }}
+```
+
+### Entries for a user
+
+```twig
+{% for entry in craft.points.entriesByUser() %}
+    {{ entry.event.name }} — {{ entry.pointsSnapshot }} pts ({{ entry.dateCreated|datetime }})
+{% endfor %}
+```
+
+## Twig reference
+
+| Call | Returns |
+|---|---|
+| `craft.points.entries` | `PointEntry[]` — all entries, newest first |
+| `craft.points.events` | `Event[]` |
+| `craft.points.levels` | `Level[]` — ordered by threshold ascending |
+| `craft.points.user(id)` | `User\|null` |
+| `craft.points.event(handle)` | `Event\|null` |
+| `craft.points.eventById(id)` | `Event\|null` |
+| `craft.points.eventByHandle(handle)` | `Event\|null` |
+| `craft.points.eventOptions` | `array` — for select fields |
+| `craft.points.entryById(id)` | `PointEntry\|null` |
+| `craft.points.entriesByUser(id?)` | `PointEntry[]` — defaults to current user |
+| `craft.points.addEntry(options)` | `PointEntry\|null` |
+| `craft.points.removeEntry(options)` | `bool` |
+| `craft.points.sumEntries(id?)` | `int` |
+| `craft.points.totalEntries(id?)` | `int` |
+| `craft.points.levelForUser(id?)` | `Level\|null` |
+| `craft.points.levelForPoints(points)` | `Level\|null` |
+| `craft.points.levelById(id)` | `Level\|null` |
+| `craft.points.levelByHandle(handle)` | `Level\|null` |
+| `craft.points.addEvent(options)` | `Event\|null` |
+
+## Element query
+
+Entries are elements, so you can also use element queries directly:
+
+```twig
+{% set bigSpenders = craft.entries({
+    section: null
+}).elementType('bymayo\\points\\elements\\PointEntry').all() %}
+```
+
+Or import the type:
+
+```twig
+{% set PointEntry = 'bymayo\\points\\elements\\PointEntry' %}
+{% set entries = PointEntry.find().userId(currentUser.id).all() %}
+```
+
+## Security note
+
+`addEntry`, `removeEntry`, and `addEvent` carry over from Craft 2 and are unauthenticated Twig calls — they bypass CSRF protection because they're plain template tags. Don't place them on publicly-accessible pages without thinking about abuse: a logged-out attacker hitting a page that awards points to a hardcoded user ID will succeed.
+
+Safer patterns:
+
+- Only award points behind a form post handler in your own controller
+- Only allow `addEntry` from authenticated sessions (`craft.app.user.identity`)
+- Apply rate limiting at the web server / CDN layer for any URL that awards points
+
+## Migrating from the Craft 2 plugin
+
+The Twig API is back-compatible — your existing `craft.points.addEntry / removeEntry / sumEntries / totalEntries / addEvent` calls work unchanged.
+
+The database schema is **not** back-compatible: Craft 2 stored entries with an `eventHandle` string and no audit trail. The Craft 5 version uses an `eventId` foreign key and a `pointsSnapshot` column. There is no automatic data migration — you'll need to re-create events and award points fresh.
+
+## License
+
+[Craft License](https://craftcms.github.io/license/)
