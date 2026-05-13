@@ -1,0 +1,15 @@
+{% extends '_layouts/elementindex' %}
+
+{% set title = 'Awards'|t('points') %}
+{% set elementType = 'bymayo\\points\\elements\\PointAward' %}
+{% set selectedSubnavItem = 'awards' %}
+
+{% set crumbs = [
+    { label: 'Points'|t('points'), url: url('points') },
+] %}
+
+{% block actionButton %}
+    <a href="{{ url('points/awards/new') }}" class="btn submit add icon">
+        {{ 'New award'|t('points') }}
+    </a>
+{% endblock %}

@@ -2,11 +2,11 @@
 
 namespace bymayo\points\gql\types;
 
-use bymayo\points\elements\PointEntry;
+use bymayo\points\elements\PointAward;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 
-class PointEntryType
+class PointAwardType
 {
     private static ?ObjectType $type = null;
 
@@ -17,24 +17,24 @@ class PointEntryType
         }
 
         self::$type = new ObjectType([
-            'name' => 'PointsEntry',
-            'description' => 'A Points entry — a single award of points to a user.',
+            'name' => 'PointsAward',
+            'description' => 'A Points award — a single award of points to a user.',
             'fields' => [
                 'id' => Type::int(),
                 'userId' => Type::int(),
                 'eventId' => Type::int(),
                 'pointsSnapshot' => [
                     'type' => Type::int(),
-                    'description' => 'Points awarded by this entry, snapshotted from the event at award time.',
+                    'description' => 'Points awarded by this record, snapshotted from the event at award time.',
                 ],
                 'dateCreated' => [
                     'type' => Type::string(),
                     'description' => 'ISO 8601 timestamp.',
-                    'resolve' => fn(PointEntry $entry) => $entry->dateCreated?->format(\DateTimeInterface::ATOM),
+                    'resolve' => fn(PointAward $award) => $award->dateCreated?->format(\DateTimeInterface::ATOM),
                 ],
                 'event' => [
                     'type' => EventType::getType(),
-                    'resolve' => fn(PointEntry $entry) => $entry->getEvent(),
+                    'resolve' => fn(PointAward $award) => $award->getEvent(),
                 ],
             ],
         ]);

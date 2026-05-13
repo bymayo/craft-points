@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Breaking
+- **"Entry" renamed to "Award" throughout** to avoid clashing with Craft's own Entry element. This affects:
+  - DB table: `points_entries` → `points_awards` (versioned migration handles the rename, data preserved)
+  - Element class: `PointEntry` → `PointAward`
+  - Service: `Entries` → `Awards` (`Points::getInstance()->entries` → `->awards`)
+  - Twig API: `craft.points.addEntry` → `addAward`, `removeEntry` → `removeAward`, `entries` → `awards`, `entriesByUser` → `awardsByUser`, `entryById` → `awardById`, `sumEntries` → `sumForUser`, `totalEntries` → `countForUser`
+  - GraphQL: `pointsEntries` query → `pointsAwards`, type `PointsEntry` → `PointsAward`, `pointsTotalForUser` → `pointsCountForUser`
+  - Plugin events: `EVENT_*_ADD_ENTRY` → `EVENT_*_ADD_AWARD`, `EVENT_*_REMOVE_ENTRY` → `EVENT_*_REMOVE_AWARD`
+  - Permission: `points-manageEntries` → `points-manageAwards` (any existing user assignments need to be re-granted)
+  - CP URL: `/admin/points/entries/*` → `/admin/points/awards/*`
+
 ### Added
 - Complete rewrite for Craft CMS 5
 - `PointEntry` element type — entries are first-class elements with index, search, sort, and per-event source filtering

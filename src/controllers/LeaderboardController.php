@@ -10,10 +10,10 @@ class LeaderboardController extends Controller
 {
     public function actionIndex(): Response
     {
-        $this->requirePermission('points-manageEntries');
+        $this->requirePermission('points-manageAwards');
 
         return $this->renderTemplate('points/leaderboard/index', [
-            'rows' => Points::getInstance()->entries->leaderboard(50),
+            'rows' => Points::getInstance()->awards->leaderboard(50),
         ]);
     }
 }

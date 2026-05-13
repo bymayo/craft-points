@@ -2,7 +2,7 @@
 
 namespace bymayo\points\variables;
 
-use bymayo\points\elements\PointEntry;
+use bymayo\points\elements\PointAward;
 use bymayo\points\models\Event;
 use bymayo\points\models\Level;
 use bymayo\points\Points;
@@ -11,17 +11,15 @@ use craft\elements\User;
 
 /**
  * Twig API for Points — exposed as `craft.points.*`.
- *
- * Mirrors the Craft 2 plugin's API so existing templates keep working.
  */
 class PointsVariable
 {
     /**
-     * @return PointEntry[]
+     * @return PointAward[]
      */
-    public function entries(): array
+    public function awards(): array
     {
-        return PointEntry::find()
+        return PointAward::find()
             ->orderBy(['dateCreated' => SORT_DESC])
             ->all();
     }
@@ -92,19 +90,19 @@ class PointsVariable
         return Points::getInstance()->events->saveEvent($event) ? $event : null;
     }
 
-    public function entryById(int $id): ?PointEntry
+    public function awardById(int $id): ?PointAward
     {
-        return Points::getInstance()->entries->getEntryById($id);
+        return Points::getInstance()->awards->getAwardById($id);
     }
 
     /**
-     * @return PointEntry[]
+     * @return PointAward[]
      */
-    public function entriesByUser(?int $userId = null): array
+    public function awardsByUser(?int $userId = null): array
     {
         $userId = $userId ?? $this->currentUserId();
         return $userId
-            ? Points::getInstance()->entries->getEntriesForUser($userId)
+            ? Points::getInstance()->awards->getAwardsForUser($userId)
             : [];
     }
 
@@ -112,10 +110,10 @@ class PointsVariable
      * Award points to a user.
      *
      * Usage:
-     *   {{ craft.points.addEntry({ eventHandle: 'signedUp' }) }}             — current user
-     *   {{ craft.points.addEntry({ userId: 5, eventHandle: 'signedUp' }) }}  — specific user
+     *   {{ craft.points.addAward({ eventHandle: 'signedUp' }) }}             — current user
+     *   {{ craft.points.addAward({ userId: 5, eventHandle: 'signedUp' }) }}  — specific user
      */
-    public function addEntry(array $options): ?PointEntry
+    public function addAward(array $options): ?PointAward
     {
         $userId = $options['userId'] ?? $this->currentUserId();
         $eventHandle = $options['eventHandle'] ?? null;
@@ -124,13 +122,13 @@ class PointsVariable
             return null;
         }
 
-        return Points::getInstance()->entries->addEntry((int)$userId, $eventHandle);
+        return Points::getInstance()->awards->addAward((int)$userId, $eventHandle);
     }
 
     /**
-     * Remove the oldest entry for this user + event. Only removes one instance.
+     * Remove the oldest award for this user + event. Only removes one instance.
      */
-    public function removeEntry(array $options): bool
+    public function removeAward(array $options): bool
     {
         $userId = $options['userId'] ?? $this->currentUserId();
         $eventHandle = $options['eventHandle'] ?? null;
@@ -139,22 +137,24 @@ class PointsVariable
             return false;
         }
 
-        return Points::getInstance()->entries->removeEntry((int)$userId, $eventHandle);
+        return Points::getInstance()->awards->removeAward((int)$userId, $eventHandle);
     }
 
-    public function sumEntries(?int $userId = null): int
+    /** Total points for a user (defaults to current user). */
+    public function sumForUser(?int $userId = null): int
     {
         $userId = $userId ?? $this->currentUserId();
         return $userId
-            ? Points::getInstance()->entries->sumForUser($userId)
+            ? Points::getInstance()->awards->sumForUser($userId)
             : 0;
     }
 
-    public function totalEntries(?int $userId = null): int
+    /** Count of awards for a user (defaults to current user). */
+    public function countForUser(?int $userId = null): int
     {
         $userId = $userId ?? $this->currentUserId();
         return $userId
-            ? Points::getInstance()->entries->totalForUser($userId)
+            ? Points::getInstance()->awards->countForUser($userId)
             : 0;
     }
 
@@ -194,7 +194,7 @@ class PointsVariable
      */
     public function leaderboard(int $limit = 10, int $offset = 0): array
     {
-        return Points::getInstance()->entries->leaderboard($limit, $offset);
+        return Points::getInstance()->awards->leaderboard($limit, $offset);
     }
 
     private function currentUserId(): ?int

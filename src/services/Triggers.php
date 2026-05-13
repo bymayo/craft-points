@@ -207,7 +207,7 @@ class Triggers extends Component
                 }
             }
 
-            Points::getInstance()->entries->addEntry($userId, $pointsEvent->handle, $pointsOverride);
+            Points::getInstance()->awards->addAward($userId, $pointsEvent->handle, $pointsOverride);
         }
     }
 }

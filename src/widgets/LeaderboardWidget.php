@@ -34,7 +34,7 @@ class LeaderboardWidget extends Widget
     public function getBodyHtml(): ?string
     {
         return Craft::$app->getView()->renderTemplate('points/_widgets/leaderboard', [
-            'rows' => Points::getInstance()->entries->leaderboard($this->limit),
+            'rows' => Points::getInstance()->awards->leaderboard($this->limit),
         ]);
     }
 

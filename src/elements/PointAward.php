@@ -2,10 +2,10 @@
 
 namespace bymayo\points\elements;
 
-use bymayo\points\elements\db\PointEntryQuery;
+use bymayo\points\elements\db\PointAwardQuery;
 use bymayo\points\models\Event;
 use bymayo\points\Points;
-use bymayo\points\records\PointEntryRecord;
+use bymayo\points\records\PointAwardRecord;
 use Craft;
 use craft\base\Element;
 use craft\elements\db\ElementQueryInterface;
@@ -14,7 +14,7 @@ use craft\helpers\Cp;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
 
-class PointEntry extends Element
+class PointAward extends Element
 {
     public ?int $eventId = null;
     public ?int $userId = null;
@@ -25,27 +25,27 @@ class PointEntry extends Element
 
     public static function displayName(): string
     {
-        return Craft::t('points', 'Point Entry');
+        return Craft::t('points', 'Point Award');
     }
 
     public static function lowerDisplayName(): string
     {
-        return Craft::t('points', 'point entry');
+        return Craft::t('points', 'point award');
     }
 
     public static function pluralDisplayName(): string
     {
-        return Craft::t('points', 'Point Entries');
+        return Craft::t('points', 'Point Awards');
     }
 
     public static function pluralLowerDisplayName(): string
     {
-        return Craft::t('points', 'point entries');
+        return Craft::t('points', 'point awards');
     }
 
     public static function refHandle(): ?string
     {
-        return 'pointEntry';
+        return 'pointAward';
     }
 
     public static function hasContent(): bool
@@ -75,7 +75,7 @@ class PointEntry extends Element
 
     public static function find(): ElementQueryInterface
     {
-        return new PointEntryQuery(static::class);
+        return new PointAwardQuery(static::class);
     }
 
     protected static function defineSources(?string $context = null): array
@@ -83,7 +83,7 @@ class PointEntry extends Element
         $sources = [
             [
                 'key' => '*',
-                'label' => Craft::t('points', 'All entries'),
+                'label' => Craft::t('points', 'All awards'),
                 'criteria' => [],
                 'defaultSort' => ['dateCreated', 'desc'],
             ],
@@ -127,7 +127,7 @@ class PointEntry extends Element
             'dateCreated' => Craft::t('app', 'Date Created'),
             'pointsSnapshot' => [
                 'label' => Craft::t('points', 'Points'),
-                'orderBy' => 'points_entries.pointsSnapshot',
+                'orderBy' => 'points_awards.pointsSnapshot',
             ],
         ];
     }
@@ -155,22 +155,22 @@ class PointEntry extends Element
 
     public function canView(\craft\elements\User $user): bool
     {
-        return $user->can('points-manageEntries');
+        return $user->can('points-manageAwards');
     }
 
     public function canSave(\craft\elements\User $user): bool
     {
-        return $user->can('points-manageEntries');
+        return $user->can('points-manageAwards');
     }
 
     public function canDelete(\craft\elements\User $user): bool
     {
-        return $user->can('points-manageEntries');
+        return $user->can('points-manageAwards');
     }
 
     public function getCpEditUrl(): ?string
     {
-        return $this->id ? UrlHelper::cpUrl('points/entries/' . $this->id) : null;
+        return $this->id ? UrlHelper::cpUrl('points/awards/' . $this->id) : null;
     }
 
     protected function attributeHtml(string $attribute): string
@@ -211,11 +211,11 @@ class PointEntry extends Element
 
             if ($isNew) {
                 Craft::$app->getDb()->createCommand()
-                    ->insert(PointEntryRecord::tableName(), $data + ['id' => $this->id])
+                    ->insert(PointAwardRecord::tableName(), $data + ['id' => $this->id])
                     ->execute();
             } else {
                 Craft::$app->getDb()->createCommand()
-                    ->update(PointEntryRecord::tableName(), $data, ['id' => $this->id])
+                    ->update(PointAwardRecord::tableName(), $data, ['id' => $this->id])
                     ->execute();
             }
         }

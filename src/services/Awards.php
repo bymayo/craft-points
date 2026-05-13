@@ -2,8 +2,8 @@
 
 namespace bymayo\points\services;
 
-use bymayo\points\elements\PointEntry;
-use bymayo\points\events\EntryEvent;
+use bymayo\points\elements\PointAward;
+use bymayo\points\events\AwardEvent;
 use bymayo\points\events\LevelChangedEvent;
 use bymayo\points\Points;
 use Craft;
@@ -11,47 +11,47 @@ use craft\db\Query;
 use craft\elements\User;
 use yii\base\Component;
 
-class Entries extends Component
+class Awards extends Component
 {
-    public const EVENT_BEFORE_ADD_ENTRY = 'beforeAddEntry';
-    public const EVENT_AFTER_ADD_ENTRY = 'afterAddEntry';
-    public const EVENT_BEFORE_REMOVE_ENTRY = 'beforeRemoveEntry';
-    public const EVENT_AFTER_REMOVE_ENTRY = 'afterRemoveEntry';
+    public const EVENT_BEFORE_ADD_AWARD = 'beforeAddAward';
+    public const EVENT_AFTER_ADD_AWARD = 'afterAddAward';
+    public const EVENT_BEFORE_REMOVE_AWARD = 'beforeRemoveAward';
+    public const EVENT_AFTER_REMOVE_AWARD = 'afterRemoveAward';
 
-    public function getEntryById(int $id): ?PointEntry
+    public function getAwardById(int $id): ?PointAward
     {
-        /** @var PointEntry|null $entry */
-        $entry = PointEntry::find()->id($id)->one();
-        return $entry;
+        /** @var PointAward|null $award */
+        $award = PointAward::find()->id($id)->one();
+        return $award;
     }
 
     /**
-     * @return PointEntry[]
+     * @return PointAward[]
      */
-    public function getEntriesForUser(int $userId): array
+    public function getAwardsForUser(int $userId): array
     {
-        /** @var PointEntry[] $entries */
-        $entries = PointEntry::find()
+        /** @var PointAward[] $awards */
+        $awards = PointAward::find()
             ->userId($userId)
             ->orderBy(['dateCreated' => SORT_DESC])
             ->all();
-        return $entries;
+        return $awards;
     }
 
     public function sumForUser(int $userId): int
     {
-        $sum = PointEntry::find()
+        $sum = PointAward::find()
             ->userId($userId)
-            ->sum('points_entries.pointsSnapshot');
+            ->sum('points_awards.pointsSnapshot');
         return (int)$sum;
     }
 
-    public function totalForUser(int $userId): int
+    public function countForUser(int $userId): int
     {
-        return (int)PointEntry::find()->userId($userId)->count();
+        return (int)PointAward::find()->userId($userId)->count();
     }
 
-    public function addEntry(int $userId, string $eventHandle, ?int $pointsOverride = null): ?PointEntry
+    public function addAward(int $userId, string $eventHandle, ?int $pointsOverride = null): ?PointAward
     {
         $event = Points::getInstance()->events->getEventByHandle($eventHandle);
         if (!$event) {
@@ -59,7 +59,7 @@ class Entries extends Component
         }
 
         if (!$event->multiple) {
-            $exists = PointEntry::find()
+            $exists = PointAward::find()
                 ->userId($userId)
                 ->eventId($event->id)
                 ->exists();
@@ -70,13 +70,13 @@ class Entries extends Component
 
         $pointsToAward = $pointsOverride ?? $event->points;
 
-        if ($this->hasEventHandlers(self::EVENT_BEFORE_ADD_ENTRY)) {
-            $beforeEvent = new EntryEvent([
+        if ($this->hasEventHandlers(self::EVENT_BEFORE_ADD_AWARD)) {
+            $beforeEvent = new AwardEvent([
                 'userId' => $userId,
                 'event' => $event,
                 'pointsToAward' => $pointsToAward,
             ]);
-            $this->trigger(self::EVENT_BEFORE_ADD_ENTRY, $beforeEvent);
+            $this->trigger(self::EVENT_BEFORE_ADD_AWARD, $beforeEvent);
             if (!$beforeEvent->isValid) {
                 return null;
             }
@@ -86,27 +86,27 @@ class Entries extends Component
 
         $beforeLevel = Points::getInstance()->levels->levelForUser($userId);
 
-        $entry = new PointEntry();
-        $entry->userId = $userId;
-        $entry->eventId = $event->id;
-        $entry->pointsSnapshot = $pointsToAward;
+        $award = new PointAward();
+        $award->userId = $userId;
+        $award->eventId = $event->id;
+        $award->pointsSnapshot = $pointsToAward;
 
-        if (!Craft::$app->getElements()->saveElement($entry)) {
+        if (!Craft::$app->getElements()->saveElement($award)) {
             return null;
         }
 
-        if ($this->hasEventHandlers(self::EVENT_AFTER_ADD_ENTRY)) {
-            $this->trigger(self::EVENT_AFTER_ADD_ENTRY, new EntryEvent([
+        if ($this->hasEventHandlers(self::EVENT_AFTER_ADD_AWARD)) {
+            $this->trigger(self::EVENT_AFTER_ADD_AWARD, new AwardEvent([
                 'userId' => $userId,
                 'event' => $event,
-                'entry' => $entry,
+                'award' => $award,
                 'pointsToAward' => $pointsToAward,
             ]));
         }
 
         $this->fireLevelChangedIfChanged($userId, $beforeLevel);
 
-        return $entry;
+        return $award;
     }
 
     /**
@@ -119,12 +119,12 @@ class Entries extends Component
     public function leaderboard(int $limit = 10, int $offset = 0): array
     {
         $rows = (new Query())
-            ->select(['userId' => 'e.userId', 'total' => 'SUM([[e.pointsSnapshot]])'])
-            ->from(['e' => '{{%points_entries}}'])
-            ->innerJoin(['el' => '{{%elements}}'], '[[el.id]] = [[e.id]]')
+            ->select(['userId' => 'a.userId', 'total' => 'SUM([[a.pointsSnapshot]])'])
+            ->from(['a' => '{{%points_awards}}'])
+            ->innerJoin(['el' => '{{%elements}}'], '[[el.id]] = [[a.id]]')
             ->where(['el.dateDeleted' => null])
-            ->groupBy(['e.userId'])
-            ->orderBy(['total' => SORT_DESC, 'e.userId' => SORT_ASC])
+            ->groupBy(['a.userId'])
+            ->orderBy(['total' => SORT_DESC, 'a.userId' => SORT_ASC])
             ->limit($limit)
             ->offset($offset)
             ->all();
@@ -154,32 +154,32 @@ class Entries extends Component
         return $results;
     }
 
-    public function removeEntry(int $userId, string $eventHandle): bool
+    public function removeAward(int $userId, string $eventHandle): bool
     {
         $event = Points::getInstance()->events->getEventByHandle($eventHandle);
         if (!$event) {
             return false;
         }
 
-        /** @var PointEntry|null $entry */
-        $entry = PointEntry::find()
+        /** @var PointAward|null $award */
+        $award = PointAward::find()
             ->userId($userId)
             ->eventId($event->id)
             ->orderBy(['dateCreated' => SORT_ASC])
             ->one();
 
-        if (!$entry) {
+        if (!$award) {
             return false;
         }
 
-        if ($this->hasEventHandlers(self::EVENT_BEFORE_REMOVE_ENTRY)) {
-            $beforeEvent = new EntryEvent([
+        if ($this->hasEventHandlers(self::EVENT_BEFORE_REMOVE_AWARD)) {
+            $beforeEvent = new AwardEvent([
                 'userId' => $userId,
                 'event' => $event,
-                'entry' => $entry,
-                'pointsToAward' => $entry->pointsSnapshot,
+                'award' => $award,
+                'pointsToAward' => $award->pointsSnapshot,
             ]);
-            $this->trigger(self::EVENT_BEFORE_REMOVE_ENTRY, $beforeEvent);
+            $this->trigger(self::EVENT_BEFORE_REMOVE_AWARD, $beforeEvent);
             if (!$beforeEvent->isValid) {
                 return false;
             }
@@ -187,16 +187,16 @@ class Entries extends Component
 
         $beforeLevel = Points::getInstance()->levels->levelForUser($userId);
 
-        if (!Craft::$app->getElements()->deleteElement($entry)) {
+        if (!Craft::$app->getElements()->deleteElement($award)) {
             return false;
         }
 
-        if ($this->hasEventHandlers(self::EVENT_AFTER_REMOVE_ENTRY)) {
-            $this->trigger(self::EVENT_AFTER_REMOVE_ENTRY, new EntryEvent([
+        if ($this->hasEventHandlers(self::EVENT_AFTER_REMOVE_AWARD)) {
+            $this->trigger(self::EVENT_AFTER_REMOVE_AWARD, new AwardEvent([
                 'userId' => $userId,
                 'event' => $event,
-                'entry' => $entry,
-                'pointsToAward' => $entry->pointsSnapshot,
+                'award' => $award,
+                'pointsToAward' => $award->pointsSnapshot,
             ]));
         }
 

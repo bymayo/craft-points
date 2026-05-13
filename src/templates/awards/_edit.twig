@@ -2,27 +2,27 @@
 
 {% import '_includes/forms.twig' as forms %}
 
-{% set selectedSubnavItem = 'entries' %}
+{% set selectedSubnavItem = 'awards' %}
 {% set fullPageForm = true %}
 
 {% set crumbs = [
     { label: 'Points'|t('points'), url: url('points') },
-    { label: 'Entries'|t('points'), url: url('points/entries') },
+    { label: 'Awards'|t('points'), url: url('points/awards') },
 ] %}
 
 {% set eventOptions = [{ label: '----'|t('points'), value: '' }] %}
 {% for event in events %}
     {% set eventOptions = eventOptions|merge([{
-        label: event.name ~ ' (' ~ event.points ~ ' pts)',
+        label: event.name ~ ' (' ~ event.points ~ (event.pointsType == 'percent' ? '%' : ' pts') ~ ')',
         value: event.id,
     }]) %}
 {% endfor %}
 
 {% block content %}
-    {{ actionInput('points/entries/save') }}
-    {{ redirectInput('points/entries') }}
-    {% if entry.id %}
-        <input type="hidden" name="entryId" value="{{ entry.id }}">
+    {{ actionInput('points/awards/save') }}
+    {{ redirectInput('points/awards') }}
+    {% if award.id %}
+        <input type="hidden" name="awardId" value="{{ award.id }}">
     {% endif %}
 
     {{ forms.elementSelectField({
@@ -31,10 +31,10 @@
         id: 'userId',
         name: 'userId',
         elementType: 'craft\\elements\\User',
-        elements: entry.user ? [entry.user] : null,
+        elements: award.user ? [award.user] : null,
         limit: 1,
         required: true,
-        errors: entry.getErrors('userId'),
+        errors: award.getErrors('userId'),
     }) }}
 
     {{ forms.selectField({
@@ -42,19 +42,19 @@
         id: 'eventId',
         name: 'eventId',
         options: eventOptions,
-        value: entry.eventId,
+        value: award.eventId,
         required: true,
-        errors: entry.getErrors('eventId'),
+        errors: award.getErrors('eventId'),
     }) }}
 
-    {% if entry.id %}
+    {% if award.id %}
         {{ forms.textField({
             label: 'Points'|t('points'),
-            instructions: 'Snapshot of the event\'s points value when this entry was created. Editing the event later won\'t change this.'|t('points'),
+            instructions: 'Snapshot of the event\'s points value when this award was created. Editing the event later won\'t change this.'|t('points'),
             id: 'pointsSnapshot',
             name: 'pointsSnapshot',
             type: 'number',
-            value: entry.pointsSnapshot,
+            value: award.pointsSnapshot,
             disabled: true,
         }) }}
     {% endif %}

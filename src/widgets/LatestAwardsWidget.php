@@ -2,17 +2,17 @@
 
 namespace bymayo\points\widgets;
 
-use bymayo\points\elements\PointEntry;
+use bymayo\points\elements\PointAward;
 use Craft;
 use craft\base\Widget;
 
-class LatestEntriesWidget extends Widget
+class LatestAwardsWidget extends Widget
 {
     public int $limit = 10;
 
     public static function displayName(): string
     {
-        return Craft::t('points', 'Latest Points Entries');
+        return Craft::t('points', 'Latest Points Awards');
     }
 
     public static function icon(): ?string
@@ -28,24 +28,24 @@ class LatestEntriesWidget extends Widget
 
     public function getTitle(): ?string
     {
-        return Craft::t('points', 'Latest Entries');
+        return Craft::t('points', 'Latest Awards');
     }
 
     public function getBodyHtml(): ?string
     {
-        $entries = PointEntry::find()
+        $awards = PointAward::find()
             ->orderBy(['dateCreated' => SORT_DESC])
             ->limit($this->limit)
             ->all();
 
-        return Craft::$app->getView()->renderTemplate('points/_widgets/latest-entries', [
-            'entries' => $entries,
+        return Craft::$app->getView()->renderTemplate('points/_widgets/latest-awards', [
+            'awards' => $awards,
         ]);
     }
 
     public function getSettingsHtml(): ?string
     {
-        return Craft::$app->getView()->renderTemplate('points/_widgets/latest-entries-settings', [
+        return Craft::$app->getView()->renderTemplate('points/_widgets/latest-awards-settings', [
             'widget' => $this,
         ]);
     }

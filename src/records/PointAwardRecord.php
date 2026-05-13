@@ -10,10 +10,10 @@ use craft\db\ActiveRecord;
  * @property int $userId
  * @property int $pointsSnapshot
  */
-class PointEntryRecord extends ActiveRecord
+class PointAwardRecord extends ActiveRecord
 {
     public static function tableName(): string
     {
-        return '{{%points_entries}}';
+        return '{{%points_awards}}';
     }
 }

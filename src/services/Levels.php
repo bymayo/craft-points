@@ -76,7 +76,7 @@ class Levels extends Component
 
     public function levelForUser(int $userId): ?Level
     {
-        $sum = Points::getInstance()->entries->sumForUser($userId);
+        $sum = Points::getInstance()->awards->sumForUser($userId);
         return $this->levelForPoints($sum);
     }
 

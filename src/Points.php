@@ -2,34 +2,34 @@
 
 namespace bymayo\points;
 
-use bymayo\points\elements\PointEntry;
+use bymayo\points\elements\PointAward;
 use bymayo\points\gql\types\EventType;
 use bymayo\points\gql\types\LeaderboardRowType;
 use bymayo\points\gql\types\LevelType;
-use bymayo\points\gql\types\PointEntryType;
+use bymayo\points\gql\types\PointAwardType;
 use bymayo\points\models\Settings;
-use bymayo\points\services\Entries;
+use bymayo\points\services\Awards;
 use bymayo\points\services\Events;
 use bymayo\points\services\Levels;
 use bymayo\points\services\Triggers;
 use bymayo\points\variables\PointsVariable;
-use bymayo\points\widgets\LatestEntriesWidget;
+use bymayo\points\widgets\LatestAwardsWidget;
 use bymayo\points\widgets\LeaderboardWidget;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\RegisterComponentTypesEvent;
-use craft\events\RegisterUrlRulesEvent;
-use craft\events\RegisterUserPermissionsEvent;
 use craft\events\RegisterGqlQueriesEvent;
 use craft\events\RegisterGqlTypesEvent;
+use craft\events\RegisterUrlRulesEvent;
+use craft\events\RegisterUserPermissionsEvent;
 use craft\services\Dashboard;
 use craft\services\Elements;
 use craft\services\Gql;
 use craft\services\UserPermissions;
-use GraphQL\Type\Definition\Type;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
+use GraphQL\Type\Definition\Type;
 use yii\base\Event;
 
 /**
@@ -38,7 +38,7 @@ use yii\base\Event;
  * @method static Points getInstance()
  * @method Settings getSettings()
  * @property-read Events $events
- * @property-read Entries $entries
+ * @property-read Awards $awards
  * @property-read Levels $levels
  * @property-read Triggers $triggers
  * @author ByMayo <jason@bymayo.co.uk>
@@ -47,7 +47,7 @@ use yii\base\Event;
  */
 class Points extends Plugin
 {
-    public string $schemaVersion = '1.3.0';
+    public string $schemaVersion = '1.4.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -56,7 +56,7 @@ class Points extends Plugin
         return [
             'components' => [
                 'events' => Events::class,
-                'entries' => Entries::class,
+                'awards' => Awards::class,
                 'levels' => Levels::class,
                 'triggers' => Triggers::class,
             ],
@@ -81,8 +81,8 @@ class Points extends Plugin
         $user = Craft::$app->getUser();
         $subnav = [];
 
-        if ($user->checkPermission('points-manageEntries')) {
-            $subnav['entries'] = ['label' => Craft::t('points', 'Entries'), 'url' => 'points/entries'];
+        if ($user->checkPermission('points-manageAwards')) {
+            $subnav['awards'] = ['label' => Craft::t('points', 'Awards'), 'url' => 'points/awards'];
         }
         if ($user->checkPermission('points-manageEvents')) {
             $subnav['events'] = ['label' => Craft::t('points', 'Events'), 'url' => 'points/events'];
@@ -90,7 +90,7 @@ class Points extends Plugin
         if ($user->checkPermission('points-manageLevels')) {
             $subnav['levels'] = ['label' => Craft::t('points', 'Levels'), 'url' => 'points/levels'];
         }
-        if ($user->checkPermission('points-manageEntries')) {
+        if ($user->checkPermission('points-manageAwards')) {
             $subnav['leaderboard'] = ['label' => Craft::t('points', 'Leaderboard'), 'url' => 'points/leaderboard'];
         }
 
@@ -128,7 +128,7 @@ class Points extends Plugin
             Elements::class,
             Elements::EVENT_REGISTER_ELEMENT_TYPES,
             function(RegisterComponentTypesEvent $event) {
-                $event->types[] = PointEntry::class;
+                $event->types[] = PointAward::class;
             }
         );
 
@@ -137,7 +137,7 @@ class Points extends Plugin
             Dashboard::EVENT_REGISTER_WIDGET_TYPES,
             function(RegisterComponentTypesEvent $event) {
                 $event->types[] = LeaderboardWidget::class;
-                $event->types[] = LatestEntriesWidget::class;
+                $event->types[] = LatestAwardsWidget::class;
             }
         );
 
@@ -145,11 +145,11 @@ class Points extends Plugin
             UrlManager::class,
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function(RegisterUrlRulesEvent $event) {
-                $event->rules['points'] = 'points/entries/index';
+                $event->rules['points'] = 'points/awards/index';
 
-                $event->rules['points/entries'] = 'points/entries/index';
-                $event->rules['points/entries/new'] = 'points/entries/edit';
-                $event->rules['points/entries/<entryId:\d+>'] = 'points/entries/edit';
+                $event->rules['points/awards'] = 'points/awards/index';
+                $event->rules['points/awards/new'] = 'points/awards/edit';
+                $event->rules['points/awards/<awardId:\d+>'] = 'points/awards/edit';
 
                 $event->rules['points/events'] = 'points/events/index';
                 $event->rules['points/events/new'] = 'points/events/edit';
@@ -190,8 +190,8 @@ class Points extends Plugin
                         'points-manageEvents' => [
                             'label' => Craft::t('points', 'Manage events'),
                         ],
-                        'points-manageEntries' => [
-                            'label' => Craft::t('points', 'Manage entries'),
+                        'points-manageAwards' => [
+                            'label' => Craft::t('points', 'Manage awards'),
                         ],
                         'points-manageLevels' => [
                             'label' => Craft::t('points', 'Manage levels'),
@@ -210,7 +210,7 @@ class Points extends Plugin
             function(RegisterGqlTypesEvent $event) {
                 $event->types[] = EventType::class;
                 $event->types[] = LevelType::class;
-                $event->types[] = PointEntryType::class;
+                $event->types[] = PointAwardType::class;
                 $event->types[] = LeaderboardRowType::class;
             }
         );
@@ -247,8 +247,8 @@ class Points extends Plugin
                     'description' => "The user's current level.",
                 ];
 
-                $event->queries['pointsEntries'] = [
-                    'type' => Type::listOf(PointEntryType::getType()),
+                $event->queries['pointsAwards'] = [
+                    'type' => Type::listOf(PointAwardType::getType()),
                     'args' => [
                         'userId' => Type::int(),
                         'eventId' => Type::int(),
@@ -256,7 +256,7 @@ class Points extends Plugin
                         'offset' => Type::int(),
                     ],
                     'resolve' => function($source, array $args) {
-                        $query = \bymayo\points\elements\PointEntry::find()
+                        $query = PointAward::find()
                             ->orderBy(['dateCreated' => SORT_DESC]);
                         if (isset($args['userId'])) {
                             $query->userId((int)$args['userId']);
@@ -272,21 +272,21 @@ class Points extends Plugin
                         }
                         return $query->all();
                     },
-                    'description' => 'Query Points entries.',
+                    'description' => 'Query Points awards.',
                 ];
 
                 $event->queries['pointsSumForUser'] = [
                     'type' => Type::int(),
                     'args' => ['userId' => Type::nonNull(Type::int())],
-                    'resolve' => fn($source, array $args) => self::getInstance()->entries->sumForUser((int)$args['userId']),
+                    'resolve' => fn($source, array $args) => self::getInstance()->awards->sumForUser((int)$args['userId']),
                     'description' => "The user's total points.",
                 ];
 
-                $event->queries['pointsTotalForUser'] = [
+                $event->queries['pointsCountForUser'] = [
                     'type' => Type::int(),
                     'args' => ['userId' => Type::nonNull(Type::int())],
-                    'resolve' => fn($source, array $args) => self::getInstance()->entries->totalForUser((int)$args['userId']),
-                    'description' => "Count of entries for the user.",
+                    'resolve' => fn($source, array $args) => self::getInstance()->awards->countForUser((int)$args['userId']),
+                    'description' => "Count of awards for the user.",
                 ];
 
                 $event->queries['pointsLeaderboard'] = [
@@ -296,7 +296,7 @@ class Points extends Plugin
                         'offset' => Type::int(),
                     ],
                     'resolve' => function($source, array $args) {
-                        return self::getInstance()->entries->leaderboard(
+                        return self::getInstance()->awards->leaderboard(
                             (int)($args['limit'] ?? 10),
                             (int)($args['offset'] ?? 0)
                         );

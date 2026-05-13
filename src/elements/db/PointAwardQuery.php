@@ -2,11 +2,10 @@
 
 namespace bymayo\points\elements\db;
 
-use craft\db\Table;
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
 
-class PointEntryQuery extends ElementQuery
+class PointAwardQuery extends ElementQuery
 {
     public mixed $eventId = null;
     public mixed $userId = null;
@@ -25,20 +24,20 @@ class PointEntryQuery extends ElementQuery
 
     protected function beforePrepare(): bool
     {
-        $this->joinElementTable('points_entries');
+        $this->joinElementTable('points_awards');
 
         $this->query->select([
-            'points_entries.eventId',
-            'points_entries.userId',
-            'points_entries.pointsSnapshot',
+            'points_awards.eventId',
+            'points_awards.userId',
+            'points_awards.pointsSnapshot',
         ]);
 
         if ($this->eventId !== null) {
-            $this->subQuery->andWhere(Db::parseParam('points_entries.eventId', $this->eventId));
+            $this->subQuery->andWhere(Db::parseParam('points_awards.eventId', $this->eventId));
         }
 
         if ($this->userId !== null) {
-            $this->subQuery->andWhere(Db::parseParam('points_entries.userId', $this->userId));
+            $this->subQuery->andWhere(Db::parseParam('points_awards.userId', $this->userId));
         }
 
         return parent::beforePrepare();
