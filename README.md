@@ -7,6 +7,8 @@ Award points to users for actions they perform, build leaderboards, and unlock t
 ## Features
 
 - **Events** — define point-awarding actions (e.g. "Signed up to newsletter" = 20pts)
+- **Automatic triggers** — fire events on Entry create/update/delete, Category save/delete, User register/login/update, Asset upload/delete — with per-section / per-group / per-volume scoping
+- **Extensible** — other plugins can register their own triggers via `Triggers::EVENT_REGISTER_TRIGGERS`
 - **Entries** — award those events to users from the CP or Twig
 - **Levels** — tier users by accumulated points (Bronze/Silver/Gold style) with colour and icon
 - **Leaderboard** — CP page and dashboard widget showing top users by total points, with their current level
@@ -50,6 +52,33 @@ Navigate to **Points → Events** in the CP. Create an event with:
 - **Handle** — short identifier you'll use in Twig, e.g. `signedUp`
 - **Points** — how many points this event is worth
 - **Allow multiple** — when off, a user can only receive this event's points once; when on, the event is repeatable
+- **Trigger** — when should this fire? "Manual" means only via Twig / CP. Pick a system event (Entry created, User logged in, Asset uploaded, …) to fire automatically.
+- **Scope** (when applicable) — limit a trigger to specific sections, category groups, or volumes. Leave empty to apply to all.
+
+### Automatic triggers
+
+When you pick a trigger that's not "Manual", the plugin listens for that system event and awards points automatically. Recipients default to:
+
+| Trigger | Recipient |
+|---|---|
+| Entry created/updated/deleted | Entry author |
+| Category created/updated/deleted | Active CP user |
+| User registered / updated / logged in | The user themselves |
+| Asset uploaded / deleted | Asset uploader |
+
+The Event's `multiple` flag still applies — so an `Entry updated` event with `multiple: false` only awards the first time a given user updates an entry.
+
+### Adding triggers from another plugin
+
+```php
+use bymayo\points\events\RegisterTriggersEvent;
+use bymayo\points\services\Triggers;
+use yii\base\Event;
+
+Event::on(Triggers::class, Triggers::EVENT_REGISTER_TRIGGERS, function(RegisterTriggersEvent $e) {
+    $e->triggers[] = MyTrigger::class; // extends \bymayo\points\triggers\BaseTrigger
+});
+```
 
 ### Awarding points
 

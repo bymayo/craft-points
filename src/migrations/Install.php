@@ -14,6 +14,8 @@ class Install extends Migration
             'handle' => $this->string()->notNull(),
             'points' => $this->integer()->notNull()->defaultValue(0),
             'multiple' => $this->boolean()->notNull()->defaultValue(false),
+            'trigger' => $this->string(),
+            'triggerConfig' => $this->text(),
             'dateCreated' => $this->dateTime()->notNull(),
             'dateUpdated' => $this->dateTime()->notNull(),
             'uid' => $this->uid(),

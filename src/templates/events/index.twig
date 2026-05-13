@@ -22,6 +22,7 @@
                     <th scope="col">{{ 'Handle'|t('points') }}</th>
                     <th scope="col">{{ 'Points'|t('points') }}</th>
                     <th scope="col">{{ 'Multiple'|t('points') }}</th>
+                    <th scope="col">{{ 'Trigger'|t('points') }}</th>
                     <th scope="col"></th>
                 </tr>
             </thead>
@@ -34,6 +35,13 @@
                         <td><code>{{ event.handle }}</code></td>
                         <td>{{ event.points }}</td>
                         <td>{{ event.multiple ? 'Yes'|t('points') : 'No'|t('points') }}</td>
+                        <td>
+                            {% if event.trigger %}
+                                <code>{{ event.trigger }}</code>
+                            {% else %}
+                                <span style="opacity:0.5;">{{ 'Manual'|t('points') }}</span>
+                            {% endif %}
+                        </td>
                         <td class="thin">
                             <form method="post" onsubmit="return confirm('{{ 'Delete this event?'|t('points') }}');">
                                 {{ csrfInput() }}

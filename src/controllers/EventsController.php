@@ -35,11 +35,15 @@ class EventsController extends Controller
             }
         }
 
+        $triggersService = Points::getInstance()->triggers;
+
         return $this->renderTemplate('points/events/_edit', [
             'event' => $event,
             'title' => $event->id
                 ? $event->name
                 : Craft::t('points', 'New event'),
+            'triggerOptions' => $triggersService->getSelectOptions(),
+            'scopedTriggers' => $triggersService->getScopedTriggers(),
         ]);
     }
 
@@ -64,6 +68,15 @@ class EventsController extends Controller
         $event->handle = (string) $request->getBodyParam('handle', $event->handle);
         $event->points = (int) $request->getBodyParam('points', $event->points);
         $event->multiple = (bool) $request->getBodyParam('multiple', $event->multiple);
+        $event->trigger = $request->getBodyParam('trigger') ?: null;
+
+        $triggerConfigs = $request->getBodyParam('triggerConfig', []);
+        if ($event->trigger && is_array($triggerConfigs) && isset($triggerConfigs[$event->trigger])) {
+            $config = $triggerConfigs[$event->trigger];
+            $event->triggerConfig = is_array($config) ? $config : null;
+        } else {
+            $event->triggerConfig = null;
+        }
 
         if (!Points::getInstance()->events->saveEvent($event)) {
             return $this->asModelFailure(

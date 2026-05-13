@@ -15,6 +15,8 @@ class Event extends Model
     public string $handle = '';
     public int $points = 0;
     public bool $multiple = false;
+    public ?string $trigger = null;
+    public ?array $triggerConfig = null;
     public ?string $uid = null;
 
     public function defineRules(): array

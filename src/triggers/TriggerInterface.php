@@ -1,0 +1,39 @@
+<?php
+
+namespace bymayo\points\triggers;
+
+interface TriggerInterface
+{
+    /** Unique trigger handle stored on the Event record, e.g. 'entry.created'. */
+    public static function handle(): string;
+
+    /** Human-readable label for the trigger select. */
+    public static function label(): string;
+
+    /** Group label for optgroup'ing the trigger select (e.g. 'Entries', 'Users'). */
+    public static function group(): string;
+
+    /** The Yii/Craft event source class to listen on. */
+    public static function eventClass(): string;
+
+    /** The event name constant to listen for. */
+    public static function eventName(): string;
+
+    /**
+     * Return true if the underlying event matches this trigger's intent
+     * (e.g. an Entry save event with $isNew === true for an "Entry created" trigger).
+     */
+    public static function appliesToEvent($event): bool;
+
+    /** Resolve the user ID that should receive points for this event. */
+    public static function getUserIdFromEvent($event): ?int;
+
+    /** What kind of scope this trigger supports, or null: 'sections', 'groups', 'volumes', etc. */
+    public static function scopedTo(): ?string;
+
+    /** Return the scope ID for the given event (e.g. sectionId for an entry). */
+    public static function scopeIdForEvent($event): ?int;
+
+    /** Options for the scope multi-select in the CP edit form. */
+    public static function getScopeOptions(): array;
+}

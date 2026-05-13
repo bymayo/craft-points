@@ -56,4 +56,53 @@
         name: 'multiple',
         on: event.multiple,
     }) }}
+
+    <hr>
+
+    {{ forms.selectField({
+        label: 'Trigger'|t('points'),
+        instructions: 'When should this event fire? "Manual" means only when called from Twig or the CP.'|t('points'),
+        id: 'trigger',
+        name: 'trigger',
+        options: triggerOptions,
+        value: event.trigger ?? '',
+    }) }}
+
+    <div id="points-trigger-configs">
+        {% for triggerClass in scopedTriggers %}
+            {% set isActive = (event.trigger == triggerClass.handle()) %}
+            {% set selectedScopeIds = isActive ? (event.triggerConfig.scopeIds ?? []) : [] %}
+            <div data-trigger="{{ triggerClass.handle() }}"{% if not isActive %} class="hidden"{% endif %}>
+                {{ forms.checkboxSelectField({
+                    label: ('Limit to ' ~ triggerClass.scopedTo())|t('points'),
+                    instructions: 'Leave all unchecked to apply to every {scope}.'|t('points', { scope: triggerClass.scopedTo() }),
+                    name: 'triggerConfig[' ~ triggerClass.handle() ~ '][scopeIds]',
+                    options: triggerClass.getScopeOptions(),
+                    values: selectedScopeIds,
+                    showAllOption: false,
+                }) }}
+            </div>
+        {% endfor %}
+    </div>
+
+    {% js %}
+        (function() {
+            var sel = document.getElementById('trigger');
+            if (!sel) return;
+            var container = document.getElementById('points-trigger-configs');
+            if (!container) return;
+            function update() {
+                var val = sel.value;
+                container.querySelectorAll('[data-trigger]').forEach(function(el) {
+                    if (el.dataset.trigger === val) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                });
+            }
+            sel.addEventListener('change', update);
+            update();
+        })();
+    {% endjs %}
 {% endblock %}

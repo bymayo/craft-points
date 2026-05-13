@@ -7,6 +7,7 @@ use bymayo\points\models\Settings;
 use bymayo\points\services\Entries;
 use bymayo\points\services\Events;
 use bymayo\points\services\Levels;
+use bymayo\points\services\Triggers;
 use bymayo\points\variables\PointsVariable;
 use bymayo\points\widgets\LatestEntriesWidget;
 use bymayo\points\widgets\LeaderboardWidget;
@@ -31,13 +32,14 @@ use yii\base\Event;
  * @property-read Events $events
  * @property-read Entries $entries
  * @property-read Levels $levels
+ * @property-read Triggers $triggers
  * @author ByMayo <jason@bymayo.co.uk>
  * @copyright ByMayo
  * @license https://craftcms.github.io/license/ Craft License
  */
 class Points extends Plugin
 {
-    public string $schemaVersion = '1.1.0';
+    public string $schemaVersion = '1.2.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -48,6 +50,7 @@ class Points extends Plugin
                 'events' => Events::class,
                 'entries' => Entries::class,
                 'levels' => Levels::class,
+                'triggers' => Triggers::class,
             ],
         ];
     }
@@ -57,6 +60,9 @@ class Points extends Plugin
         parent::init();
 
         $this->attachEventHandlers();
+
+        // Eagerly instantiate the Triggers service so it can attach its Yii event listeners.
+        $this->triggers;
     }
 
     public function getCpNavItem(): ?array

@@ -30,6 +30,15 @@ class Events extends Component
         return $record ? $this->createEventFromRecord($record) : null;
     }
 
+    /**
+     * @return Event[]
+     */
+    public function getEventsByTrigger(string $triggerHandle): array
+    {
+        $records = EventRecord::find()->where(['trigger' => $triggerHandle])->all();
+        return array_map(fn(EventRecord $r) => $this->createEventFromRecord($r), $records);
+    }
+
     public function saveEvent(Event $event, bool $runValidation = true): bool
     {
         if ($runValidation && !$event->validate()) {
@@ -49,6 +58,10 @@ class Events extends Component
         $record->handle = $event->handle;
         $record->points = $event->points;
         $record->multiple = $event->multiple;
+        $record->trigger = $event->trigger ?: null;
+        $record->triggerConfig = $event->triggerConfig
+            ? json_encode($event->triggerConfig)
+            : null;
 
         if (!$record->save(false)) {
             return false;
@@ -76,6 +89,10 @@ class Events extends Component
         $event->handle = (string) $r->handle;
         $event->points = (int) $r->points;
         $event->multiple = (bool) $r->multiple;
+        $event->trigger = $r->trigger ?: null;
+        $event->triggerConfig = $r->triggerConfig
+            ? (json_decode($r->triggerConfig, true) ?: null)
+            : null;
         $event->uid = $r->uid;
         return $event;
     }
