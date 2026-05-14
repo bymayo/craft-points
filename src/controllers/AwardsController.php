@@ -139,7 +139,7 @@ class AwardsController extends Controller
      *   - Rule Limits are enforced
      *   - Active date range is honoured
      */
-    public function actionFire(): Response
+    public function actionAdd(): Response
     {
         $this->requirePostRequest();
         $request = Craft::$app->getRequest();
@@ -206,7 +206,7 @@ class AwardsController extends Controller
 
     /**
      * Frontend endpoint: remove the oldest matching award for the
-     * currently-logged-in user. Mirrors `actionFire` (same content negotiation
+     * currently-logged-in user. Mirrors `actionAdd` (same content negotiation
      * and security boundary).
      */
     public function actionRemove(): Response

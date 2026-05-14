@@ -198,7 +198,7 @@ class PointsVariable
      */
     public function script(): \Twig\Markup
     {
-        $fireUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/fire');
+        $fireUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/add');
         $removeUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/remove');
         $tokenUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/token');
 
