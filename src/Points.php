@@ -68,7 +68,7 @@ class Points extends Plugin
     public const EDITION_LITE = 'lite';
     public const EDITION_PRO = 'pro';
 
-    public string $schemaVersion = '1.9.0';
+    public string $schemaVersion = '1.10.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 

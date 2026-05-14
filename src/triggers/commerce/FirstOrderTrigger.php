@@ -49,4 +49,11 @@ class FirstOrderTrigger extends BaseTrigger
         $order = $event->sender;
         return (float) $order->getTotalPrice();
     }
+
+    public static function getOrderIdFromEvent($event): ?int
+    {
+        /** @var Order $order */
+        $order = $event->sender;
+        return $order->id ?: null;
+    }
 }

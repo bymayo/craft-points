@@ -18,10 +18,12 @@ class PointAward extends Element
 {
     public ?int $ruleId = null;
     public ?int $userId = null;
+    public ?int $orderId = null;
     public int $pointsSnapshot = 0;
 
     private ?Rule $_rule = null;
     private ?User $_user = null;
+    private mixed $_order = null;
 
     public static function displayName(): string
     {
@@ -108,18 +110,25 @@ class PointAward extends Element
 
     protected static function defineTableAttributes(): array
     {
-        return [
+        $attrs = [
             'user' => ['label' => Craft::t('points', 'User')],
             'rule' => ['label' => Craft::t('points', 'Rule')],
             'pointsSnapshot' => ['label' => Points::getInstance()->getSettings()->currencyNamePlural],
             'dateCreated' => ['label' => Craft::t('app', 'Date Created')],
         ];
+        // Order column is only meaningful when Pro+Commerce is in play.
+        $plugin = Points::getInstance();
+        if ($plugin->is(Points::EDITION_PRO) && $plugin->hasCommerce()) {
+            $attrs['order'] = ['label' => Craft::t('points', 'Order')];
+        }
+        return $attrs;
     }
 
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        // 'rule' is omitted from defaults because the row title is already
-        // the rule name (see getUiLabel). Users can re-enable via column settings.
+        // 'rule' and 'order' are omitted from defaults — the row title is
+        // already the rule name (see getUiLabel), and Order is opt-in via
+        // column settings.
         return ['user', 'pointsSnapshot', 'dateCreated'];
     }
 
@@ -153,6 +162,30 @@ class PointAward extends Element
             $this->_user = Craft::$app->getUsers()->getUserById($this->userId);
         }
         return $this->_user;
+    }
+
+    /**
+     * Resolve the Commerce order this award came from, if any. Returns null
+     * outside Pro+Commerce, when there's no `orderId`, or when the order has
+     * been deleted.
+     */
+    public function getOrder(): mixed
+    {
+        if ($this->_order !== null) {
+            return $this->_order ?: null;
+        }
+
+        $plugin = Points::getInstance();
+        if (!$this->orderId || !$plugin->is(Points::EDITION_PRO) || !$plugin->hasCommerce()) {
+            return null;
+        }
+
+        $this->_order = \craft\commerce\elements\Order::find()
+            ->id($this->orderId)
+            ->status(null)
+            ->one() ?? false;
+
+        return $this->_order ?: null;
     }
 
     public function canView(\craft\elements\User $user): bool
@@ -200,6 +233,9 @@ class PointAward extends Element
                 return Html::a(Html::encode($rule->name), $rule->getCpEditUrl());
             case 'pointsSnapshot':
                 return (string)$this->pointsSnapshot;
+            case 'order':
+                $order = $this->getOrder();
+                return $order ? Cp::elementChipHtml($order) : '';
         }
 
         return parent::attributeHtml($attribute);
@@ -209,7 +245,7 @@ class PointAward extends Element
     {
         $rules = parent::defineRules();
         $rules[] = [['ruleId', 'userId'], 'required'];
-        $rules[] = [['ruleId', 'userId', 'pointsSnapshot'], 'integer'];
+        $rules[] = [['ruleId', 'userId', 'pointsSnapshot', 'orderId'], 'integer'];
         return $rules;
     }
 
@@ -219,6 +255,7 @@ class PointAward extends Element
             $data = [
                 'ruleId' => $this->ruleId,
                 'userId' => $this->userId,
+                'orderId' => $this->orderId,
                 'pointsSnapshot' => $this->pointsSnapshot,
             ];
 

@@ -118,7 +118,7 @@ class Awards extends Component
         return $map;
     }
 
-    public function addAward(int $userId, string $ruleHandle, ?int $pointsOverride = null): ?PointAward
+    public function addAward(int $userId, string $ruleHandle, ?int $pointsOverride = null, ?int $orderId = null): ?PointAward
     {
         $rule = Points::getInstance()->rules->getRuleByHandle($ruleHandle);
         if (!$rule) {
@@ -163,6 +163,7 @@ class Awards extends Component
         $award = new PointAward();
         $award->userId = $userId;
         $award->ruleId = $rule->id;
+        $award->orderId = $orderId;
         $award->pointsSnapshot = $pointsToAward;
 
         if (!Craft::$app->getElements()->saveElement($award)) {

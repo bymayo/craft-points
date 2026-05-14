@@ -167,6 +167,7 @@ class Triggers extends Component
         }
 
         $amount = $triggerClass::getAmountForEvent($yiiEvent);
+        $orderId = $triggerClass::getOrderIdFromEvent($yiiEvent);
 
         $points = Points::getInstance();
         $now = (new \DateTime())->format('Y-m-d H:i:s');
@@ -201,7 +202,7 @@ class Triggers extends Component
                 continue;
             }
 
-            $points->awards->addAward($userId, $rule->handle, $awardPoints);
+            $points->awards->addAward($userId, $rule->handle, $awardPoints, $orderId);
         }
     }
 }

@@ -48,4 +48,11 @@ class OrderRefundedTrigger extends BaseTrigger
         $tx = $event->transaction ?? null;
         return $tx ? (float) $tx->amount : null;
     }
+
+    public static function getOrderIdFromEvent($event): ?int
+    {
+        $tx = $event->transaction ?? null;
+        $order = $tx?->order;
+        return $order?->id ?: null;
+    }
 }

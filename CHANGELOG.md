@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+- **Awards now carry a back-reference to the Commerce order that generated them** (Pro + Commerce). When an award is created by `OrderPaidTrigger`, `OrderCompletedTrigger`, `OrderRefundedTrigger`, or `FirstOrderTrigger`, the originating order's ID is stamped onto the `points_awards.orderId` column. A new optional `Order` column on the Awards element index renders the order as a Craft element chip linking to the order edit URL — opt in via the index's column settings. Useful for troubleshooting ("which order earned this customer 50 points?") and future per-order reporting.
+- New migration: `m260514_140000_add_order_id_to_awards` (adds nullable `orderId` column + index). Schema version bumped to `1.10.0`.
+- New PHP surface: `PointAward::$orderId`, `PointAward::getOrder()`, `PointAwardQuery::orderId($value)`, `Awards::addAward(..., ?int $orderId = null)`, `TriggerInterface::getOrderIdFromEvent($event)` (default `null` in `BaseTrigger`; overridden in the four Commerce order triggers).
+
 ### Fixed
 - **Settings save was silently reverting on the next page load.** Craft's `Plugin` base passes the legacy `plugins.settings` DB column (synced from Project Config) into `setSettings()` during plugin construction, which overlaid stale values on top of our freshly DB-loaded model. Overrode `setSettings()` as a no-op so `{{%points_settings}}` stays the only source of truth.
 - **Commerce gating gaps closed:**

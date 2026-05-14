@@ -6,9 +6,10 @@ use craft\db\ActiveRecord;
 
 /**
  * @property int $id
- * @property int $eventId
+ * @property int $ruleId
  * @property int $userId
  * @property int $pointsSnapshot
+ * @property int|null $orderId
  */
 class PointAwardRecord extends ActiveRecord
 {

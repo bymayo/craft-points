@@ -44,4 +44,9 @@ abstract class BaseTrigger implements TriggerInterface
     {
         return true;
     }
+
+    public static function getOrderIdFromEvent($event): ?int
+    {
+        return null;
+    }
 }

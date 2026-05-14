@@ -9,6 +9,7 @@ class PointAwardQuery extends ElementQuery
 {
     public mixed $ruleId = null;
     public mixed $userId = null;
+    public mixed $orderId = null;
 
     public function ruleId(mixed $value): self
     {
@@ -22,6 +23,12 @@ class PointAwardQuery extends ElementQuery
         return $this;
     }
 
+    public function orderId(mixed $value): self
+    {
+        $this->orderId = $value;
+        return $this;
+    }
+
     protected function beforePrepare(): bool
     {
         $this->joinElementTable('points_awards');
@@ -29,6 +36,7 @@ class PointAwardQuery extends ElementQuery
         $this->query->select([
             'points_awards.ruleId',
             'points_awards.userId',
+            'points_awards.orderId',
             'points_awards.pointsSnapshot',
         ]);
 
@@ -38,6 +46,10 @@ class PointAwardQuery extends ElementQuery
 
         if ($this->userId !== null) {
             $this->subQuery->andWhere(Db::parseParam('points_awards.userId', $this->userId));
+        }
+
+        if ($this->orderId !== null) {
+            $this->subQuery->andWhere(Db::parseParam('points_awards.orderId', $this->orderId));
         }
 
         return parent::beforePrepare();

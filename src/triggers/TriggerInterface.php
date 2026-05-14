@@ -53,4 +53,11 @@ interface TriggerInterface
      * the user field layout), return false until the dependency is met.
      */
     public static function isAvailable(): bool;
+
+    /**
+     * Return the Commerce order ID this event was about, if applicable.
+     * Used to stamp the resulting award with a back-reference to the order
+     * so the Awards index can link back. Non-Commerce triggers return null.
+     */
+    public static function getOrderIdFromEvent($event): ?int;
 }
