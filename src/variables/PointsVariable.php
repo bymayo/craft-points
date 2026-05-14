@@ -207,6 +207,66 @@ class PointsVariable
     }
 
     /**
+     * Outputs an inline `<script>` defining `window.Points.addAward(ruleHandle)`
+     * — a cache-safe way to fire Manual rules from frontend pages.
+     *
+     * Cache-safe because:
+     *   - The script defines a function, no CSRF token in the rendered HTML
+     *   - Token is fetched at runtime via a separate uncached AJAX call
+     *   - Works inside Blitz / static cache / {% cache %} blocks
+     */
+    public function script(): \Twig\Markup
+    {
+        $fireUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/fire');
+        $tokenUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/token');
+
+        // JSON-encode for safe injection into JS string literals.
+        $fireJson = json_encode($fireUrl);
+        $tokenJson = json_encode($tokenUrl);
+
+        $js = <<<JS
+(function () {
+    if (window.Points && window.Points._loaded) return;
+    window.Points = window.Points || {};
+    window.Points._loaded = true;
+    var _token = null;
+
+    function getToken() {
+        if (_token) return Promise.resolve(_token);
+        return fetch({$tokenJson}, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        }).then(function (r) { return r.json(); })
+          .then(function (data) {
+            _token = data && data.token ? data.token : null;
+            return _token;
+        });
+    }
+
+    window.Points.addAward = function (ruleHandle) {
+        return getToken().then(function (token) {
+            var body = new URLSearchParams();
+            body.set('CRAFT_CSRF_TOKEN', token || '');
+            body.set('ruleHandle', ruleHandle);
+            return fetch({$fireJson}, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: body
+            }).then(function (r) { return r.json(); });
+        });
+    };
+})();
+JS;
+
+        return \craft\helpers\Template::raw('<script>' . $js . '</script>');
+    }
+
+    /**
      * Convert a point balance into its monetary value.
      *
      * Uses the `pointsPerCurrencyUnit` setting. With the default of 100, 250 points → 2.50.

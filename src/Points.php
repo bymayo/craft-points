@@ -173,6 +173,8 @@ class Points extends Plugin
                 $event->rules['points/awards'] = 'points/awards/index';
                 $event->rules['points/awards/new'] = 'points/awards/edit';
                 $event->rules['points/awards/<awardId:\d+>'] = 'points/awards/edit';
+                $event->rules['POST points/awards/fire'] = 'points/awards/fire';
+                $event->rules['points/awards/token'] = 'points/awards/token';
 
                 $event->rules['points/rules'] = 'points/rules/index';
                 $event->rules['points/rules/new'] = 'points/rules/edit';

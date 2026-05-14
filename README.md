@@ -102,7 +102,55 @@ Navigate to **Points → Rules → New rule**. You'll see a 5-section builder:
 
 For **User birthday** to fire, you need a Date field on the user layout. Set its handle in **Points → Settings → Birthday field handle**. The trigger fires on the user's next login after their birthday.
 
-### Awarding from Twig
+### Awarding from frontend (cache-safe JS API)
+
+**Use this for Manual rules on public pages, thank-you pages, button clicks, etc.** The JS API is the recommended way to fire Manual rules — it works inside Blitz, `{% cache %}`, and any static cache, and is CSRF-protected.
+
+Drop this once in your layout (or just on pages that need it):
+
+```twig
+{{ craft.points.script() }}
+```
+
+That outputs a tiny inline script defining `window.Points.addAward(ruleHandle)`. It works at runtime — never embedded into cached HTML.
+
+**Thank-you page:**
+
+```html
+<script>
+    Points.addAward('signedUpForNewsletter').then(function (res) {
+        if (res.success) {
+            console.log('Earned ' + res.points + ' ' + res.currency);
+        }
+    });
+</script>
+```
+
+**Button click (e.g. Share):**
+
+```html
+<button id="share-btn">Share</button>
+<script>
+    document.getElementById('share-btn').addEventListener('click', function () {
+        Points.addAward('shared');
+    });
+</script>
+```
+
+**Security model:**
+
+- Requires a valid Craft session (logged-in user) — anonymous requests rejected
+- Standard Craft CSRF validation on every POST
+- The endpoint only accepts the `ruleHandle` — points go to the *currently logged-in user*, never an arbitrary `userId`
+- **Only rules with no trigger ("Manual") can be fired.** Auto rules (Order completed, User registered, etc.) are not callable via the API — they fire on their own underlying events
+- Rule **Limits** are enforced (e.g. "Once per user" still applies)
+- Active date range on the rule is honoured
+
+**Inherent limitation:** the JS API trusts the client to call it. A determined user could call `Points.addAward('shared')` from devtools without actually sharing. The mitigations are limits (Once per user / Max per period) and the principle of "low-value rewards only for Manual rules". For high-value rewards, use server-side triggers (Order paid, etc.) which can't be faked client-side.
+
+### Awarding from Twig (server-side only)
+
+For server-side use cases (controller actions, custom modules, console commands), the Twig API still exists:
 
 ```twig
 {# Award the current logged-in user #}
@@ -114,6 +162,8 @@ For **User birthday** to fire, you need a Date field on the user layout. Set its
 {# Remove the oldest matching award #}
 {{ craft.points.removeAward({ ruleHandle: 'signedUp' }) }}
 ```
+
+**Don't put these on public pages.** They bypass CSRF (template tags aren't form submissions), they run at render time (so they fire once during cache-build then never again on cached views), and they happily award points to any `userId` you pass — including one a logged-out attacker hardcodes in a URL they get a victim to load.
 
 Twig calls respect the rule's **Limits** (e.g. "Once per user" or "Max N per period"). They don't run **Conditions** because those need a trigger event for context — apply conditions only to rules with a non-Manual trigger.
 
@@ -337,6 +387,7 @@ query Recent($userId: Int!) {
 | `craft.points.isPro` | `bool` — true on Pro edition |
 | `craft.points.orderRedemption(orderId)` | `OrderRedemption\|null` — current redemption on the order |
 | `craft.points.appliedToOrder(orderId)` | `int` — points currently applied to the order |
+| `craft.points.script()` | `Markup` — inline `<script>` defining the cache-safe `window.Points.addAward()` JS API |
 
 ## Element queries
 
@@ -353,15 +404,11 @@ Awards are a first-class element type:
 
 ## Security note
 
-`craft.points.addAward` and `removeAward` are plain Twig calls — they bypass CSRF protection because they're template tags. Don't place them on publicly-accessible pages without thinking about abuse: a logged-out attacker hitting a page that awards points to a hardcoded user ID will succeed.
+The Twig `craft.points.addAward` / `removeAward` calls are **server-side only** — they bypass CSRF, run at render time (problematic with caching), and accept arbitrary `userId`s. Use them in controller actions, modules, or console commands — **not on public templates**.
 
-Safer patterns:
+For public/frontend use, use the JS API (`craft.points.script()` + `Points.addAward()`). It's CSRF-protected, cache-safe, and limited to awarding the currently-logged-in user.
 
-- Only award points behind a form post handler in your own controller
-- Only allow awards from authenticated sessions (`craft.app.user.identity`)
-- Apply rate limiting at the web server / CDN layer
-
-Built-in protections that *do* apply: rule `Limit` settings (Once per user, Max N per period) and rule `Conditions` are evaluated server-side — Twig calls obey them just like automatic triggers.
+Built-in protections that *do* apply to both APIs: rule `Limits` (Once per user, Max N per period) are enforced server-side.
 
 ## License
 
