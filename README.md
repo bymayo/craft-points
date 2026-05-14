@@ -30,7 +30,7 @@ plugins.points.edition: pro
 - **Rules** — a builder for "When X happens, If Y is true, Then award Z" with limits and an active schedule
 - **Automatic triggers** — fire on Entry create/update, User register/login/birthday/anniversary, Asset create, plus Commerce events on Pro
 - **Conditions** — narrow rules with "Entry is in section", "User is in group", or "Order total / item count / contains product / has coupon" (Pro)
-- **Limits** — cap how often a rule can fire ("Once per user", "Max N every [period]")
+- **Limits** — cap how often a rule can fire (max count, reset period, and cooldown — composable on one rule)
 - **Awards** — entry-style element index of every points award, with all the standard Craft sources, search, sort, and bulk actions
 - **Levels** — tier users by accumulated points (Bronze / Silver / Gold style) with colour
 - **Leaderboard** — CP page and dashboard widget showing top users by total points
@@ -77,7 +77,7 @@ Navigate to **Points → Rules → New rule**. You'll see a 5-section builder:
 - **When** — pick the trigger (or leave as Manual)
 - **If** — optional conditions (all must pass). Only shows conditions relevant to the chosen trigger
 - **Then** — what to award: Add a flat amount, Add a percentage (Pro), or Deduct
-- **Limit** — Once per user, or Max N every (Hour / Day / Week / Month / Year / Never)
+- **Limit** — Once per user, or Max per user (any combination of: max N, reset every period, and/or min N seconds cooldown between fires)
 - **Active period** — optional date range
 
 ### Triggers shipped

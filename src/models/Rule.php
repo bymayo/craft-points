@@ -104,6 +104,7 @@ class Rule extends Model
                     ? "Max {$max}"
                     : "Max {$max} / {$period}";
             })(),
+            'cooldown' => sprintf('%ds cooldown', (int) ($limit['seconds'] ?? 0)),
             default => $limit['type'],
         };
     }

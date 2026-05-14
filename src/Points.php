@@ -3,6 +3,7 @@
 namespace bymayo\points;
 
 use bymayo\points\elements\PointAward;
+use bymayo\points\gql\types\AddAwardResultType;
 use bymayo\points\gql\types\LeaderboardRowType;
 use bymayo\points\gql\types\LevelType;
 use bymayo\points\gql\types\PointAwardType;
@@ -23,6 +24,7 @@ use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\RegisterComponentTypesEvent;
+use craft\events\RegisterGqlMutationsEvent;
 use craft\events\RegisterGqlQueriesEvent;
 use craft\events\RegisterGqlTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
@@ -290,6 +292,61 @@ class Points extends Plugin
                 $event->types[] = LevelType::class;
                 $event->types[] = PointAwardType::class;
                 $event->types[] = LeaderboardRowType::class;
+                $event->types[] = AddAwardResultType::class;
+            }
+        );
+
+        Event::on(
+            Gql::class,
+            Gql::EVENT_REGISTER_GQL_MUTATIONS,
+            function(RegisterGqlMutationsEvent $event) {
+                $event->mutations['pointsAddAward'] = [
+                    'type' => AddAwardResultType::getType(),
+                    'args' => [
+                        'ruleHandle' => Type::nonNull(Type::string()),
+                    ],
+                    'description' => 'Fire a Manual rule and award points to the currently-authenticated user.',
+                    'resolve' => function($source, array $args) {
+                        $user = Craft::$app->getUser()->getIdentity();
+                        if (!$user) {
+                            return ['success' => false, 'error' => 'Not authenticated.'];
+                        }
+
+                        $handle = (string) $args['ruleHandle'];
+                        $rule = self::getInstance()->rules->getRuleByHandle($handle);
+
+                        if (!$rule || !$rule->enabled || $rule->handle === '__redemption') {
+                            return ['success' => false, 'error' => 'Rule not available.'];
+                        }
+
+                        // Same security boundary as the REST endpoint:
+                        // only Manual rules (no trigger) can be fired this way.
+                        if ($rule->trigger) {
+                            return ['success' => false, 'error' => 'Automatic rules cannot be fired via this mutation.'];
+                        }
+
+                        $now = (new \DateTime())->format('Y-m-d H:i:s');
+                        if ($rule->activeFrom && $now < $rule->activeFrom) {
+                            return ['success' => false, 'error' => 'Rule is not yet active.'];
+                        }
+                        if ($rule->activeTo && $now > $rule->activeTo) {
+                            return ['success' => false, 'error' => 'Rule is no longer active.'];
+                        }
+
+                        $award = self::getInstance()->awards->addAward($user->id, $handle);
+                        if (!$award) {
+                            return ['success' => false, 'error' => 'Could not award points (limit reached or rule rejected).'];
+                        }
+
+                        $settings = self::getInstance()->getSettings();
+                        return [
+                            'success' => true,
+                            'points' => $award->pointsSnapshot,
+                            'currency' => $settings->currencyNamePlural,
+                            'awardId' => $award->id,
+                        ];
+                    },
+                ];
             }
         );
 

@@ -253,6 +253,7 @@
     <div id="limit-maxPerUser" {% if firstLimit.type != 'maxPerUser' %}hidden{% endif %}>
         {{ forms.textField({
             label: 'Max'|t('points'),
+            instructions: 'Optional cap on how many times this rule can fire per user.'|t('points'),
             id: 'limit-maxPerUser-max',
             name: 'limits[0][max]',
             type: 'number',
@@ -273,6 +274,17 @@
             ],
             value: firstLimit.type == 'maxPerUser' ? (firstLimit.period ?? 'ever') : 'ever',
         }) }}
+
+        <div id="limit-maxPerUser-cooldown-wrap" {% if (firstLimit.period ?? 'ever') != 'ever' %}hidden{% endif %}>
+            {{ forms.textField({
+                label: 'Cooldown (seconds)'|t('points'),
+                instructions: 'Optional. Minimum seconds between two awards from this rule for the same user. Only useful when Reset every is "Never" — otherwise the reset period itself is the pacing.'|t('points'),
+                id: 'limit-maxPerUser-cooldown',
+                name: 'limits[0][cooldown]',
+                type: 'number',
+                value: firstLimit.type == 'maxPerUser' ? (firstLimit.cooldown ?? '') : '',
+            }) }}
+        </div>
     </div>
 
     <hr>
@@ -650,6 +662,25 @@
             if (limitTypeSel) {
                 limitTypeSel.addEventListener('change', syncLimitVariants);
                 syncLimitVariants();
+            }
+
+            // Cooldown only makes sense with period = 'ever'. Hide otherwise.
+            var periodSel = document.getElementById('limit-maxPerUser-period');
+            if (periodSel && periodSel.tagName !== 'SELECT') {
+                periodSel = periodSel.querySelector('select');
+            }
+            var cooldownWrap = document.getElementById('limit-maxPerUser-cooldown-wrap');
+            function syncCooldown() {
+                if (!periodSel || !cooldownWrap) return;
+                var show = periodSel.value === 'ever';
+                cooldownWrap.hidden = !show;
+                cooldownWrap.querySelectorAll('input').forEach(function (i) {
+                    i.disabled = !show;
+                });
+            }
+            if (periodSel) {
+                periodSel.addEventListener('change', syncCooldown);
+                syncCooldown();
             }
 
             // Initial sync.

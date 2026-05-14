@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **Cooldown field on the Max per user limit** — set alongside Max + Reset period to combine "max 10 per day" with "at least 30s between each fire". All three fields are optional and stack. Replaces the standalone Cooldown limit type that was briefly added.
 - **Frontend JS API for Manual rules** — `{{ craft.points.script() }}` outputs an inline script that defines `window.Points.addAward(ruleHandle)`. Cache-safe (CSRF token fetched at runtime, not embedded in markup), CSRF-protected, login-required, restricted to Manual rules, and can only award the currently-logged-in user (the JS never accepts a `userId`). Replaces the Twig `addAward()` for public-page / Blitz / `{% cache %}` use cases.
 - New controller actions: `AwardsController::actionFire` (the POST endpoint) and `AwardsController::actionToken` (returns the request's CSRF token for use by the JS).
 - **Order redemptions** (Pro + Commerce) — logged-in customers can spend points against Commerce orders. Posts to `points/redeem/apply` with `orderId` and `points`; appears as an order adjuster (like a coupon line). Points deduct from the user's balance on `Order::EVENT_AFTER_ORDER_PAID`. Refunds can optionally restore points (proportional / full-only / none).
