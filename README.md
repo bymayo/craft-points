@@ -437,10 +437,16 @@ Customers can apply points against an order — shows up like a coupon discount 
 
 ### Dashboard widgets
 
-Add via the Craft dashboard → + New widget:
+Add via the Craft dashboard → + New widget. Both widgets are grouped under your configured plugin name (e.g. `Rewards - Leaderboard`, `Rewards - Latest Awards`), so they cluster together in the picker like Commerce's widgets do.
 
-- **Points Leaderboard** — top N users by total
-- **Latest Points Awards** — most recent N awards across all users
+| Widget | What it shows |
+|---|---|
+| **{Plugin} - Leaderboard** | Table of top N users by total balance. Columns: Customer (avatar + name) · Level (coloured dot + name) · Total {currency plural}. |
+| **{Plugin} - Latest Awards** | Table of the N most recent awards across all users. Columns: Customer · {currency plural} (linked to the award edit page) · Date. |
+
+Both widgets respect your renaming: column headers and titles automatically follow the configured **Plugin name** and **Reward unit (plural)** values. Each user row uses Craft's standard avatar (uploaded image or monogram fallback) and links to the user's CP edit page.
+
+Limit on either widget can be tuned via the widget's settings cog.
 
 ### Users element index columns
 
