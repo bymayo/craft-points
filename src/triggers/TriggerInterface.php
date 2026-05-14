@@ -37,15 +37,6 @@ interface TriggerInterface
     /** Resolve the user ID that should receive points for this event. */
     public static function getUserIdFromEvent($event): ?int;
 
-    /** What kind of scope this trigger supports, or null: 'sections', 'groups', 'volumes', etc. */
-    public static function scopedTo(): ?string;
-
-    /** Return the scope ID for the given event (e.g. sectionId for an entry). */
-    public static function scopeIdForEvent($event): ?int;
-
-    /** Options for the scope multi-select in the CP edit form. */
-    public static function getScopeOptions(): array;
-
     /**
      * Return the monetary amount for this event (e.g. order total), if applicable.
      *

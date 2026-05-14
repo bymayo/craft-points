@@ -53,81 +53,6 @@ class Triggers extends Component
         return $this->_byHandle[$handle] ?? null;
     }
 
-    /** @return string[] */
-    public function getScopedTriggers(): array
-    {
-        return array_values(array_filter(
-            $this->_triggers,
-            fn(string $class) => $class::scopedTo() !== null
-        ));
-    }
-
-    /**
-     * @return array<int, array{handle: string, label: string, scopedTo: string, scopeOptions: array}>
-     */
-    public function getScopedTriggersForTemplate(): array
-    {
-        return array_map(fn(string $class) => [
-            'handle' => $class::handle(),
-            'label' => $class::label(),
-            'scopedTo' => $class::scopedTo(),
-            'scopeOptions' => $class::getScopeOptions(),
-        ], $this->getScopedTriggers());
-    }
-
-    /**
-     * Distinct subjects across all registered triggers, with "Manual" prepended.
-     *
-     * @return array<int, array{label: string, value: string}>
-     */
-    public function getSubjectOptions(): array
-    {
-        $byHandle = [];
-        foreach ($this->_triggers as $class) {
-            $byHandle[$class::subject()] = $class::subjectLabel();
-        }
-        ksort($byHandle);
-
-        $options = [
-            ['label' => Craft::t('points', 'Choose an element'), 'value' => ''],
-        ];
-        foreach ($byHandle as $handle => $label) {
-            $options[] = ['label' => $label, 'value' => $handle];
-        }
-        return $options;
-    }
-
-    /**
-     * Flat list of every trigger action, each tagged with its subject so the UI
-     * can filter the action dropdown based on the chosen subject.
-     *
-     * @return array<int, array{label: string, value: string, subject: string}>
-     */
-    public function getActionOptions(): array
-    {
-        $options = [];
-        foreach ($this->_triggers as $class) {
-            $options[] = [
-                'value' => $class::handle(),
-                'label' => $class::actionLabel(),
-                'subject' => $class::subject(),
-            ];
-        }
-        return $options;
-    }
-
-    /**
-     * Resolve the subject for a given trigger handle (or null for Manual).
-     */
-    public function getSubjectForTrigger(?string $triggerHandle): string
-    {
-        if (!$triggerHandle) {
-            return '';
-        }
-        $class = $this->_byHandle[$triggerHandle] ?? null;
-        return $class ? $class::subject() : '';
-    }
-
     public function getSelectOptions(): array
     {
         $options = [
@@ -236,7 +161,6 @@ class Triggers extends Component
         }
 
         $amount = $triggerClass::getAmountForEvent($yiiEvent);
-        $scopeId = $triggerClass::scopedTo() ? $triggerClass::scopeIdForEvent($yiiEvent) : null;
 
         $points = Points::getInstance();
         $now = (new \DateTime())->format('Y-m-d H:i:s');
@@ -253,7 +177,6 @@ class Triggers extends Component
                 'triggerHandle' => $triggerClass::handle(),
                 'triggerEvent' => $yiiEvent,
                 'amount' => $amount,
-                'scopeId' => $scopeId,
             ]);
 
             // Conditions

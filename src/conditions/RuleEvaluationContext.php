@@ -19,9 +19,6 @@ class RuleEvaluationContext
     /** Monetary amount provided by the trigger, if any (e.g. order total). */
     public ?float $amount = null;
 
-    /** The ID of the scope-relevant element (e.g. sectionId for entry triggers). */
-    public ?int $scopeId = null;
-
     public function __construct(array $config = [])
     {
         foreach ($config as $key => $value) {

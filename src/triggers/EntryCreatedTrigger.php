@@ -13,7 +13,6 @@ class EntryCreatedTrigger extends BaseTrigger
     public static function group(): string { return 'Entries'; }
     public static function eventClass(): string { return Entry::class; }
     public static function eventName(): string { return Element::EVENT_AFTER_SAVE; }
-    public static function scopedTo(): ?string { return 'sections'; }
 
     public static function appliesToEvent($event): bool
     {
@@ -35,12 +34,5 @@ class EntryCreatedTrigger extends BaseTrigger
         /** @var Entry $entry */
         $entry = $event->sender;
         return $entry->getAuthorId();
-    }
-
-    public static function scopeIdForEvent($event): ?int
-    {
-        /** @var Entry $entry */
-        $entry = $event->sender;
-        return $entry->sectionId;
     }
 }

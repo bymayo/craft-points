@@ -13,7 +13,6 @@ class EntryUpdatedTrigger extends BaseTrigger
     public static function group(): string { return 'Entries'; }
     public static function eventClass(): string { return Entry::class; }
     public static function eventName(): string { return Element::EVENT_AFTER_SAVE; }
-    public static function scopedTo(): ?string { return 'sections'; }
 
     public static function appliesToEvent($event): bool
     {
@@ -32,10 +31,5 @@ class EntryUpdatedTrigger extends BaseTrigger
     public static function getUserIdFromEvent($event): ?int
     {
         return $event->sender->getAuthorId();
-    }
-
-    public static function scopeIdForEvent($event): ?int
-    {
-        return $event->sender->sectionId;
     }
 }

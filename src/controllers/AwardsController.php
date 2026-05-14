@@ -65,12 +65,18 @@ class AwardsController extends Controller
         $award->userId = $userId ?: null;
         $award->ruleId = $ruleId ?: null;
 
-        // Snapshot points from the rule at save time. Only set on first save
-        // (so editing an award keeps its original points value).
+        // Snapshot points from the rule's reward config at save time.
+        // Manual awards always use flat — percent rewards need a trigger amount.
         if (!$award->id && $award->ruleId) {
             $rule = Points::getInstance()->rules->getRuleById($award->ruleId);
             if ($rule) {
-                $award->pointsSnapshot = $rule->points;
+                $rewardType = $rule->reward['type'] ?? 'flat';
+                $points = match ($rewardType) {
+                    'flat' => (int) ($rule->reward['points'] ?? 0),
+                    'deduct' => -1 * (int) ($rule->reward['points'] ?? 0),
+                    default => 0,
+                };
+                $award->pointsSnapshot = $points;
             }
         }
 

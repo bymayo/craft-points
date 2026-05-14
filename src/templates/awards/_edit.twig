@@ -12,11 +12,12 @@
 
 {% set ruleOptions = [{ label: '----'|t('points'), value: '' }] %}
 {% for rule in rules %}
-    {% set suffix = rule.pointsType == 'percent' ? '%' : ' ' ~ craft.points.currencyPlural %}
-    {% set ruleOptions = ruleOptions|merge([{
-        label: rule.name ~ ' (' ~ rule.points ~ suffix ~ ')',
-        value: rule.id,
-    }]) %}
+    {% if rule.handle != '__redemption' %}
+        {% set ruleOptions = ruleOptions|merge([{
+            label: rule.name ~ ' (' ~ rule.getRewardSummary() ~ ')',
+            value: rule.id,
+        }]) %}
+    {% endif %}
 {% endfor %}
 
 {% block content %}

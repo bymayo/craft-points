@@ -10,9 +10,16 @@
 - New internal "Points redemption" rule (handle `__redemption`) — created on migration so deduction Awards have a valid `ruleId`. Don't delete it via the CP UI.
 
 ### Fixed
-- `Awards::addAward` was silently behaving as "once per user" for every rule because it still referenced the long-removed `$rule->multiple` and `$rule->points` properties. Removed both — limits are enforced in `Triggers::dispatch` for automatic firings; Twig-side awards no longer have the false "once" gate.
+- `Awards::addAward` was silently behaving as "once per user" for every rule because it still referenced the long-removed `$rule->multiple` and `$rule->points` properties. Now reads from `$rule->reward['points']` and properly evaluates the rule's Limits when called from Twig (`addAward({ ruleHandle })`).
+- Awards CP edit form (`/admin/points/awards/new`) errored when listing rules — it called the long-removed `rule.pointsType` / `rule.points`. Now uses `rule.rewardSummary` for the option labels.
+- `AwardsController::actionSave` was reading `$rule->points` (also stale) when snapshotting points for manual awards. Now reads from the new reward config (flat → positive, deduct → negative, percent → 0 since manual awards have no order amount context).
 - `SubscriptionPlanChangedTrigger` read `$event->newSubscription` which doesn't exist on Commerce's `SubscriptionSwitchPlansEvent`. Switched to `$event->subscription`.
 - `EntryCreatedTrigger` / `EntryUpdatedTrigger` now skip drafts, revisions, and propagating saves — previously they could fire many times for a single user save action.
+
+### Removed
+- Dead code from earlier iterations:
+  - Trigger "scope" system (`scopedTo`, `scopeIdForEvent`, `getScopeOptions`) — superseded by the Conditions engine. Removed from `TriggerInterface`, `BaseTrigger`, `EntryCreatedTrigger`, `EntryUpdatedTrigger`, and from `Triggers::dispatch` / `RuleEvaluationContext::$scopeId`.
+  - Two-step trigger picker helpers (`Triggers::getSubjectOptions`, `getActionOptions`, `getSubjectForTrigger`, `getScopedTriggers`, `getScopedTriggersForTemplate`) — the UI was reverted to a single optgroup'd select.
 
 ### Added (continued)
 - **Plugin editions** — Lite (free) and Pro. Lite is the full gamification feature set (events, awards, levels, leaderboard, widgets, triggers for Entry/Category/User/Asset, Twig + GraphQL APIs, plugin events). Pro adds:

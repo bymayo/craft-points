@@ -2,6 +2,7 @@
 
 namespace bymayo\points\services;
 
+use bymayo\points\conditions\RuleEvaluationContext;
 use bymayo\points\elements\PointAward;
 use bymayo\points\events\AwardEvent;
 use bymayo\points\events\LevelChangedEvent;
@@ -99,6 +100,22 @@ class Awards extends Component
         $rule = Points::getInstance()->rules->getRuleByHandle($ruleHandle);
         if (!$rule) {
             return null;
+        }
+
+        // Enforce rule limits even when called manually from Twig. Conditions can't
+        // be enforced here since they need a trigger event for context — automatic
+        // rule firings handle those upstream in Triggers::dispatch.
+        if (!empty($rule->limits)) {
+            $ctx = new RuleEvaluationContext([
+                'userId' => $userId,
+                'rule' => $rule,
+                'triggerHandle' => 'manual',
+                'triggerEvent' => null,
+                'amount' => null,
+            ]);
+            if (!Points::getInstance()->limits->checkAll($rule->limits, $ctx)) {
+                return null;
+            }
         }
 
         // Default points fall back to the rule's reward config if no override given.

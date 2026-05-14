@@ -115,7 +115,7 @@ For **User birthday** to fire, you need a Date field on the user layout. Set its
 {{ craft.points.removeAward({ ruleHandle: 'signedUp' }) }}
 ```
 
-Limits and conditions on the rule are evaluated server-side — Twig calls obey them.
+Twig calls respect the rule's **Limits** (e.g. "Once per user" or "Max N per period"). They don't run **Conditions** because those need a trigger event for context — apply conditions only to rules with a non-Manual trigger.
 
 ### Reading points
 
