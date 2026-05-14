@@ -3,9 +3,16 @@
 ## Unreleased
 
 ### Added
+- **Three ways to fire a Manual rule from the frontend**, all sharing the same login-required, CSRF-protected, current-user-only, Manual-rules-only, Limits-enforcing security model:
+  1. **HTML form** — POST to `points/awards/fire` (or `points/awards/remove`) with `csrfInput()`, `actionInput()`, `redirectInput()` and a `ruleHandle`. Sets a flash and redirects. The default pattern for server-rendered pages.
+  2. **JS API** — `{{ craft.points.script() }}` defines `window.Points.addAward(ruleHandle)` and `window.Points.removeAward(ruleHandle)`. Cache-safe (CSRF token fetched at runtime, never embedded into cached HTML) — works inside Blitz, `{% cache %}`, and any static cache.
+  3. **GraphQL mutation** — `pointsAddAward(ruleHandle: String!): PointsAddAwardResult` for headless / decoupled SPAs. Available in any schema; same security boundary as the REST endpoint.
+- `AwardsController::actionFire` is content-negotiated — JSON for AJAX callers (the JS API), `redirectToPostedUrl()` + flash for form posts.
+- New `AwardsController::actionRemove` — same security model as `actionFire`, removes the user's oldest matching award.
+- New `AwardsController::actionToken` — returns the current request's CSRF token; used by the JS API to keep cache-safety.
+- New GQL type `PointsAddAwardResult` (`success`, `error`, `points`, `currency`, `awardId`).
+- README has new **Examples** section (newsletter signup, share button, daily login bonus, birthday gift, 1 pt per £1, big-spender bonus, subscription loyalty, no-coupon-bonus, …) and **Using with Vue / React / SPAs** section showing both the sprinkled `window.Points` pattern and the headless `pointsAddAward` GraphQL mutation pattern.
 - **Cooldown field on the Max per user limit** — set alongside Max + Reset period to combine "max 10 per day" with "at least 30s between each fire". All three fields are optional and stack. Replaces the standalone Cooldown limit type that was briefly added.
-- **Frontend JS API for Manual rules** — `{{ craft.points.script() }}` outputs an inline script that defines `window.Points.addAward(ruleHandle)`. Cache-safe (CSRF token fetched at runtime, not embedded in markup), CSRF-protected, login-required, restricted to Manual rules, and can only award the currently-logged-in user (the JS never accepts a `userId`). Replaces the Twig `addAward()` for public-page / Blitz / `{% cache %}` use cases.
-- New controller actions: `AwardsController::actionFire` (the POST endpoint) and `AwardsController::actionToken` (returns the request's CSRF token for use by the JS).
 - **Order redemptions** (Pro + Commerce) — logged-in customers can spend points against Commerce orders. Posts to `points/redeem/apply` with `orderId` and `points`; appears as an order adjuster (like a coupon line). Points deduct from the user's balance on `Order::EVENT_AFTER_ORDER_PAID`. Refunds can optionally restore points (proportional / full-only / none).
 - New settings: **Minimum to redeem**, **Max % of order**, **On refund** (restore behaviour).
 - New service: `OrderRedemptions` — `apply($orderId, $userId, $points)`, `remove($orderId)`, `getForOrder($orderId)`, `processPaidOrder($order)`, `processRefund($tx)`.
@@ -20,6 +27,11 @@
 - `EntryCreatedTrigger` / `EntryUpdatedTrigger` now skip drafts, revisions, and propagating saves — previously they could fire many times for a single user save action.
 
 ### Removed
+- **`craft.points.addAward()` and `craft.points.removeAward()` Twig variable methods.** These bypassed CSRF (Twig calls aren't form submissions), ran at render time (one award per cache build, then never again on cached views), and accepted arbitrary `userId`s — all bad. They're replaced by:
+  - **Form POST** to `points/awards/fire` / `points/awards/remove` for server-rendered pages (CSRF enforced by `csrfInput()`)
+  - **JS API** (`Points.addAward` / `Points.removeAward`) for cache-safe button clicks
+  - **GraphQL mutation** (`pointsAddAward`) for headless SPAs
+  - **PHP service** (`Points::getInstance()->awards->addAward($userId, $handle)`) for modules, controllers, console commands — the only API that can target an arbitrary `userId`
 - Dead code from earlier iterations:
   - Trigger "scope" system (`scopedTo`, `scopeIdForEvent`, `getScopeOptions`) — superseded by the Conditions engine. Removed from `TriggerInterface`, `BaseTrigger`, `EntryCreatedTrigger`, `EntryUpdatedTrigger`, and from `Triggers::dispatch` / `RuleEvaluationContext::$scopeId`.
   - Two-step trigger picker helpers (`Triggers::getSubjectOptions`, `getActionOptions`, `getSubjectForTrigger`, `getScopedTriggers`, `getScopedTriggersForTemplate`) — the UI was reverted to a single optgroup'd select.

@@ -102,70 +102,165 @@ Navigate to **Points → Rules → New rule**. You'll see a 5-section builder:
 
 For **User birthday** to fire, you need a Date field on the user layout. Set its handle in **Points → Settings → Birthday field handle**. The trigger fires on the user's next login after their birthday.
 
-### Awarding from frontend (cache-safe JS API)
+### Firing Manual rules
 
-**Use this for Manual rules on public pages, thank-you pages, button clicks, etc.** The JS API is the recommended way to fire Manual rules — it works inside Blitz, `{% cache %}`, and any static cache, and is CSRF-protected.
+A *Manual* rule is one with no trigger — it only fires when your code asks it to. Use this for actions Craft can't see on its own: newsletter signups, button clicks, "share" links, profile completion, etc.
 
-Drop this once in your layout (or just on pages that need it):
+There are **three** frontend ways to fire one, depending on how your site is built. All three share the same server-side security model (covered below).
+
+#### 1. HTML form (the default — simplest, server-rendered pages)
+
+Drop a form into your template. CSRF is handled by Craft's `csrfInput()`, the user is whoever's logged in, and you get a flash message back.
+
+```twig
+<form method="post">
+    {{ csrfInput() }}
+    {{ actionInput('points/awards/fire') }}
+    {{ redirectInput('account/thanks') }}
+    <input type="hidden" name="ruleHandle" value="signedUpForNewsletter">
+    <button type="submit">Subscribe</button>
+</form>
+```
+
+To reverse an award (e.g. an "unshare" button), post to `points/awards/remove` with the same shape.
+
+> ⚠ Forms don't work inside Blitz / `{% cache %}` blocks — the embedded CSRF token will be stale. Use the JS API instead on cached pages.
+
+#### 2. JS API (cache-safe — for buttons, SPAs-on-Craft, anything Blitz)
+
+Drop the helper once in your layout:
 
 ```twig
 {{ craft.points.script() }}
 ```
 
-That outputs a tiny inline script defining `window.Points.addAward(ruleHandle)`. It works at runtime — never embedded into cached HTML.
-
-**Thank-you page:**
-
-```html
-<script>
-    Points.addAward('signedUpForNewsletter').then(function (res) {
-        if (res.success) {
-            console.log('Earned ' + res.points + ' ' + res.currency);
-        }
-    });
-</script>
-```
-
-**Button click (e.g. Share):**
+That outputs an inline script defining `window.Points.addAward(ruleHandle)` and `window.Points.removeAward(ruleHandle)`. The CSRF token is fetched at runtime through a separate uncached AJAX call, so nothing about it is embedded into the cached HTML — works inside Blitz / `{% cache %}` / static cache.
 
 ```html
 <button id="share-btn">Share</button>
 <script>
     document.getElementById('share-btn').addEventListener('click', function () {
-        Points.addAward('shared');
+        Points.addAward('shared').then(function (res) {
+            if (res.success) {
+                console.log('Earned ' + res.points + ' ' + res.currency);
+            }
+        });
     });
 </script>
 ```
 
-**Security model:**
+#### 3. GraphQL mutation (headless / decoupled SPAs)
 
-- Requires a valid Craft session (logged-in user) — anonymous requests rejected
-- Standard Craft CSRF validation on every POST
-- The endpoint only accepts the `ruleHandle` — points go to the *currently logged-in user*, never an arbitrary `userId`
-- **Only rules with no trigger ("Manual") can be fired.** Auto rules (Order completed, User registered, etc.) are not callable via the API — they fire on their own underlying events
-- Rule **Limits** are enforced (e.g. "Once per user" still applies)
-- Active date range on the rule is honoured
+For frontends that live outside Craft's templates (Next.js, Nuxt, native app, …) — see [Using with Vue / React / SPAs](#using-with-vue--react--spas).
 
-**Inherent limitation:** the JS API trusts the client to call it. A determined user could call `Points.addAward('shared')` from devtools without actually sharing. The mitigations are limits (Once per user / Max per period) and the principle of "low-value rewards only for Manual rules". For high-value rewards, use server-side triggers (Order paid, etc.) which can't be faked client-side.
-
-### Awarding from Twig (server-side only)
-
-For server-side use cases (controller actions, custom modules, console commands), the Twig API still exists:
-
-```twig
-{# Award the current logged-in user #}
-{{ craft.points.addAward({ ruleHandle: 'signedUp' }) }}
-
-{# Award a specific user #}
-{{ craft.points.addAward({ userId: 5, ruleHandle: 'signedUp' }) }}
-
-{# Remove the oldest matching award #}
-{{ craft.points.removeAward({ ruleHandle: 'signedUp' }) }}
+```graphql
+mutation FireRule($handle: String!) {
+    pointsAddAward(ruleHandle: $handle) {
+        success error points currency awardId
+    }
+}
 ```
 
-**Don't put these on public pages.** They bypass CSRF (template tags aren't form submissions), they run at render time (so they fire once during cache-build then never again on cached views), and they happily award points to any `userId` you pass — including one a logged-out attacker hardcodes in a URL they get a victim to load.
+#### Security model — applies to all three patterns
 
-Twig calls respect the rule's **Limits** (e.g. "Once per user" or "Max N per period"). They don't run **Conditions** because those need a trigger event for context — apply conditions only to rules with a non-Manual trigger.
+- **Login required** — anonymous requests are rejected
+- **CSRF protected** — `csrfInput()` for forms, runtime token fetch for JS, Craft session cookie for GraphQL
+- **Current-user only** — `userId` is never accepted as input; points always go to the authenticated user
+- **Manual rules only** — rules with a trigger fire on their own system events and can't be triggered manually
+- **Limits enforced** — "Once per user" / "Max N per period" / cooldown all apply
+- **Schedule honoured** — rules outside their active date range are rejected
+
+**Inherent limitation:** the client is trusted to ask. A determined user could call `Points.addAward('shared')` from devtools without sharing anything. Mitigations: rule Limits, and the principle of "small rewards only for Manual rules". For anything high-value, use server-side triggers (Order paid, Entry created, …) which can't be faked from the client.
+
+### Awarding from PHP (modules, controllers, console commands)
+
+If you're already running on the server — inside a module, a custom controller action, or a console command — go through the service directly. This is the **only** way to award points to a `userId` other than the currently-authenticated user.
+
+```php
+use bymayo\points\Points;
+
+Points::getInstance()->awards->addAward($userId, 'profileCompleted');
+Points::getInstance()->awards->removeAward($userId, 'profileCompleted');
+```
+
+Respects rule Limits. Skips Conditions (those need a trigger context).
+
+### Using with Vue / React / SPAs
+
+The right pattern depends on whether Craft is rendering your HTML or not.
+
+#### Sprinkled Vue / React on Craft-rendered pages
+
+If your component is being hydrated into HTML that Craft generates (Craft is still your view layer), use `{{ craft.points.script() }}` in your layout — that defines `window.Points.addAward(ruleHandle)` as a global. Your component can call it directly.
+
+```jsx
+function ShareButton() {
+    const [earned, setEarned] = useState(null);
+
+    return (
+        <button onClick={async () => {
+            const res = await window.Points.addAward('shared');
+            if (res.success) setEarned(res.points);
+        }}>
+            {earned ? `+${earned} earned!` : 'Share'}
+        </button>
+    );
+}
+```
+
+```vue
+<script setup>
+import { ref } from 'vue';
+const earned = ref(null);
+async function share() {
+    const res = await window.Points.addAward('shared');
+    if (res.success) earned.value = res.points;
+}
+</script>
+
+<template>
+    <button @click="share">{{ earned ? `+${earned} earned!` : 'Share' }}</button>
+</template>
+```
+
+Same setup works with Alpine, Stimulus, htmx, vanilla JS — anything that can call a global function.
+
+#### Decoupled / headless (Next.js, Nuxt, Astro, native apps)
+
+When your frontend is served from a separate origin and never touches Craft's templates, use the GraphQL mutation. You'll already have a GraphQL client set up for reads.
+
+```js
+import { gql, useMutation } from '@apollo/client';
+
+const ADD_AWARD = gql`
+    mutation AddAward($handle: String!) {
+        pointsAddAward(ruleHandle: $handle) {
+            success
+            error
+            points
+            currency
+        }
+    }
+`;
+
+function ShareButton() {
+    const [addAward, { data }] = useMutation(ADD_AWARD);
+    return (
+        <button onClick={() => addAward({ variables: { handle: 'shared' } })}>
+            {data?.pointsAddAward?.success
+                ? `+${data.pointsAddAward.points} earned!`
+                : 'Share'}
+        </button>
+    );
+}
+```
+
+**Auth setup:**
+
+- **Same-site (e.g. `app.example.com` calling `cms.example.com`)** — set `credentials: 'include'` on your fetch / Apollo client and configure CORS to allow your frontend origin. The user logs into Craft and the session cookie flows through.
+- **Fully external (different root domain, native app)** — implement bearer token auth. Easiest path is the [`craftcms/jwt-auth`](https://github.com/craftcms/cms) pattern or roll your own login mutation that issues a JWT.
+
+The same security model applies as for the form / JS API: must be authenticated, only Manual rules, points always go to the authenticated user (the mutation has no `userId` arg).
 
 ### Reading points
 
@@ -262,6 +357,132 @@ Add via the Craft dashboard → + New widget:
 - **Points Leaderboard** — top N users by total
 - **Latest Points Awards** — most recent N awards across all users
 
+## Examples
+
+A grab-bag of real-world setups to get you thinking. Each one lists the **Rule config** (what to set in the CP) and the **Frontend** (only when one's needed — automatic triggers don't need any frontend code).
+
+### General / community
+
+**Newsletter signup**
+
+- *Trigger:* Manual
+- *Limit:* Once per user
+- *Reward:* Flat — 50 points
+- *Frontend:* form posting to `points/awards/fire` after the actual form submission succeeds, or directly bound to the signup button if you don't have a separate confirmation step
+
+```twig
+<form method="post">
+    {{ csrfInput() }}
+    {{ actionInput('points/awards/fire') }}
+    <input type="hidden" name="ruleHandle" value="signedUpForNewsletter">
+    <input type="email" name="email" required>
+    <button>Subscribe</button>
+</form>
+```
+
+(In a real setup the form posts to your newsletter handler, which on success forwards to a thank-you page that calls `Points.addAward('signedUpForNewsletter')` via the JS API. That way users can't grab the rule just by hitting the form once.)
+
+**Share a page**
+
+- *Trigger:* Manual
+- *Limit:* Max per user — Max 1, Reset every day (so you can only earn it once per day)
+- *Reward:* Flat — 5 points
+
+```html
+<button onclick="Points.addAward('shared')">Share</button>
+```
+
+**Daily login bonus**
+
+- *Trigger:* User logged in
+- *Limit:* Max per user — Max 1, Reset every day
+- *Reward:* Flat — 10 points
+- *Frontend:* none — fires automatically
+
+**Profile completed**
+
+- *Trigger:* User updated *(if you use a [custom event](#registering-custom-triggers--conditions--limits--rewards))* or Manual fired from your "save profile" controller
+- *Limit:* Once per user
+- *Reward:* Flat — 100 points
+
+**Birthday gift**
+
+- *Trigger:* User birthday
+- *Limit:* Max per user — Max 1, Reset every year
+- *Reward:* Flat — 250 points
+- *Setup:* set a Date field on the user layout, then pop its handle into **Points → Settings → Birthday field handle**
+
+**Loyal customer anniversary**
+
+- *Trigger:* User anniversary
+- *Reward:* Flat — 500 points
+
+**Commented on a post**
+
+- *Trigger:* Entry created
+- *Condition:* Entry is in section *Comments*
+- *Limit:* Max per user — Max 5, Reset every day
+- *Reward:* Flat — 5 points
+
+### Commerce (Pro)
+
+**1 point per £1 spent**
+
+- *Trigger:* Order paid
+- *Reward:* Percentage — 100% of order total (i.e. order total in pence/cents → 1 point per minor unit). Or set `Points per £1` in settings and let the percent reward do the math
+- *Frontend:* none
+
+**Welcome bonus on first order**
+
+- *Trigger:* First order
+- *Reward:* Flat — 500 points
+
+**Big spender bonus**
+
+- *Trigger:* Order paid
+- *Condition:* Order total > £100
+- *Reward:* Flat — 200 points (on top of any per-£ rule)
+
+**Buy a featured product**
+
+- *Trigger:* Order paid
+- *Condition:* Order contains product *(picked from a Product field)*
+- *Reward:* Flat — 100 points
+
+**Subscriber loyalty**
+
+- *Trigger:* Subscription renewed
+- *Reward:* Flat — 50 points per renewal
+
+**Don't reward coupon users**
+
+Often you want to give bonus points only to customers paying full price.
+
+- *Trigger:* Order paid
+- *Condition:* Order has coupon = *No*
+- *Reward:* Flat — 50 points
+
+**Customer redeems points at checkout**
+
+See [Spending points at checkout](#spending-points-at-checkout-pro--commerce). No rule config needed — the redemption form posts to `points/redeem/apply` and the plugin handles deduction on `Order::EVENT_AFTER_ORDER_PAID`.
+
+### Tying it together — leaderboards & levels
+
+Once you've got several rules awarding points, the **Leaderboard** widget and **Levels** kick in for free:
+
+```twig
+{% set me = craft.points.levelForUser() %}
+{% if me %}
+    You're a <span style="color: {{ me.colour }}">{{ me.name }}</span> member.
+{% endif %}
+
+<h3>Top customers this month</h3>
+{% for row in craft.points.leaderboard(10) %}
+    <p>{{ loop.index }}. {{ row.user.name }} — {{ row.points }}
+        {% if row.level %}<small>({{ row.level.name }})</small>{% endif %}</p>
+{% endfor %}
+```
+
 ## Plugin events
 
 ```php
@@ -356,6 +577,14 @@ query Recent($userId: Int!) {
 | `pointsCountForUser` | `userId: Int!` | `Int` |
 | `pointsLeaderboard` | `limit, offset` | `[PointsLeaderboardRow]` |
 
+### Mutations
+
+| Mutation | Args | Returns |
+|---|---|---|
+| `pointsAddAward` | `ruleHandle: String!` | `PointsAddAwardResult` |
+
+`PointsAddAwardResult` is `{ success: Boolean, error: String, points: Int, currency: String, awardId: Int }`. Requires an authenticated session; same Manual-only / current-user-only / Limits-enforced guarantees as the form and JS API.
+
 ## Twig reference
 
 | Call | Returns |
@@ -369,8 +598,6 @@ query Recent($userId: Int!) {
 | `craft.points.ruleByHandle(handle)` | `Rule\|null` |
 | `craft.points.awardById(id)` | `PointAward\|null` |
 | `craft.points.awardsByUser(id?)` | `PointAward[]` — defaults to current user |
-| `craft.points.addAward(options)` | `PointAward\|null` |
-| `craft.points.removeAward(options)` | `bool` |
 | `craft.points.sumForUser(id?)` | `int` |
 | `craft.points.countForUser(id?)` | `int` |
 | `craft.points.levelForUser(id?)` | `Level\|null` |
@@ -404,11 +631,9 @@ Awards are a first-class element type:
 
 ## Security note
 
-The Twig `craft.points.addAward` / `removeAward` calls are **server-side only** — they bypass CSRF, run at render time (problematic with caching), and accept arbitrary `userId`s. Use them in controller actions, modules, or console commands — **not on public templates**.
+Manual rule firing from the frontend goes through one of three CSRF-protected, login-required, current-user-only endpoints — `<form>` POST, JS API, or GraphQL mutation. The plugin **does not expose `addAward` / `removeAward` as Twig variables**, because Twig calls bypass CSRF and run at render time (a disaster with caching). For server-side awarding (modules, controllers, console commands), call `Points::getInstance()->awards->addAward($userId, $handle)` directly in PHP — that's the only API that lets you target an arbitrary `userId`.
 
-For public/frontend use, use the JS API (`craft.points.script()` + `Points.addAward()`). It's CSRF-protected, cache-safe, and limited to awarding the currently-logged-in user.
-
-Built-in protections that *do* apply to both APIs: rule `Limits` (Once per user, Max N per period) are enforced server-side.
+All three frontend patterns enforce rule **Limits** (Once per user, Max N per period, cooldown) and the **active schedule** server-side.
 
 ## License
 

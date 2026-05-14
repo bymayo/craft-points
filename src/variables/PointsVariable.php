@@ -68,40 +68,6 @@ class PointsVariable
             : [];
     }
 
-    /**
-     * Award points to a user.
-     *
-     * Usage:
-     *   {{ craft.points.addAward({ ruleHandle: 'signedUp' }) }}             — current user
-     *   {{ craft.points.addAward({ userId: 5, ruleHandle: 'signedUp' }) }}  — specific user
-     */
-    public function addAward(array $options): ?PointAward
-    {
-        $userId = $options['userId'] ?? $this->currentUserId();
-        $ruleHandle = $options['ruleHandle'] ?? null;
-
-        if (!$userId || !$ruleHandle) {
-            return null;
-        }
-
-        return Points::getInstance()->awards->addAward((int)$userId, $ruleHandle);
-    }
-
-    /**
-     * Remove the oldest award for this user + rule. Only removes one instance.
-     */
-    public function removeAward(array $options): bool
-    {
-        $userId = $options['userId'] ?? $this->currentUserId();
-        $ruleHandle = $options['ruleHandle'] ?? null;
-
-        if (!$userId || !$ruleHandle) {
-            return false;
-        }
-
-        return Points::getInstance()->awards->removeAward((int)$userId, $ruleHandle);
-    }
-
     /** Total points for a user (defaults to current user). */
     public function sumForUser(?int $userId = null): int
     {
@@ -207,21 +173,23 @@ class PointsVariable
     }
 
     /**
-     * Outputs an inline `<script>` defining `window.Points.addAward(ruleHandle)`
-     * — a cache-safe way to fire Manual rules from frontend pages.
+     * Outputs an inline `<script>` defining the cache-safe JS API:
+     *   window.Points.addAward(ruleHandle)
+     *   window.Points.removeAward(ruleHandle)
      *
      * Cache-safe because:
-     *   - The script defines a function, no CSRF token in the rendered HTML
+     *   - The script defines functions, no CSRF token in the rendered HTML
      *   - Token is fetched at runtime via a separate uncached AJAX call
      *   - Works inside Blitz / static cache / {% cache %} blocks
      */
     public function script(): \Twig\Markup
     {
         $fireUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/fire');
+        $removeUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/remove');
         $tokenUrl = \craft\helpers\UrlHelper::actionUrl('points/awards/token');
 
-        // JSON-encode for safe injection into JS string literals.
         $fireJson = json_encode($fireUrl);
+        $removeJson = json_encode($removeUrl);
         $tokenJson = json_encode($tokenUrl);
 
         $js = <<<JS
@@ -243,12 +211,12 @@ class PointsVariable
         });
     }
 
-    window.Points.addAward = function (ruleHandle) {
+    function post(url, ruleHandle) {
         return getToken().then(function (token) {
             var body = new URLSearchParams();
             body.set('CRAFT_CSRF_TOKEN', token || '');
             body.set('ruleHandle', ruleHandle);
-            return fetch({$fireJson}, {
+            return fetch(url, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -259,6 +227,13 @@ class PointsVariable
                 body: body
             }).then(function (r) { return r.json(); });
         });
+    }
+
+    window.Points.addAward = function (ruleHandle) {
+        return post({$fireJson}, ruleHandle);
+    };
+    window.Points.removeAward = function (ruleHandle) {
+        return post({$removeJson}, ruleHandle);
     };
 })();
 JS;

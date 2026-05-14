@@ -122,80 +122,137 @@ class AwardsController extends Controller
     }
 
     /**
-     * Frontend JS API: award points to the *currently-logged-in user* for a
-     * Manual rule (no trigger).
+     * Frontend endpoint: award points to the *currently-logged-in user* for a
+     * Manual rule (no trigger). Supports two callers:
      *
-     * Security:
-     *   - Requires a valid Craft session (logged in)
-     *   - Standard Craft CSRF validation on POST
-     *   - Will only fire rules where `trigger` is null (Manual). Auto rules
-     *     can never be fired via this endpoint
-     *   - Respects the rule's Limits (e.g. Once per user)
-     *   - User can only ever award points to themselves — userId is never
+     *   1. `<form method="post">` POST — content-negotiated, sets flash and
+     *      redirects to `redirectInput()` target.
+     *   2. AJAX (sets `Accept: application/json`) — used by the JS API
+     *      `window.Points.addAward()` and by anything that wants JSON back.
+     *
+     * Security boundary (identical to GraphQL `pointsAddAward`):
+     *   - Requires a valid Craft session
+     *   - Standard Craft CSRF validation
+     *   - Manual rules only (rules with a trigger fire on system events)
+     *   - User can only ever award points to themselves — `userId` is never
      *     accepted as input
+     *   - Rule Limits are enforced
+     *   - Active date range is honoured
      */
     public function actionFire(): Response
     {
         $this->requirePostRequest();
-        $this->requireAcceptsJson();
+        $request = Craft::$app->getRequest();
+        $acceptsJson = $request->getAcceptsJson();
 
         $user = Craft::$app->getUser()->getIdentity();
         if (!$user) {
-            return $this->asJson([
-                'success' => false,
-                'error' => Craft::t('points', 'You must be logged in.'),
-            ]);
+            return $this->_failure(
+                Craft::t('points', 'You must be logged in to earn points.'),
+                $acceptsJson,
+            );
         }
 
-        $handle = (string) Craft::$app->getRequest()->getRequiredBodyParam('ruleHandle');
+        $handle = (string) $request->getRequiredBodyParam('ruleHandle');
 
         $rule = Points::getInstance()->rules->getRuleByHandle($handle);
         if (!$rule || !$rule->enabled || $rule->handle === '__redemption') {
-            return $this->asJson([
-                'success' => false,
-                'error' => Craft::t('points', 'Rule not available.'),
-            ]);
+            return $this->_failure(Craft::t('points', 'Rule not available.'), $acceptsJson);
         }
 
         // Only Manual rules can be fired via the API. Automatic rules fire on
-        // their underlying system events — making them JS-callable would let
+        // their underlying system events — making them callable would let
         // anyone game them.
         if ($rule->trigger) {
-            return $this->asJson([
-                'success' => false,
-                'error' => Craft::t('points', 'This rule fires automatically and cannot be triggered via the API.'),
-            ]);
+            return $this->_failure(
+                Craft::t('points', 'This rule fires automatically and cannot be triggered manually.'),
+                $acceptsJson,
+            );
         }
 
-        // Active date range
         $now = (new \DateTime())->format('Y-m-d H:i:s');
         if ($rule->activeFrom && $now < $rule->activeFrom) {
-            return $this->asJson([
-                'success' => false,
-                'error' => Craft::t('points', 'Rule is not yet active.'),
-            ]);
+            return $this->_failure(Craft::t('points', 'Rule is not yet active.'), $acceptsJson);
         }
         if ($rule->activeTo && $now > $rule->activeTo) {
-            return $this->asJson([
-                'success' => false,
-                'error' => Craft::t('points', 'Rule is no longer active.'),
-            ]);
+            return $this->_failure(Craft::t('points', 'Rule is no longer active.'), $acceptsJson);
         }
 
         $award = Points::getInstance()->awards->addAward($user->id, $handle);
         if (!$award) {
-            return $this->asJson([
-                'success' => false,
-                'error' => Craft::t('points', 'Could not award points (limit reached or rule rejected).'),
-            ]);
+            return $this->_failure(
+                Craft::t('points', 'Could not award points (limit reached or rule rejected).'),
+                $acceptsJson,
+            );
         }
 
         $settings = Points::getInstance()->getSettings();
-        return $this->asJson([
-            'success' => true,
+
+        if ($acceptsJson) {
+            return $this->asJson([
+                'success' => true,
+                'points' => $award->pointsSnapshot,
+                'currency' => $settings->currencyNamePlural,
+                'awardId' => $award->id,
+            ]);
+        }
+
+        Craft::$app->getSession()->setNotice(Craft::t('points', '{points} {currency} awarded.', [
             'points' => $award->pointsSnapshot,
             'currency' => $settings->currencyNamePlural,
-            'awardId' => $award->id,
-        ]);
+        ]));
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
+     * Frontend endpoint: remove the oldest matching award for the
+     * currently-logged-in user. Mirrors `actionFire` (same content negotiation
+     * and security boundary).
+     */
+    public function actionRemove(): Response
+    {
+        $this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+        $acceptsJson = $request->getAcceptsJson();
+
+        $user = Craft::$app->getUser()->getIdentity();
+        if (!$user) {
+            return $this->_failure(Craft::t('points', 'You must be logged in.'), $acceptsJson);
+        }
+
+        $handle = (string) $request->getRequiredBodyParam('ruleHandle');
+
+        $rule = Points::getInstance()->rules->getRuleByHandle($handle);
+        if (!$rule || $rule->handle === '__redemption') {
+            return $this->_failure(Craft::t('points', 'Rule not available.'), $acceptsJson);
+        }
+
+        if ($rule->trigger) {
+            return $this->_failure(
+                Craft::t('points', 'This rule fires automatically and cannot be reversed via the API.'),
+                $acceptsJson,
+            );
+        }
+
+        $removed = Points::getInstance()->awards->removeAward($user->id, $handle);
+        if (!$removed) {
+            return $this->_failure(Craft::t('points', 'No award found to remove.'), $acceptsJson);
+        }
+
+        if ($acceptsJson) {
+            return $this->asJson(['success' => true]);
+        }
+
+        Craft::$app->getSession()->setNotice(Craft::t('points', 'Award removed.'));
+        return $this->redirectToPostedUrl();
+    }
+
+    private function _failure(string $error, bool $acceptsJson): Response
+    {
+        if ($acceptsJson) {
+            return $this->asJson(['success' => false, 'error' => $error]);
+        }
+        Craft::$app->getSession()->setError($error);
+        return $this->redirectToPostedUrl();
     }
 }
