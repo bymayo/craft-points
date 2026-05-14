@@ -15,7 +15,7 @@ class LevelsController extends Controller
 {
     public function actionIndex(): Response
     {
-        $this->requirePermission('points-manageLevels');
+        $this->requirePermission('points-viewLevels');
         return $this->renderTemplate('points/levels/index');
     }
 
@@ -25,7 +25,7 @@ class LevelsController extends Controller
     public function actionTableData(): Response
     {
         $this->requireAcceptsJson();
-        $this->requirePermission('points-manageLevels');
+        $this->requirePermission('points-viewLevels');
 
         $request = Craft::$app->getRequest();
         $page = (int) $request->getParam('page', 1);
@@ -73,7 +73,7 @@ class LevelsController extends Controller
 
     public function actionEdit(?int $levelId = null, ?Level $level = null): Response
     {
-        $this->requirePermission('points-manageLevels');
+        $this->requirePermission('points-viewLevels');
 
         if ($level === null) {
             if ($levelId !== null) {
@@ -97,10 +97,10 @@ class LevelsController extends Controller
     public function actionSave(): ?Response
     {
         $this->requirePostRequest();
-        $this->requirePermission('points-manageLevels');
 
         $request = Craft::$app->getRequest();
         $levelId = $request->getBodyParam('levelId');
+        $this->requirePermission($levelId ? 'points-editLevels' : 'points-createLevels');
 
         if ($levelId) {
             $level = Points::getInstance()->levels->getLevelById((int)$levelId);
@@ -143,7 +143,7 @@ class LevelsController extends Controller
     public function actionDelete(): Response
     {
         $this->requirePostRequest();
-        $this->requirePermission('points-manageLevels');
+        $this->requirePermission('points-deleteLevels');
 
         $id = (int)Craft::$app->getRequest()->getRequiredBodyParam('id');
         Points::getInstance()->levels->deleteLevelById($id);

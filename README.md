@@ -70,6 +70,56 @@ Defaults are "Points" everywhere. You can rename:
 
 All in **Points → Settings**. Plugin handle, URLs and database don't change.
 
+### Settings storage (admin vs developer)
+
+Plugin settings (currency labels, plugin name, conversion rate, redemption rules, …) are stored in the plugin's own `{{%points_settings}}` table **— not in Project Config**. This is a deliberate split:
+
+- **Admins can change branding & operational settings on production** without their changes being clobbered by the next deploy from staging.
+- **Settings don't sync across environments** via `project.yaml`. If you want a dev override (e.g. different currency symbol on staging), set it in `config/points.php` — values there take precedence over the DB row.
+
+```php
+// config/points.php
+return [
+    '*' => [
+        'pointsPerCurrencyUnit' => 100,
+    ],
+    'staging' => [
+        'currencySymbol' => '🪙',
+    ],
+];
+```
+
+### Permissions
+
+The plugin ships granular user permissions so you can give different roles different levels of access. They appear under a **Points** heading on each user group's permissions page.
+
+| Permission | What it does |
+|---|---|
+| `View awards` | Read access to the Awards CP page |
+| ↳ `Create awards` | Manually create new award records |
+| ↳ `Edit awards` | Modify existing awards |
+| ↳ `Delete awards` | Delete awards |
+| `View rules` | Read access to the Rules CP page (open the rule builder, see the rules table) |
+| ↳ `Create rules` | Save a new rule |
+| ↳ `Edit rules` | Save changes to an existing rule |
+| ↳ `Delete rules` | Delete rules |
+| `View levels` | Read access to the Levels CP page |
+| ↳ `Create levels` | Create new levels |
+| ↳ `Edit levels` | Modify existing levels |
+| ↳ `Delete levels` | Delete levels |
+| `View leaderboard` | Read access to the Leaderboard CP page |
+| `Manage settings` | Access the Settings page and save changes |
+
+Nesting works the standard Craft way: a child permission can only be granted once its parent is granted. So "Create awards", "Edit awards", "Delete awards" are only enable-able once "View awards" is checked. **The Points sidebar item, and each sub-page within it, is hidden entirely if the user has no relevant permissions.**
+
+Example role setups:
+
+- **Customer-success agent** — `View awards`, `View leaderboard`. Can investigate user balances and see top customers, can't change anything.
+- **Loyalty manager** — Everything except `Delete rules`, `Delete levels`, `Manage settings`. Can build the programme but can't drop existing rules/levels (preserves audit trail) or change branding.
+- **Admin** — All permissions.
+
+> Frontend endpoints (`points/awards/fire`, `points/awards/remove`, GraphQL `pointsAddAward`) don't use these CP permissions — they only check that the user is logged in and that the rule is Manual. CP permissions only gate the CP UI.
+
 ## Usage
 
 ### Building a rule

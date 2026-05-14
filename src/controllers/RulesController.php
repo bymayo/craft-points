@@ -13,7 +13,7 @@ class RulesController extends Controller
 {
     public function actionIndex(): Response
     {
-        $this->requirePermission('points-manageRules');
+        $this->requirePermission('points-viewRules');
         return $this->renderTemplate('points/rules/index');
     }
 
@@ -23,7 +23,7 @@ class RulesController extends Controller
     public function actionTableData(): Response
     {
         $this->requireAcceptsJson();
-        $this->requirePermission('points-manageRules');
+        $this->requirePermission('points-viewRules');
 
         $request = Craft::$app->getRequest();
         $page = (int) $request->getParam('page', 1);
@@ -64,7 +64,7 @@ class RulesController extends Controller
 
     public function actionEdit(?int $ruleId = null, ?Rule $rule = null): Response
     {
-        $this->requirePermission('points-manageRules');
+        $this->requirePermission('points-viewRules');
 
         if ($rule === null) {
             if ($ruleId !== null) {
@@ -117,10 +117,10 @@ class RulesController extends Controller
     public function actionSave(): ?Response
     {
         $this->requirePostRequest();
-        $this->requirePermission('points-manageRules');
 
         $request = Craft::$app->getRequest();
         $ruleId = $request->getBodyParam('ruleId');
+        $this->requirePermission($ruleId ? 'points-editRules' : 'points-createRules');
 
         if ($ruleId) {
             $rule = Points::getInstance()->rules->getRuleById((int) $ruleId);
@@ -169,7 +169,8 @@ class RulesController extends Controller
     {
         $this->requirePostRequest();
         $this->requireAcceptsJson();
-        $this->requirePermission('points-manageRules');
+        // Either tier can add rows — they're a helper for the rule builder.
+        $this->requirePermission('points-viewRules');
 
         $request = Craft::$app->getRequest();
         $section = (string) $request->getRequiredBodyParam('section');
@@ -207,7 +208,7 @@ class RulesController extends Controller
     public function actionDelete(): Response
     {
         $this->requirePostRequest();
-        $this->requirePermission('points-manageRules');
+        $this->requirePermission('points-deleteRules');
 
         $id = (int) Craft::$app->getRequest()->getRequiredBodyParam('id');
         Points::getInstance()->rules->deleteRuleById($id);

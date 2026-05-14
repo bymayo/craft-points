@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+- **Plugin settings are no longer routed through Project Config.** Everything in the Settings model (plugin name, currency labels & symbol, points-per-currency-unit, birthday field handle, redemption min/max/refund) now persists to a new `{{%points_settings}}` table. This means admins can rename "Points" to "Credits" on production without it being clobbered by the next staging-to-prod deploy, and the settings aren't versioned into `project.yaml`. Devs who want per-environment values can still override via `config/points.php` — values there take precedence over the DB row.
+- New migration: `m260514_120000_create_points_settings_table`. Schema version bumped to `1.9.0`.
+- **Settings link added to the Points CP sidebar.** Same target as Craft's gear-menu route (`settings/plugins/points`), but discoverable inside the plugin's own nav. Gated on the new `points-manageSettings` permission.
+- **Granular permissions** — replaces the single `points-manageX` tier with View + Create + Edit + Delete per resource, so a role can (say) edit existing awards without being able to create new ones, or view the leaderboard without being able to touch rules at all.
+  - `points-viewAwards` → nested `points-createAwards`, `points-editAwards`, `points-deleteAwards`
+  - `points-viewRules` → nested `points-createRules`, `points-editRules`, `points-deleteRules`
+  - `points-viewLevels` → nested `points-createLevels`, `points-editLevels`, `points-deleteLevels`
+  - `points-viewLeaderboard` (read-only; no nested)
+  - `points-manageSettings` (settings has no list view, so no view variant)
+
+  Wiring: `index` / `edit` / `tableData` / `addRow` controller actions check `view-*`. `save` actions check `create-*` or `edit-*` based on whether the record is new. `delete` actions check `delete-*`. The element's `canView` / `canSave` / `canDelete` follow the same pattern. Sidebar items each check the corresponding `view-*` (or `manageSettings`). The Leaderboard CP page previously piggy-backed on `points-manageAwards` — it's now its own `points-viewLeaderboard`, so a customer-success role can see top customers without touching awards. The permissions heading uses the static plugin name ("Points"), not the configurable `pluginName` setting.
 - **Up to four new columns available on the Users element index** — register via the Users index column settings:
   - `{Currency Plural}` (e.g. *Points*, *Credits*) — total points balance, formatted with thousands separators *(Lite)*
   - `Level` — current level with a coloured dot *(Lite)*

@@ -24,6 +24,9 @@ use Craft;
 use craft\base\Element;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\db\Query;
+use craft\helpers\Json;
+use craft\helpers\StringHelper;
 use craft\elements\User;
 use craft\events\DefineAttributeHtmlEvent;
 use craft\events\RegisterComponentTypesEvent;
@@ -65,7 +68,7 @@ class Points extends Plugin
     public const EDITION_LITE = 'lite';
     public const EDITION_PRO = 'pro';
 
-    public string $schemaVersion = '1.8.0';
+    public string $schemaVersion = '1.9.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -111,17 +114,20 @@ class Points extends Plugin
         $user = Craft::$app->getUser();
         $subnav = [];
 
-        if ($user->checkPermission('points-manageAwards')) {
+        if ($user->checkPermission('points-viewAwards')) {
             $subnav['awards'] = ['label' => Craft::t('points', 'Awards'), 'url' => 'points/awards'];
         }
-        if ($user->checkPermission('points-manageRules')) {
+        if ($user->checkPermission('points-viewRules')) {
             $subnav['rules'] = ['label' => Craft::t('points', 'Rules'), 'url' => 'points/rules'];
         }
-        if ($user->checkPermission('points-manageLevels')) {
+        if ($user->checkPermission('points-viewLevels')) {
             $subnav['levels'] = ['label' => Craft::t('points', 'Levels'), 'url' => 'points/levels'];
         }
-        if ($user->checkPermission('points-manageAwards')) {
+        if ($user->checkPermission('points-viewLeaderboard')) {
             $subnav['leaderboard'] = ['label' => Craft::t('points', 'Leaderboard'), 'url' => 'points/leaderboard'];
+        }
+        if ($user->checkPermission('points-manageSettings')) {
+            $subnav['settings'] = ['label' => Craft::t('points', 'Settings'), 'url' => 'settings/plugins/points'];
         }
 
         // Suppress the entire nav item if the user can't access any subpage.
@@ -139,9 +145,85 @@ class Points extends Plugin
         return file_exists($path) ? $path : parent::cpNavIconPath();
     }
 
+    /**
+     * Settings are stored in our own `{{%points_settings}}` row (NOT in project
+     * config). This means admins can change branding & operational values
+     * directly on a production environment without a deploy clobbering them,
+     * and without the values syncing into `project.yaml` across environments.
+     *
+     * Devs can still override per-environment via `config/points.php` — values
+     * there take precedence over the DB row, same shape as the Settings model.
+     */
     protected function createSettingsModel(): ?Model
     {
-        return Craft::createObject(Settings::class);
+        $model = Craft::createObject(Settings::class);
+
+        // 1. Hydrate from our DB row (if it exists; missing during install).
+        try {
+            $row = (new Query())
+                ->from('{{%points_settings}}')
+                ->where(['id' => 1])
+                ->one();
+            if ($row && !empty($row['settings'])) {
+                $data = Json::decodeIfJson($row['settings']);
+                if (is_array($data)) {
+                    $model->setAttributes($data, false);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Table doesn't exist yet (pre-install / pre-migration). Defaults.
+        }
+
+        // 2. Overlay per-environment overrides from config/points.php.
+        $fileConfig = Craft::$app->getConfig()->getConfigFromFile('points');
+        if (!empty($fileConfig)) {
+            $model->setAttributes($fileConfig, false);
+        }
+
+        return $model;
+    }
+
+    /**
+     * Override Craft's default settings save (which routes through Project
+     * Config) and write directly to `{{%points_settings}}` instead.
+     */
+    public function saveSettings(array $settings): bool
+    {
+        $model = $this->getSettings();
+        $model->setAttributes($settings, false);
+        if (!$model->validate()) {
+            return false;
+        }
+
+        $db = Craft::$app->getDb();
+        $now = (new \DateTime())->format('Y-m-d H:i:s');
+        $payload = Json::encode($settings);
+
+        $exists = (new Query())
+            ->from('{{%points_settings}}')
+            ->where(['id' => 1])
+            ->exists();
+
+        if ($exists) {
+            $db->createCommand()
+                ->update('{{%points_settings}}', [
+                    'settings' => $payload,
+                    'dateUpdated' => $now,
+                ], ['id' => 1])
+                ->execute();
+        } else {
+            $db->createCommand()
+                ->insert('{{%points_settings}}', [
+                    'id' => 1,
+                    'settings' => $payload,
+                    'dateCreated' => $now,
+                    'dateUpdated' => $now,
+                    'uid' => StringHelper::UUID(),
+                ])
+                ->execute();
+        }
+
+        return true;
     }
 
     protected function settingsHtml(): ?string
@@ -270,17 +352,41 @@ class Points extends Plugin
             UserPermissions::class,
             UserPermissions::EVENT_REGISTER_PERMISSIONS,
             function(RegisterUserPermissionsEvent $event) {
+                // View → broad (read-only). Manage → nested (also create/edit/delete).
+                // Granting Manage in the UI requires Granting View first; in code,
+                // index/edit screens check view-* and write actions check manage-*.
                 $event->permissions[] = [
-                    'heading' => $this->getSettings()->pluginName,
+                    'heading' => Craft::t('points', 'Points'),
                     'permissions' => [
-                        'points-manageRules' => [
-                            'label' => Craft::t('points', 'Manage rules'),
+                        'points-viewAwards' => [
+                            'label' => Craft::t('points', 'View awards'),
+                            'nested' => [
+                                'points-createAwards' => ['label' => Craft::t('points', 'Create awards')],
+                                'points-editAwards' => ['label' => Craft::t('points', 'Edit awards')],
+                                'points-deleteAwards' => ['label' => Craft::t('points', 'Delete awards')],
+                            ],
                         ],
-                        'points-manageAwards' => [
-                            'label' => Craft::t('points', 'Manage awards'),
+                        'points-viewRules' => [
+                            'label' => Craft::t('points', 'View rules'),
+                            'nested' => [
+                                'points-createRules' => ['label' => Craft::t('points', 'Create rules')],
+                                'points-editRules' => ['label' => Craft::t('points', 'Edit rules')],
+                                'points-deleteRules' => ['label' => Craft::t('points', 'Delete rules')],
+                            ],
                         ],
-                        'points-manageLevels' => [
-                            'label' => Craft::t('points', 'Manage levels'),
+                        'points-viewLevels' => [
+                            'label' => Craft::t('points', 'View levels'),
+                            'nested' => [
+                                'points-createLevels' => ['label' => Craft::t('points', 'Create levels')],
+                                'points-editLevels' => ['label' => Craft::t('points', 'Edit levels')],
+                                'points-deleteLevels' => ['label' => Craft::t('points', 'Delete levels')],
+                            ],
+                        ],
+                        'points-viewLeaderboard' => [
+                            'label' => Craft::t('points', 'View leaderboard'),
+                        ],
+                        'points-manageSettings' => [
+                            'label' => Craft::t('points', 'Manage settings'),
                         ],
                     ],
                 ];

@@ -13,7 +13,7 @@ class LeaderboardController extends Controller
 {
     public function actionIndex(): Response
     {
-        $this->requirePermission('points-manageAwards');
+        $this->requirePermission('points-viewLeaderboard');
         return $this->renderTemplate('points/leaderboard/index');
     }
 
@@ -23,7 +23,7 @@ class LeaderboardController extends Controller
     public function actionTableData(): Response
     {
         $this->requireAcceptsJson();
-        $this->requirePermission('points-manageAwards');
+        $this->requirePermission('points-viewLeaderboard');
 
         $request = Craft::$app->getRequest();
         $page = (int) $request->getParam('page', 1);

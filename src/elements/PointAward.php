@@ -157,17 +157,17 @@ class PointAward extends Element
 
     public function canView(\craft\elements\User $user): bool
     {
-        return $user->can('points-manageAwards');
+        return $user->can('points-viewAwards');
     }
 
     public function canSave(\craft\elements\User $user): bool
     {
-        return $user->can('points-manageAwards');
+        return $user->can($this->id ? 'points-editAwards' : 'points-createAwards');
     }
 
     public function canDelete(\craft\elements\User $user): bool
     {
-        return $user->can('points-manageAwards');
+        return $user->can('points-deleteAwards');
     }
 
     public function getCpEditUrl(): ?string

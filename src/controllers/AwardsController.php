@@ -13,13 +13,13 @@ class AwardsController extends Controller
 {
     public function actionIndex(): Response
     {
-        $this->requirePermission('points-manageAwards');
+        $this->requirePermission('points-viewAwards');
         return $this->renderTemplate('points/awards/index');
     }
 
     public function actionEdit(?int $awardId = null, ?PointAward $award = null): Response
     {
-        $this->requirePermission('points-manageAwards');
+        $this->requirePermission('points-viewAwards');
 
         if ($award === null) {
             if ($awardId !== null) {
@@ -44,10 +44,10 @@ class AwardsController extends Controller
     public function actionSave(): ?Response
     {
         $this->requirePostRequest();
-        $this->requirePermission('points-manageAwards');
 
         $request = Craft::$app->getRequest();
         $awardId = $request->getBodyParam('awardId');
+        $this->requirePermission($awardId ? 'points-editAwards' : 'points-createAwards');
 
         if ($awardId) {
             $award = Points::getInstance()->awards->getAwardById((int)$awardId);
@@ -97,7 +97,7 @@ class AwardsController extends Controller
     public function actionDelete(): Response
     {
         $this->requirePostRequest();
-        $this->requirePermission('points-manageAwards');
+        $this->requirePermission('points-deleteAwards');
 
         $id = (int)Craft::$app->getRequest()->getRequiredBodyParam('id');
         $award = Points::getInstance()->awards->getAwardById($id);
