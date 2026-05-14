@@ -23,7 +23,12 @@ class LeaderboardWidget extends Widget
 
     public static function isSelectable(): bool
     {
-        return true;
+        // Only offer the widget in the picker if the current user can view
+        // the corresponding CP page. Existing widgets on someone's dashboard
+        // continue to render even if they lose the permission later — they
+        // just can't add new ones.
+        $user = Craft::$app->getUser()->getIdentity();
+        return $user && $user->can('points-viewLeaderboard');
     }
 
     public function getTitle(): ?string

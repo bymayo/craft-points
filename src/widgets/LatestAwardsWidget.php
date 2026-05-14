@@ -24,7 +24,11 @@ class LatestAwardsWidget extends Widget
 
     public static function isSelectable(): bool
     {
-        return true;
+        // Only offer the widget in the picker if the current user can view
+        // the Awards index. Existing widgets on someone's dashboard continue
+        // to render — they just can't add new ones without the permission.
+        $user = Craft::$app->getUser()->getIdentity();
+        return $user && $user->can('points-viewAwards');
     }
 
     public function getTitle(): ?string

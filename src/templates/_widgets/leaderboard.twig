@@ -1,5 +1,5 @@
 {% if rows|length %}
-    <div class="tableview" style="padding-top: 24px;">
+    <div class="tableview points-widget-tableview">
         <div class="tablepane">
             <table class="data fullwidth points-widget-table">
                 <thead>
@@ -37,11 +37,23 @@
             </table>
         </div>
     </div>
+
+    {% if currentUser.can('points-viewLeaderboard') %}
+        <div class="points-widget-footer">
+            <a class="btn small" href="{{ cpUrl('points/leaderboard') }}">{{ 'View Leaderboard'|t('points') }}</a>
+        </div>
+    {% endif %}
 {% else %}
     <p>{{ 'No awards yet.'|t('points') }}</p>
 {% endif %}
 
 {% css %}
+    .points-widget-tableview { padding-top: 24px; }
+    .points-widget-footer {
+        margin: 20px -24px 0;
+        padding: 20px 24px 0;
+        border-top: 1px solid var(--hairline-color);
+    }
     .points-widget-user {
         display: flex;
         align-items: center;
