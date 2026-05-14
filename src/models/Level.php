@@ -44,4 +44,16 @@ class Level extends Model
     {
         return UrlHelper::cpUrl('points/levels/' . $this->id);
     }
+
+    /**
+     * The stored colour normalised to a `#hex` string for safe use in CSS.
+     * Returns null if no colour is set.
+     */
+    public function getColourHex(): ?string
+    {
+        if (!$this->colour) {
+            return null;
+        }
+        return str_starts_with($this->colour, '#') ? $this->colour : '#' . $this->colour;
+    }
 }

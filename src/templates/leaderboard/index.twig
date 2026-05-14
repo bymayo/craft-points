@@ -4,38 +4,26 @@
 {% set selectedSubnavItem = 'leaderboard' %}
 
 {% set crumbs = [
-    { label: craft.points.currencyPlural, url: url('points') },
+    { label: craft.points.pluginName, url: url('points') },
 ] %}
 
+{% do view.registerAssetBundle('craft\\web\\assets\\admintable\\AdminTableAsset') %}
+
 {% block content %}
-    {% if rows|length %}
-        <table class="data fullwidth">
-            <thead>
-                <tr>
-                    <th scope="col" class="thin">{{ '#'|t('points') }}</th>
-                    <th scope="col">{{ 'User'|t('points') }}</th>
-                    <th scope="col">{{ 'Level'|t('points') }}</th>
-                    <th scope="col">{{ craft.points.currencyPlural }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                    <tr>
-                        <td class="thin"><strong>{{ loop.index }}</strong></td>
-                        <td><a href="{{ row.user.getCpEditUrl() }}">{{ row.user.name }}</a></td>
-                        <td>
-                            {% if row.level %}
-                                <span style="display:inline-block; padding:2px 8px; border-radius:3px; color:#fff; background:{{ row.level.colour|default('#666') }};">{{ row.level.name }}</span>
-                            {% endif %}
-                        </td>
-                        <td><strong>{{ row.points }}</strong></td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="zilch">
-            <p>{{ 'No awards yet.'|t('points') }}</p>
-        </div>
-    {% endif %}
+    <div id="leaderboard-vue-admin-table"></div>
 {% endblock %}
+
+{% js %}
+    new Craft.VueAdminTable({
+        columns: [
+            { name: 'rank', title: Craft.t('points', '#'), titleClass: 'thin' },
+            { name: '__slot:title', title: Craft.t('points', 'User') },
+            { name: 'level', title: Craft.t('points', 'Level'), callback: (v) => v || '' },
+            { name: 'points', title: Craft.t('points', '{currency}', { currency: '{{ craft.points.currencyPlural }}' }) },
+        ],
+        container: '#leaderboard-vue-admin-table',
+        emptyMessage: Craft.t('points', 'No awards yet.'),
+        tableDataEndpoint: 'points/leaderboard/table-data',
+        search: false,
+    });
+{% endjs %}

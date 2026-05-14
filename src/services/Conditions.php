@@ -9,7 +9,6 @@ use bymayo\points\conditions\rules\commerce\OrderItemCountConditionRule;
 use bymayo\points\conditions\rules\commerce\OrderTotalConditionRule;
 use bymayo\points\conditions\rules\SectionConditionRule;
 use bymayo\points\conditions\rules\UserGroupConditionRule;
-use bymayo\points\conditions\rules\UserLevelConditionRule;
 use bymayo\points\conditions\RuleEvaluationContext;
 use bymayo\points\events\RegisterConditionRulesEvent;
 use bymayo\points\Points;
@@ -82,7 +81,6 @@ class Conditions extends Component
         $defaults = [
             SectionConditionRule::class,
             UserGroupConditionRule::class,
-            UserLevelConditionRule::class,
         ];
 
         // Pro-only: Commerce conditions.

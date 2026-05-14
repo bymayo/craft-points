@@ -6,6 +6,12 @@ use craft\base\Model;
 
 class Settings extends Model
 {
+    /**
+     * Name shown for the plugin in the CP sidebar and breadcrumbs.
+     * Independent of the currency name — e.g. "Rewards System" with currency "Coins".
+     */
+    public string $pluginName = 'Points';
+
     /** Singular form of the currency name, e.g. "Point", "Coin", "Credit". */
     public string $currencyName = 'Point';
 
@@ -30,8 +36,8 @@ class Settings extends Model
     public function defineRules(): array
     {
         return [
-            [['currencyName', 'currencyNamePlural'], 'required'],
-            [['currencyName', 'currencyNamePlural'], 'string', 'max' => 50],
+            [['pluginName', 'currencyName', 'currencyNamePlural'], 'required'],
+            [['pluginName', 'currencyName', 'currencyNamePlural'], 'string', 'max' => 50],
             [['birthdayFieldHandle', 'currencySymbol'], 'string', 'max' => 100],
             [['pointsPerCurrencyUnit'], 'integer', 'min' => 1],
         ];

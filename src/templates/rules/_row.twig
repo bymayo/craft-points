@@ -40,13 +40,10 @@
 
         <div class="cnd-value">
             <div class="cnd-variant" data-variant="section" {% if condition.type != 'section' %}hidden{% endif %}>
-                {{ forms.multiselect({ name: prefix ~ '[ids]', options: sectionOptions, values: condition.type == 'section' ? (condition.ids ?? []) : [] }) }}
+                {{ forms.checkboxSelect({ name: prefix ~ '[ids]', options: sectionOptions, values: condition.type == 'section' ? (condition.ids ?? []) : [], showAllOption: false }) }}
             </div>
             <div class="cnd-variant" data-variant="userGroup" {% if condition.type != 'userGroup' %}hidden{% endif %}>
-                {{ forms.multiselect({ name: prefix ~ '[groupIds]', options: userGroupOptions, values: condition.type == 'userGroup' ? (condition.groupIds ?? []) : [] }) }}
-            </div>
-            <div class="cnd-variant" data-variant="userLevel" {% if condition.type != 'userLevel' %}hidden{% endif %}>
-                {{ forms.multiselect({ name: prefix ~ '[levelHandles]', options: levelOptions, values: condition.type == 'userLevel' ? (condition.levelHandles ?? []) : [] }) }}
+                {{ forms.checkboxSelect({ name: prefix ~ '[groupIds]', options: userGroupOptions, values: condition.type == 'userGroup' ? (condition.groupIds ?? []) : [], showAllOption: false }) }}
             </div>
             <div class="cnd-variant cnd-inline" data-variant="commerce.orderTotal" {% if condition.type != 'commerce.orderTotal' %}hidden{% endif %}>
                 {{ forms.select({ name: prefix ~ '[operator]', options: operatorOptions, value: condition.type == 'commerce.orderTotal' ? (condition.operator ?? '>=') : '>=', class: 'op-select' }) }}

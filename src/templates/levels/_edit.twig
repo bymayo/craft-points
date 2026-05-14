@@ -6,7 +6,7 @@
 {% set fullPageForm = true %}
 
 {% set crumbs = [
-    { label: craft.points.currencyPlural, url: url('points') },
+    { label: craft.points.pluginName, url: url('points') },
     { label: 'Levels'|t('points'), url: url('points/levels') },
 ] %}
 
@@ -52,20 +52,26 @@
     }) }}
 
     {{ forms.colorField({
-        label: 'Colour'|t('points'),
-        instructions: 'Optional — used for badge styling.'|t('points'),
+        label: 'Color'|t('app'),
         id: 'colour',
         name: 'colour',
         value: level.colour,
         errors: level.getErrors('colour'),
     }) }}
 
-    {{ forms.textField({
-        label: 'Icon'|t('points'),
-        instructions: 'Optional — a Font Awesome class, icon name, or path. Free-text for now.'|t('points'),
+    {% set selectedIcon = level.icon and level.icon is numeric
+        ? craft.assets().id(level.icon).one()
+        : null %}
+
+    {{ forms.elementSelectField({
+        label: 'Icon'|t('app'),
         id: 'icon',
         name: 'icon',
-        value: level.icon,
+        elementType: 'craft\\elements\\Asset',
+        elements: selectedIcon ? [selectedIcon] : [],
+        limit: 1,
+        selectionLabel: 'Choose icon'|t('points'),
+        criteria: { kind: 'image' },
         errors: level.getErrors('icon'),
     }) }}
 {% endblock %}

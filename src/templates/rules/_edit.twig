@@ -6,7 +6,7 @@
 {% set fullPageForm = true %}
 
 {% set crumbs = [
-    { label: craft.points.currencyPlural, url: url('points') },
+    { label: craft.points.pluginName, url: url('points') },
     { label: 'Rules'|t('points'), url: url('points/rules') },
 ] %}
 
@@ -306,6 +306,9 @@
             flex-direction: column;
             gap: 6px;
         }
+        .points-builder .builder-section[hidden] {
+            display: none !important;
+        }
         .points-builder .section-heading {
             font-size: 11px;
             font-weight: 600;
@@ -362,6 +365,14 @@
         }
         .points-builder .cnd-variant .multiselect select {
             min-height: 64px;
+        }
+        .points-builder .cnd-variant .checkbox-select {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .points-builder .cnd-variant .checkbox-select > div {
+            margin: 0;
         }
         .points-builder .cnd-suffix {
             color: var(--medium-text-color, #596779);

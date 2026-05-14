@@ -159,6 +159,12 @@ class PointsVariable
         return Points::getInstance()->awards->leaderboard($limit, $offset);
     }
 
+    /** Plugin name from settings — used in CP nav and breadcrumbs. */
+    public function pluginName(): string
+    {
+        return Points::getInstance()->getSettings()->pluginName;
+    }
+
     /** Singular currency label from plugin settings (e.g. "Coin"). */
     public function currency(): string
     {

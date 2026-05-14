@@ -5,10 +5,20 @@
 
 <h2>{{ 'Terminology'|t('points') }}</h2>
 
-<p>{{ 'Rename the currency the plugin uses in the UI. The plugin handle, URLs and database don\'t change — only what your editors see.'|t('points') }}</p>
+<p>{{ 'Rename the plugin and currency labels shown in the UI. The plugin handle, URLs and database don\'t change — only what your editors see.'|t('points') }}</p>
 
 {{ forms.textField({
     first: true,
+    label: 'Plugin name'|t('points'),
+    instructions: 'Shown in the CP sidebar and breadcrumbs. Independent of the currency name. e.g. "Rewards System".'|t('points'),
+    id: 'pluginName',
+    name: 'pluginName',
+    value: settings.pluginName,
+    required: true,
+    errors: settings.getErrors('pluginName'),
+}) }}
+
+{{ forms.textField({
     label: 'Currency name'|t('points'),
     instructions: 'Singular. e.g. Point, Coin, Credit, Star.'|t('points'),
     id: 'currencyName',

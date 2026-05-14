@@ -8,14 +8,15 @@ Award points to users for actions they perform, build leaderboards, and unlock t
 
 | | Lite (free) | Pro |
 |---|---|---|
-| Events, Awards, Levels | ✅ | ✅ |
-| Leaderboard + widgets | ✅ | ✅ |
-| Automatic triggers (Entry / Category / User / Asset) | ✅ | ✅ |
+| Rules, Awards, Levels, Leaderboard | ✅ | ✅ |
+| Dashboard widgets | ✅ | ✅ |
+| Built-in triggers (Entry / User / Asset) | ✅ | ✅ |
 | Twig & GraphQL APIs | ✅ | ✅ |
 | Plugin events | ✅ | ✅ |
-| Configurable currency name | ✅ | ✅ |
-| **Craft Commerce triggers** (Order completed, Subscription created) | — | ✅ |
+| Renameable plugin & currency labels | ✅ | ✅ |
+| **Craft Commerce triggers** (Order completed / paid / refunded, Subscriptions) | — | ✅ |
 | **Percentage-of-order-total** point awards | — | ✅ |
+| **Commerce conditions** (Order total, item count, contains product, coupon) | — | ✅ |
 
 Switch edition during development via `config/project/project.yaml`:
 
@@ -25,22 +26,16 @@ plugins.points.edition: pro
 
 ## Features
 
-- **Rules** — define point-awarding actions (e.g. "Signed up to newsletter" = 20pts)
-- **Automatic triggers** — fire events on Entry create/update/delete, Category save/delete, User register/login/update, Asset upload/delete — with per-section / per-group / per-volume scoping
-- **Extensible** — other plugins can register their own triggers via `Triggers::EVENT_REGISTER_TRIGGERS`
-- **Awards** — award those events to users from the CP or Twig
-- **Levels** — tier users by accumulated points (Bronze/Silver/Gold style) with colour and icon
-- **Leaderboard** — CP page and dashboard widget showing top users by total points, with their current level
-- **Element index** — entries are a first-class element type with search, sort, filters, and bulk delete
-- **Audit trail** — each entry stores the event's points value at the time it was awarded, so editing an event later doesn't retroactively rewrite history
-- **Twig & GraphQL APIs** — drop-in Twig compatibility with the Craft 2 Points plugin, plus first-class GraphQL queries
-- **Extensible** — plugin events (`EVENT_BEFORE_ADD_ENTRY`, `EVENT_LEVEL_CHANGED`, …) and per-user permissions
-
-## Coming soon
-
-- Full element-query GraphQL integration for entries (filter by section, search, eager loading)
-- Plugin events for extensibility (`EVENT_AFTER_ADD_ENTRY`, `EVENT_LEVEL_CHANGED`, …)
-- GraphQL types
+- **Rules** — a builder for "When X happens, If Y is true, Then award Z" with limits and an active schedule
+- **Automatic triggers** — fire on Entry create/update, User register/login/birthday/anniversary, Asset create, plus Commerce events on Pro
+- **Conditions** — narrow rules with "Entry is in section", "User is in group", or "Order total / item count / contains product / has coupon" (Pro)
+- **Limits** — cap how often a rule can fire ("Once per user", "Max N every [period]")
+- **Awards** — entry-style element index of every points award, with all the standard Craft sources, search, sort, and bulk actions
+- **Levels** — tier users by accumulated points (Bronze / Silver / Gold style) with colour
+- **Leaderboard** — CP page and dashboard widget showing top users by total points
+- **Renameable** — name the plugin in the sidebar ("Rewards System"), the currency ("Coins"), and your money symbol independently
+- **Twig & GraphQL APIs** — read points, list awards, fetch the leaderboard
+- **Extensible** — plugin events (`EVENT_BEFORE_ADD_AWARD`, `EVENT_LEVEL_CHANGED`, …), pluggable triggers / conditions / limits / rewards via PHP
 
 ## Requirements
 
@@ -58,56 +53,124 @@ php craft plugin/install points
 
 | Term | Meaning |
 |---|---|
-| **Rule** | A named action worth a fixed number of points, e.g. `signedUp` = 20 |
-| **Award** | A record of a rule being awarded to a specific user, at a specific time |
-| **Level** | A named tier reached once a user's point sum crosses a threshold |
+| **Rule** | A configured "When + If + Then + Limit" — e.g. "When Order completed, if total > £50, add 10 credits, max once per day" |
+| **Trigger** | The event that fires a rule (e.g. *Entry created*, *Order completed*). "Manual" rules only fire from Twig. |
+| **Award** | A record of a rule paying out to a user, at a specific time, with a points snapshot |
+| **Level** | A named tier reached once a user's points sum crosses a threshold |
 
-The default currency is "Points", but you can rename it in **Points → Settings** (e.g. Coins, Credits, Stars). The chosen name appears throughout the CP and is available in Twig as `{{ craft.points.currency }}` / `{{ craft.points.currencyPlural }}`.
+Defaults are "Points" everywhere. You can rename:
+
+- **Plugin name** — what shows in the CP sidebar and breadcrumbs (e.g. *"Rewards System"*)
+- **Currency name** — used in award labels, value suffixes etc. (singular & plural — e.g. *"Coin"* / *"Coins"*)
+- **Currency symbol** — for money conversion display (e.g. `£`, `$`)
+
+All in **Points → Settings**. Plugin handle, URLs and database don't change.
 
 ## Usage
 
-### Rules
+### Building a rule
 
-Navigate to **Points → Rules** in the CP. Create a rule with:
+Navigate to **Points → Rules → New rule**. You'll see a 5-section builder:
 
-- **Name** — display label, e.g. "Signed up to newsletter"
-- **Handle** — short identifier you'll use in Twig, e.g. `signedUp`
-- **Points type** — Flat (fixed number of points) or Percent (percentage of order total — Commerce only)
-- **Value** — the number of points (flat) or the percentage (percent)
-- **Allow multiple** — when off, a user can only receive this event's points once; when on, the event is repeatable
-- **Trigger** — when should this fire? "Manual" means only via Twig / CP. Pick a system event (Entry created, User logged in, Asset uploaded, …) to fire automatically.
-- **Scope** (when applicable) — limit a trigger to specific sections, category groups, or volumes. Leave empty to apply to all.
+- **Name / Handle / Enabled** — top-level metadata
+- **When** — pick the trigger (or leave as Manual)
+- **If** — optional conditions (all must pass). Only shows conditions relevant to the chosen trigger
+- **Then** — what to award: Add a flat amount, Add a percentage (Pro), or Deduct
+- **Limit** — Once per user, or Max N every (Hour / Day / Week / Month / Year / Never)
+- **Active period** — optional date range
 
-### Automatic triggers
+### Triggers shipped
 
-When you pick a trigger that's not "Manual", the plugin listens for that system event and awards points automatically. Recipients default to:
+| Subject | Triggers | Lite/Pro |
+|---|---|---|
+| Entry | Created · Updated | Lite |
+| Asset | Created | Lite |
+| User | Registered · Logged in · Birthday · Anniversary | Lite |
+| Order | Completed · Paid · Refunded · First ever | Pro |
+| Subscription | Created · Renewed · Cancelled · Plan changed | Pro |
+
+**Recipients** default to:
 
 | Trigger | Recipient |
 |---|---|
-| Entry created/updated/deleted | Entry author |
-| Category created/updated/deleted | Active CP user |
-| User registered / updated / logged in | The user themselves |
-| Asset uploaded / deleted | Asset uploader |
-| Order completed (Commerce) | Order customer |
-| Subscription created (Commerce) | Subscriber |
+| Entry created / updated | Entry author |
+| Asset created | Asset uploader |
+| User registered / logged in / birthday / anniversary | The user themselves |
+| Order paid / completed / refunded / first ever | Order customer |
+| Subscription * | The subscribing user |
 
-Commerce triggers only appear in the dropdown when `craftcms/commerce` is installed and enabled.
+For **User birthday** to fire, you need a Date field on the user layout. Set its handle in **Points → Settings → Birthday field handle**. The trigger fires on the user's next login after their birthday.
 
-The Event's `multiple` flag still applies — so an `Entry updated` event with `multiple: false` only awards the first time a given user updates an entry.
+### Awarding from Twig
 
-### Adding triggers from another plugin
+```twig
+{# Award the current logged-in user #}
+{{ craft.points.addAward({ ruleHandle: 'signedUp' }) }}
 
-```php
-use bymayo\points\events\RegisterTriggersEvent;
-use bymayo\points\services\Triggers;
-use yii\base\Event;
+{# Award a specific user #}
+{{ craft.points.addAward({ userId: 5, ruleHandle: 'signedUp' }) }}
 
-Event::on(Triggers::class, Triggers::EVENT_REGISTER_TRIGGERS, function(RegisterTriggersEvent $e) {
-    $e->triggers[] = MyTrigger::class; // extends \bymayo\points\triggers\BaseTrigger
-});
+{# Remove the oldest matching award #}
+{{ craft.points.removeAward({ ruleHandle: 'signedUp' }) }}
 ```
 
-### Listening for award / level events
+Limits and conditions on the rule are evaluated server-side — Twig calls obey them.
+
+### Reading points
+
+```twig
+{{ craft.points.sumForUser() }}        {# total for current user #}
+{{ craft.points.sumForUser(5) }}        {# total for user 5 #}
+{{ craft.points.countForUser() }}       {# award count #}
+
+{# Money conversion (uses Points per currency unit + Currency symbol settings) #}
+{{ craft.points.toMoney() }}            {# e.g. 2.5 #}
+{{ craft.points.formatMoney() }}        {# e.g. "£2.50" #}
+```
+
+### Levels
+
+```twig
+{% set level = craft.points.levelForUser() %}
+{% if level %}
+    <span style="color: {{ level.colour }}">{{ level.name }}</span>
+{% endif %}
+
+{{ craft.points.levelForUser(5).name }}
+{{ craft.points.levelForPoints(250).name }}
+
+{% for level in craft.points.levels %}
+    {{ level.name }} — {{ level.threshold }} pts
+{% endfor %}
+```
+
+### Leaderboard
+
+```twig
+{% for row in craft.points.leaderboard(10) %}
+    {{ loop.index }}. {{ row.user.name }} — {{ row.points }}
+    {% if row.level %}({{ row.level.name }}){% endif %}
+{% endfor %}
+```
+
+Each row is `{ user: User, points: int, level: Level|null }`. The CP page is at **Points → Leaderboard** with pagination, and there's a dashboard widget too.
+
+### Awards for a user
+
+```twig
+{% for award in craft.points.awardsByUser() %}
+    {{ award.rule.name }} — {{ award.pointsSnapshot }} ({{ award.dateCreated|datetime }})
+{% endfor %}
+```
+
+### Dashboard widgets
+
+Add via the Craft dashboard → + New widget:
+
+- **Points Leaderboard** — top N users by total
+- **Latest Points Awards** — most recent N awards across all users
+
+## Plugin events
 
 ```php
 use bymayo\points\events\AwardEvent;
@@ -123,27 +186,25 @@ Event::on(Awards::class, Awards::EVENT_BEFORE_ADD_AWARD, function(AwardEvent $e)
     }
 });
 
-// Modify the points being awarded
+// Modify the points awarded
 Event::on(Awards::class, Awards::EVENT_BEFORE_ADD_AWARD, function(AwardEvent $e) {
     if (isVip($e->userId)) {
-        $e->pointsToAward = $e->pointsToAward * 2;
+        $e->pointsToAward *= 2;
     }
 });
 
-// React after an award is created
+// React to an award
 Event::on(Awards::class, Awards::EVENT_AFTER_ADD_AWARD, function(AwardEvent $e) {
-    sendThankYouEmail($e->userId, $e->event, $e->award);
+    sendThankYouEmail($e->userId, $e->rule, $e->award);
 });
 
-// React when a user crosses a level threshold (up or down)
+// React when a user crosses a level threshold
 Event::on(Levels::class, Levels::EVENT_LEVEL_CHANGED, function(LevelChangedEvent $e) {
     if ($e->currentLevel && $e->previousLevel?->threshold < $e->currentLevel->threshold) {
         congratulate($e->userId, $e->currentLevel);
     }
 });
 ```
-
-Available events:
 
 | Constant | Cancellable | When |
 |---|---|---|
@@ -153,65 +214,44 @@ Available events:
 | `Awards::EVENT_AFTER_REMOVE_AWARD` | — | After the award is deleted. |
 | `Levels::EVENT_LEVEL_CHANGED` | — | When add/remove caused the user to change level. |
 
+### Registering custom triggers / conditions / limits / rewards
+
+Each subsystem has a register event:
+
+```php
+Event::on(Triggers::class, Triggers::EVENT_REGISTER_TRIGGERS, fn($e) => $e->triggers[] = MyTrigger::class);
+Event::on(Conditions::class, Conditions::EVENT_REGISTER_CONDITION_RULES, fn($e) => $e->conditionRules[] = MyCondition::class);
+Event::on(Limits::class, Limits::EVENT_REGISTER_LIMITS, fn($e) => $e->limits[] = MyLimit::class);
+Event::on(Rewards::class, Rewards::EVENT_REGISTER_REWARDS, fn($e) => $e->rewards[] = MyReward::class);
+```
+
+Each class extends the matching base (`BaseTrigger`, `BaseConditionRule`, `BaseLimit`, `BaseReward`).
+
 ## GraphQL
 
-The plugin registers GraphQL queries automatically. Available in any GraphQL schema that's allowed to use them (admin schemas get them by default).
-
 ```graphql
-# Get a user's total points and current level
 query Player($userId: Int!) {
   points: pointsSumForUser(userId: $userId)
-  total:  pointsTotalForUser(userId: $userId)
-  level: pointsLevelForUser(userId: $userId) {
-    name
-    handle
-    threshold
-    colour
+  total:  pointsCountForUser(userId: $userId)
+  level:  pointsLevelForUser(userId: $userId) {
+    name handle threshold colour
   }
 }
 
-# Leaderboard
 query Top10 {
   pointsLeaderboard(limit: 10) {
-    userId
-    userName
-    points
+    userId userName points
     level { name colour }
   }
 }
 
-# Recent awards for a user
 query Recent($userId: Int!) {
   pointsAwards(userId: $userId, limit: 20) {
-    id
-    pointsSnapshot
-    dateCreated
-    rule { name handle pointsType }
-  }
-}
-
-# Look up a rule by handle
-query Rule {
-  pointsRule(handle: "signedUp") {
-    name
-    points
-    pointsType
-    multiple
-    trigger
-  }
-}
-
-# List all defined levels
-query Levels {
-  pointsLevels {
-    name
-    threshold
-    colour
+    id pointsSnapshot dateCreated
+    rule { name handle }
   }
 }
 ```
-
-Available queries:
 
 | Query | Args | Returns |
 |---|---|---|
@@ -224,107 +264,14 @@ Available queries:
 | `pointsCountForUser` | `userId: Int!` | `Int` |
 | `pointsLeaderboard` | `limit, offset` | `[PointsLeaderboardRow]` |
 
-### Awarding points
-
-From the CP — **Points → Awards → New award** — or via Twig:
-
-```twig
-{# Award points to the current logged-in user #}
-{{ craft.points.addAward({ ruleHandle: 'signedUp' }) }}
-
-{# Award to a specific user #}
-{{ craft.points.addAward({ userId: 5, ruleHandle: 'signedUp' }) }}
-```
-
-If the event has **Allow multiple** off and the user already has an award for it, `addAward` is a silent no-op.
-
-### Removing points
-
-```twig
-{# Remove the oldest matching award for the current user #}
-{{ craft.points.removeAward({ ruleHandle: 'signedUp' }) }}
-
-{# Or for a specific user #}
-{{ craft.points.removeAward({ userId: 5, ruleHandle: 'signedUp' }) }}
-```
-
-`removeAward` removes a single award. To clear all of a user's awards for an event, call it in a loop.
-
-### Reading totals
-
-```twig
-{# Current user's total points #}
-{{ craft.points.sumForUser() }}
-
-{# Specific user #}
-{{ craft.points.sumForUser(5) }}
-
-{# Award count #}
-{{ craft.points.countForUser() }}
-{{ craft.points.countForUser(5) }}
-```
-
-Sums are based on each award's `pointsSnapshot` (the event's value at award time), not the event's *current* value. This means editing an event's points value later doesn't retroactively change history.
-
-### Levels
-
-Navigate to **Points → Levels**. Each level has a name, handle, threshold (minimum points needed), optional colour, and optional icon.
-
-A user's level is the highest one whose threshold is ≤ their current point sum. If two levels share a threshold, the most recently created wins.
-
-```twig
-{# Current user's level #}
-{% set level = craft.points.levelForUser() %}
-{% if level %}
-    <span style="color: {{ level.colour }}">{{ level.name }}</span>
-{% endif %}
-
-{# Specific user's level #}
-{{ craft.points.levelForUser(5).name }}
-
-{# All levels (ordered by threshold ascending) #}
-{% for level in craft.points.levels %}
-    {{ level.name }} — {{ level.threshold }} pts
-{% endfor %}
-
-{# What level a hypothetical point total would reach #}
-{{ craft.points.levelForPoints(250).name }}
-```
-
-### Leaderboard
-
-```twig
-{% for row in craft.points.leaderboard(10) %}
-    {{ loop.index }}. {{ row.user.name }} — {{ row.points }} pts
-    {% if row.level %}({{ row.level.name }}){% endif %}
-{% endfor %}
-```
-
-Each row is `{ user: User, points: int, level: Level|null }`. The CP page lives at **Points → Leaderboard**, and there's a "Points Leaderboard" dashboard widget you can drop on the Craft dashboard.
-
-### Dashboard widgets
-
-Two widgets ship with the plugin (Dashboard → + New widget):
-
-- **Points Leaderboard** — top N users by total points, with their level badges
-- **Latest Points Entries** — most recent N entries, with user, event, points awarded, and relative time
-
-### Awards for a user
-
-```twig
-{% for award in craft.points.awardsByUser() %}
-    {{ award.rule.name }} — {{ award.pointsSnapshot }} pts ({{ award.dateCreated|datetime }})
-{% endfor %}
-```
-
 ## Twig reference
 
 | Call | Returns |
 |---|---|
 | `craft.points.awards` | `PointAward[]` — all awards, newest first |
+| `craft.points.rules` | `Rule[]` |
 | `craft.points.levels` | `Level[]` — ordered by threshold ascending |
 | `craft.points.user(id)` | `User\|null` |
-| `craft.points.rules` | `Rule[]` |
 | `craft.points.rule(handle)` | `Rule\|null` |
 | `craft.points.ruleById(id)` | `Rule\|null` |
 | `craft.points.ruleByHandle(handle)` | `Rule\|null` |
@@ -339,53 +286,38 @@ Two widgets ship with the plugin (Dashboard → + New widget):
 | `craft.points.levelById(id)` | `Level\|null` |
 | `craft.points.levelByHandle(handle)` | `Level\|null` |
 | `craft.points.leaderboard(limit?, offset?)` | `array` — rows of `{user, points, level}` |
-| `craft.points.currency` | `string` — singular currency label (e.g. "Coin") |
-| `craft.points.currencyPlural` | `string` — plural label (e.g. "Coins") |
+| `craft.points.toMoney(points?)` | `float` — converts points to currency |
+| `craft.points.formatMoney(points?)` | `string` — formatted with currency symbol |
+| `craft.points.pluginName` | `string` — plugin name from settings |
+| `craft.points.currency` | `string` — singular currency label |
+| `craft.points.currencyPlural` | `string` — plural currency label |
+| `craft.points.symbol` | `string` — currency symbol from settings |
 | `craft.points.isPro` | `bool` — true on Pro edition |
 
-## Element query
+## Element queries
 
-Entries are elements, so you can also use element queries directly:
-
-```twig
-{% set bigSpenders = craft.entries({
-    section: null
-}).elementType('bymayo\\points\\elements\\PointEntry').all() %}
-```
-
-Or import the type:
+Awards are a first-class element type:
 
 ```twig
-{% set PointEntry = 'bymayo\\points\\elements\\PointEntry' %}
-{% set entries = PointEntry.find().userId(currentUser.id).all() %}
+{% set awards = craft.app.elements.createElementQuery('bymayo\\points\\elements\\PointAward')
+    .userId(currentUser.id)
+    .ruleId(5)
+    .orderBy({ dateCreated: SORT_DESC })
+    .limit(20)
+    .all() %}
 ```
 
 ## Security note
 
-`addEntry`, `removeEntry`, and `addEvent` carry over from Craft 2 and are unauthenticated Twig calls — they bypass CSRF protection because they're plain template tags. Don't place them on publicly-accessible pages without thinking about abuse: a logged-out attacker hitting a page that awards points to a hardcoded user ID will succeed.
+`craft.points.addAward` and `removeAward` are plain Twig calls — they bypass CSRF protection because they're template tags. Don't place them on publicly-accessible pages without thinking about abuse: a logged-out attacker hitting a page that awards points to a hardcoded user ID will succeed.
 
 Safer patterns:
 
 - Only award points behind a form post handler in your own controller
-- Only allow `addEntry` from authenticated sessions (`craft.app.user.identity`)
-- Apply rate limiting at the web server / CDN layer for any URL that awards points
+- Only allow awards from authenticated sessions (`craft.app.user.identity`)
+- Apply rate limiting at the web server / CDN layer
 
-## Migrating from the Craft 2 plugin
-
-The Twig API has been **renamed**:
-
-| Craft 2 | Craft 5 |
-|---|---|
-| `craft.points.addEntry(opts)` | `craft.points.addAward(opts)` |
-| `craft.points.removeEntry(opts)` | `craft.points.removeAward(opts)` |
-| `craft.points.sumEntries(userId?)` | `craft.points.sumForUser(userId?)` |
-| `craft.points.totalEntries(userId?)` | `craft.points.countForUser(userId?)` |
-| `craft.points.entriesByUser(userId?)` | `craft.points.awardsByUser(userId?)` |
-| `craft.points.entries` | `craft.points.awards` |
-| `craft.points.entryById(id)` | `craft.points.awardById(id)` |
-| `craft.points.addEvent(opts)` | **Removed.** Manage events in the CP only. |
-
-The database schema is **not** back-compatible: Craft 2 stored entries with an `eventHandle` string and no audit trail. The Craft 5 version uses an `eventId` foreign key and a `pointsSnapshot` column. There is no automatic data migration — you'll need to re-create events and award points fresh.
+Built-in protections that *do* apply: rule `Limit` settings (Once per user, Max N per period) and rule `Conditions` are evaluated server-side — Twig calls obey them just like automatic triggers.
 
 ## License
 

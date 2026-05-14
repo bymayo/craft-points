@@ -4,8 +4,10 @@
 {% set selectedSubnavItem = 'rules' %}
 
 {% set crumbs = [
-    { label: craft.points.currencyPlural, url: url('points') },
+    { label: craft.points.pluginName, url: url('points') },
 ] %}
+
+{% do view.registerAssetBundle('craft\\web\\assets\\admintable\\AdminTableAsset') %}
 
 {% block actionButton %}
     <a href="{{ url('points/rules/new') }}" class="btn submit add icon">
@@ -14,55 +16,24 @@
 {% endblock %}
 
 {% block content %}
-    {% if rules|length %}
-        <table class="data fullwidth collapsible">
-            <thead>
-                <tr>
-                    <th scope="col">{{ 'Name'|t('points') }}</th>
-                    <th scope="col">{{ 'Handle'|t('points') }}</th>
-                    <th scope="col">{{ 'Trigger'|t('points') }}</th>
-                    <th scope="col">{{ 'Reward'|t('points') }}</th>
-                    <th scope="col">{{ 'Enabled'|t('points') }}</th>
-                    <th scope="col"></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rule in rules %}
-                    <tr>
-                        <td>
-                            <a href="{{ url('points/rules/' ~ rule.id) }}">{{ rule.name }}</a>
-                        </td>
-                        <td><code>{{ rule.handle }}</code></td>
-                        <td>
-                            {% if rule.trigger %}
-                                <code>{{ rule.trigger }}</code>
-                            {% else %}
-                                <span style="opacity:0.5;">{{ 'Manual'|t('points') }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ rule.getRewardSummary() }}</td>
-                        <td>
-                            {% if rule.enabled %}
-                                <span class="status green"></span> {{ 'Active'|t('points') }}
-                            {% else %}
-                                <span class="status"></span> <span style="opacity:0.6;">{{ 'Disabled'|t('points') }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="thin">
-                            <form method="post" onsubmit="return confirm('{{ 'Delete this rule?'|t('points') }}');">
-                                {{ csrfInput() }}
-                                {{ actionInput('points/rules/delete') }}
-                                <input type="hidden" name="id" value="{{ rule.id }}">
-                                <button type="submit" class="btn small delete icon" title="{{ 'Delete'|t('app') }}"></button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="zilch">
-            <p>{{ "No rules yet."|t('points') }}</p>
-        </div>
-    {% endif %}
+    <div id="rules-vue-admin-table"></div>
 {% endblock %}
+
+{% js %}
+    new Craft.VueAdminTable({
+        columns: [
+            { name: '__slot:title', title: Craft.t('points', 'Name'), sortField: false },
+            { name: '__slot:handle', title: Craft.t('points', 'Handle'), sortField: false },
+            { name: 'trigger', title: Craft.t('points', 'Trigger') },
+            { name: 'award', title: Craft.t('points', 'Award') },
+            { name: 'limit', title: Craft.t('points', 'Limit') },
+            { name: 'schedule', title: Craft.t('points', 'Active') },
+            { name: 'status', title: Craft.t('points', 'Status'), callback: (v) => v },
+        ],
+        container: '#rules-vue-admin-table',
+        emptyMessage: Craft.t('points', 'No rules yet.'),
+        tableDataEndpoint: 'points/rules/table-data',
+        deleteAction: 'points/rules/delete',
+        search: true,
+    });
+{% endjs %}

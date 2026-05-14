@@ -96,7 +96,7 @@ class Points extends Plugin
     public function getCpNavItem(): ?array
     {
         $item = parent::getCpNavItem();
-        $item['label'] = $this->getSettings()->currencyNamePlural;
+        $item['label'] = $this->getSettings()->pluginName;
 
         $user = Craft::$app->getUser();
         $subnav = [];
@@ -175,12 +175,15 @@ class Points extends Plugin
                 $event->rules['points/rules/new'] = 'points/rules/edit';
                 $event->rules['points/rules/<ruleId:\d+>'] = 'points/rules/edit';
                 $event->rules['POST points/rules/add-row'] = 'points/rules/add-row';
+                $event->rules['points/rules/table-data'] = 'points/rules/table-data';
 
                 $event->rules['points/levels'] = 'points/levels/index';
                 $event->rules['points/levels/new'] = 'points/levels/edit';
                 $event->rules['points/levels/<levelId:\d+>'] = 'points/levels/edit';
+                $event->rules['points/levels/table-data'] = 'points/levels/table-data';
 
                 $event->rules['points/leaderboard'] = 'points/leaderboard/index';
+                $event->rules['points/leaderboard/table-data'] = 'points/leaderboard/table-data';
             }
         );
 
@@ -206,7 +209,7 @@ class Points extends Plugin
             UserPermissions::EVENT_REGISTER_PERMISSIONS,
             function(RegisterUserPermissionsEvent $event) {
                 $event->permissions[] = [
-                    'heading' => $this->getSettings()->currencyNamePlural,
+                    'heading' => $this->getSettings()->pluginName,
                     'permissions' => [
                         'points-manageRules' => [
                             'label' => Craft::t('points', 'Manage rules'),

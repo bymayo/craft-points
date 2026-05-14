@@ -14,9 +14,51 @@ class RulesController extends Controller
     public function actionIndex(): Response
     {
         $this->requirePermission('points-manageRules');
+        return $this->renderTemplate('points/rules/index');
+    }
 
-        return $this->renderTemplate('points/rules/index', [
-            'rules' => Points::getInstance()->rules->getAllRules(),
+    /**
+     * AJAX data source for the VueAdminTable on the Rules index.
+     */
+    public function actionTableData(): Response
+    {
+        $this->requireAcceptsJson();
+        $this->requirePermission('points-manageRules');
+
+        $request = Craft::$app->getRequest();
+        $page = (int) $request->getParam('page', 1);
+        $limit = (int) $request->getParam('per_page', 50);
+        $search = $request->getParam('search');
+
+        $all = Points::getInstance()->rules->getAllRules();
+
+        if (is_string($search) && trim($search) !== '') {
+            $needle = strtolower(trim($search));
+            $all = array_values(array_filter($all, fn($r) =>
+                str_contains(strtolower($r->name), $needle) ||
+                str_contains(strtolower($r->handle), $needle)
+            ));
+        }
+
+        $total = count($all);
+        $offset = ($page - 1) * $limit;
+        $page = array_slice($all, $offset, $limit);
+
+        $data = array_map(fn(\bymayo\points\models\Rule $rule) => [
+            'id' => $rule->id,
+            'title' => $rule->name,
+            'url' => $rule->getCpEditUrl(),
+            'handle' => $rule->handle,
+            'trigger' => $rule->triggerLabel,
+            'award' => $rule->rewardSummary,
+            'limit' => $rule->limitSummary,
+            'schedule' => $rule->scheduleSummary,
+            'status' => (string) $rule->getStatusLabelHtml(),
+        ], $page);
+
+        return $this->asSuccess(data: [
+            'pagination' => \craft\helpers\AdminTable::paginationLinks($request->getParam('page', 1), $total, $limit),
+            'data' => $data,
         ]);
     }
 
@@ -169,6 +211,10 @@ class RulesController extends Controller
 
         $id = (int) Craft::$app->getRequest()->getRequiredBodyParam('id');
         Points::getInstance()->rules->deleteRuleById($id);
+
+        if (Craft::$app->getRequest()->getAcceptsJson()) {
+            return $this->asSuccess(Craft::t('points', 'Rule deleted.'));
+        }
 
         Craft::$app->getSession()->setNotice(Craft::t('points', 'Rule deleted.'));
         return $this->redirect('points/rules');

@@ -51,6 +51,49 @@ class Awards extends Component
         return (int)PointAward::find()->userId($userId)->count();
     }
 
+    /**
+     * Total number of distinct users with at least one award.
+     * Used for leaderboard pagination.
+     */
+    public function getDistinctRecipientCount(): int
+    {
+        return (int) (new Query())
+            ->from(['a' => '{{%points_awards}}'])
+            ->innerJoin(['el' => '{{%elements}}'], '[[el.id]] = [[a.id]]')
+            ->where(['el.dateDeleted' => null])
+            ->count('DISTINCT [[a.userId]]');
+    }
+
+    /**
+     * Returns a map of ruleId → ['count' => N, 'lastAt' => \DateTime|null] for
+     * all rules with at least one award. Used by the rules index table.
+     *
+     * @return array<int, array{count: int, lastAt: ?\DateTime}>
+     */
+    public function getStatsByRule(): array
+    {
+        $rows = (new Query())
+            ->select([
+                'ruleId' => 'a.ruleId',
+                'cnt' => 'COUNT(*)',
+                'lastAt' => 'MAX([[el.dateCreated]])',
+            ])
+            ->from(['a' => '{{%points_awards}}'])
+            ->innerJoin(['el' => '{{%elements}}'], '[[el.id]] = [[a.id]]')
+            ->where(['el.dateDeleted' => null])
+            ->groupBy(['a.ruleId'])
+            ->all();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['ruleId']] = [
+                'count' => (int) $row['cnt'],
+                'lastAt' => !empty($row['lastAt']) ? new \DateTime($row['lastAt']) : null,
+            ];
+        }
+        return $map;
+    }
+
     public function addAward(int $userId, string $ruleHandle, ?int $pointsOverride = null): ?PointAward
     {
         $rule = Points::getInstance()->rules->getRuleByHandle($ruleHandle);
