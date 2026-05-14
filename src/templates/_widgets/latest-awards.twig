@@ -30,7 +30,7 @@
                                 {% endif %}
                             </td>
                             <td><a href="{{ award.getCpEditUrl() }}">+{{ award.pointsSnapshot }}</a></td>
-                            <td class="light">{{ award.dateCreated|timestamp }}</td>
+                            <td class="light" title="{{ award.dateCreated|datetime('short') }}">{{ craft.app.formatter.asRelativeTime(award.dateCreated) }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
