@@ -29,7 +29,7 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td><a href="{{ award.getCpEditUrl() }}"><strong>+{{ award.pointsSnapshot }}</strong></a></td>
+                            <td><a href="{{ award.getCpEditUrl() }}">+{{ award.pointsSnapshot }}</a></td>
                             <td class="light">{{ award.dateCreated|timestamp }}</td>
                         </tr>
                     {% endfor %}
