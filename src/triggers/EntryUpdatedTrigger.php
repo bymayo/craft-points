@@ -18,7 +18,15 @@ class EntryUpdatedTrigger extends BaseTrigger
     public static function appliesToEvent($event): bool
     {
         /** @var ModelEvent $event */
-        return !($event->isNew ?? false);
+        if ($event->isNew ?? false) {
+            return false;
+        }
+        /** @var Entry $entry */
+        $entry = $event->sender;
+        if ($entry->getIsDraft() || $entry->getIsRevision() || $entry->propagating) {
+            return false;
+        }
+        return true;
     }
 
     public static function getUserIdFromEvent($event): ?int

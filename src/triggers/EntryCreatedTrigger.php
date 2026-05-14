@@ -18,7 +18,16 @@ class EntryCreatedTrigger extends BaseTrigger
     public static function appliesToEvent($event): bool
     {
         /** @var ModelEvent $event */
-        return (bool)($event->isNew ?? false);
+        if (!($event->isNew ?? false)) {
+            return false;
+        }
+        /** @var Entry $entry */
+        $entry = $event->sender;
+        // Ignore drafts, revisions, and the propagating saves that fire after the canonical save.
+        if ($entry->getIsDraft() || $entry->getIsRevision() || $entry->propagating) {
+            return false;
+        }
+        return true;
     }
 
     public static function getUserIdFromEvent($event): ?int

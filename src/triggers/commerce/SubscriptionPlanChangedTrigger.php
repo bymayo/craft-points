@@ -22,7 +22,7 @@ class SubscriptionPlanChangedTrigger extends BaseTrigger
     public static function getUserIdFromEvent($event): ?int
     {
         /** @var \craft\commerce\events\SubscriptionSwitchPlansEvent $event */
-        $subscription = $event->newSubscription ?? $event->subscription ?? null;
+        $subscription = $event->subscription ?? null;
         return $subscription?->userId ?: null;
     }
 }
