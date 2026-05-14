@@ -71,12 +71,11 @@ class AwardsController extends Controller
             $rule = Points::getInstance()->rules->getRuleById($award->ruleId);
             if ($rule) {
                 $rewardType = $rule->reward['type'] ?? 'flat';
-                $points = match ($rewardType) {
+                $award->pointsSnapshot = match ($rewardType) {
                     'flat' => (int) ($rule->reward['points'] ?? 0),
                     'deduct' => -1 * (int) ($rule->reward['points'] ?? 0),
                     default => 0,
                 };
-                $award->pointsSnapshot = $points;
             }
         }
 
