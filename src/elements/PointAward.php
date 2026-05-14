@@ -118,7 +118,9 @@ class PointAward extends Element
 
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        return ['user', 'rule', 'pointsSnapshot', 'dateCreated'];
+        // 'rule' is omitted from defaults because the row title is already
+        // the rule name (see getUiLabel). Users can re-enable via column settings.
+        return ['user', 'pointsSnapshot', 'dateCreated'];
     }
 
     protected static function defineSortOptions(): array
@@ -171,6 +173,17 @@ class PointAward extends Element
     public function getCpEditUrl(): ?string
     {
         return $this->id ? UrlHelper::cpUrl('points/awards/' . $this->id) : null;
+    }
+
+    public function getUiLabel(): string
+    {
+        $rule = $this->getRule();
+        return $rule?->name ?: Craft::t('points', 'Award #{id}', ['id' => $this->id ?? '?']);
+    }
+
+    public function __toString(): string
+    {
+        return $this->getUiLabel();
     }
 
     protected function attributeHtml(string $attribute): string
