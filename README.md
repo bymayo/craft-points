@@ -466,7 +466,3 @@ Same pattern for `Conditions`, `Limits`, and `Rewards`. Extend the matching base
 ## Support
 
 If you have any issues (surely not!) then I'll aim to reply to these as soon as possible. If it's a site-breaking-oh-no-what-has-happened moment, then hit me up on the Craft CMS Discord - `@bymayo`.
-
-## License
-
-[Craft License](https://craftcms.github.io/license/)
