@@ -110,9 +110,12 @@ class PointAward extends Element
 
     protected static function defineTableAttributes(): array
     {
+        // 'title' is the element's primary column. By default Craft labels it
+        // with the element's displayName ("Point Award") — we override it
+        // because the row content is the rule name (see getUiLabel).
         $attrs = [
+            'title' => ['label' => Craft::t('points', 'Rule')],
             'user' => ['label' => Craft::t('points', 'User')],
-            'rule' => ['label' => Craft::t('points', 'Rule')],
             'pointsSnapshot' => ['label' => Points::getInstance()->getSettings()->currencyNamePlural],
             'dateCreated' => ['label' => Craft::t('app', 'Date Created')],
         ];
@@ -126,9 +129,7 @@ class PointAward extends Element
 
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        // 'rule' and 'order' are omitted from defaults — the row title is
-        // already the rule name (see getUiLabel), and Order is opt-in via
-        // column settings.
+        // 'order' is opt-in via column settings.
         return ['user', 'pointsSnapshot', 'dateCreated'];
     }
 
