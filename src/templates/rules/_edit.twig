@@ -253,7 +253,7 @@
     <div id="limit-maxPerUser" {% if firstLimit.type != 'maxPerUser' %}hidden{% endif %}>
         {{ forms.textField({
             label: 'Max'|t('points'),
-            instructions: 'Optional cap on how many times this rule can fire per user.'|t('points'),
+            instructions: 'Max times this rule can fire per user.'|t('points'),
             id: 'limit-maxPerUser-max',
             name: 'limits[0][max]',
             type: 'number',
@@ -278,7 +278,7 @@
         <div id="limit-maxPerUser-cooldown-wrap" {% if (firstLimit.period ?? 'ever') != 'ever' %}hidden{% endif %}>
             {{ forms.textField({
                 label: 'Cooldown (seconds)'|t('points'),
-                instructions: 'Optional. Minimum seconds between two awards from this rule for the same user. Only useful when Reset every is "Never" — otherwise the reset period itself is the pacing.'|t('points'),
+                instructions: 'Minimum seconds between awards (to prevent abuse).'|t('points'),
                 id: 'limit-maxPerUser-cooldown',
                 name: 'limits[0][cooldown]',
                 type: 'number',
