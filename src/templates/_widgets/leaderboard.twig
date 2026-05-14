@@ -1,18 +1,81 @@
 {% if rows|length %}
-    <ol style="margin:0; padding-left:1.5em;">
-        {% for row in rows %}
-            <li style="padding:4px 0; display:flex; align-items:center; gap:8px;">
-                <a href="{{ row.user.getCpEditUrl() }}" style="flex:1;">{{ row.user.name }}</a>
-                {% if row.level %}
-                    <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px;">
-                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ row.level.colourHex|default('#808080') }};"></span>
-                        {{ row.level.name }}
-                    </span>
-                {% endif %}
-                <strong>{{ row.points }}</strong>
-            </li>
-        {% endfor %}
-    </ol>
+    <div class="tableview" style="padding-top: 24px;">
+        <div class="tablepane">
+            <table class="data fullwidth points-widget-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'Customer'|t('points') }}</th>
+                        <th>{{ 'Level'|t('points') }}</th>
+                        <th>{{ 'Total {plural}'|t('points', { plural: craft.points.currencyPlural }) }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td>
+                                <div class="points-widget-user">
+                                    <a href="{{ row.user.getCpEditUrl() }}" class="points-widget-avatar">
+                                        {{ row.user.getThumbHtml(24)|raw }}
+                                    </a>
+                                    <a href="{{ row.user.getCpEditUrl() }}" class="points-widget-name">{{ row.user.name }}</a>
+                                </div>
+                            </td>
+                            <td>
+                                {% if row.level %}
+                                    <span class="points-widget-level">
+                                        <span class="points-widget-level-dot" style="background:{{ row.level.colourHex|default('#808080') }};"></span>
+                                        {{ row.level.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="light">—</span>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ row.points }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 {% else %}
     <p>{{ 'No awards yet.'|t('points') }}</p>
 {% endif %}
+
+{% css %}
+    .points-widget-user {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .points-widget-avatar {
+        display: inline-flex;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        overflow: hidden;
+        align-items: center;
+        justify-content: center;
+        background: var(--gray-050, #f3f4f6);
+        flex-shrink: 0;
+    }
+    .points-widget-avatar > * { width: 100% !important; height: 100% !important; }
+    .points-widget-avatar svg,
+    .points-widget-avatar img { display: block; width: 100% !important; height: 100% !important; }
+    .points-widget-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .points-widget-level {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .points-widget-level-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+{% endcss %}

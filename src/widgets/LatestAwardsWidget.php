@@ -13,7 +13,7 @@ class LatestAwardsWidget extends Widget
 
     public static function displayName(): string
     {
-        return 'Latest ' . Points::getInstance()->getSettings()->currencyName . ' Awards';
+        return Points::getInstance()->getSettings()->pluginName . ' - Latest Awards';
     }
 
     public static function icon(): ?string
@@ -29,7 +29,7 @@ class LatestAwardsWidget extends Widget
 
     public function getTitle(): ?string
     {
-        return Craft::t('points', 'Latest Awards');
+        return Craft::t('points', 'Latest') . ' ' . Points::getInstance()->getSettings()->currencyNamePlural;
     }
 
     public function getBodyHtml(): ?string

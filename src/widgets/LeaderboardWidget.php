@@ -12,7 +12,7 @@ class LeaderboardWidget extends Widget
 
     public static function displayName(): string
     {
-        return Points::getInstance()->getSettings()->currencyNamePlural . ' Leaderboard';
+        return Points::getInstance()->getSettings()->pluginName . ' - Leaderboard';
     }
 
     public static function icon(): ?string
@@ -28,7 +28,7 @@ class LeaderboardWidget extends Widget
 
     public function getTitle(): ?string
     {
-        return Craft::t('points', 'Leaderboard');
+        return Points::getInstance()->getSettings()->pluginName . ' ' . Craft::t('points', 'Leaderboard');
     }
 
     public function getBodyHtml(): ?string
