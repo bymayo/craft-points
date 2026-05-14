@@ -30,14 +30,19 @@ class LeaderboardController extends Controller
         $limit = (int) $request->getParam('per_page', 50);
         $offset = ($page - 1) * $limit;
 
-        $awards = Points::getInstance()->awards;
+        $plugin = Points::getInstance();
+        $awards = $plugin->awards;
+        $settings = $plugin->getSettings();
+        $isPro = $plugin->is(Points::EDITION_PRO);
+        $rate = max(1, (int) $settings->pointsPerCurrencyUnit);
+
         $rows = $awards->leaderboard($limit, $offset);
         $total = $awards->getDistinctRecipientCount();
 
         $data = [];
         foreach ($rows as $i => $row) {
             $level = $row['level'] ?? null;
-            $data[] = [
+            $entry = [
                 'id' => $row['user']->id,
                 'rank' => $offset + $i + 1,
                 'title' => $row['user']->name,
@@ -54,6 +59,14 @@ class LeaderboardController extends Controller
                     : '',
                 'points' => $row['points'],
             ];
+
+            if ($isPro) {
+                $redeemed = $awards->getRedeemedPointsForUser($row['user']->id);
+                $entry['availableSpend'] = Html::encode($settings->currencySymbol) . number_format($row['points'] / $rate, 2);
+                $entry['redeemed'] = Html::encode($settings->currencySymbol) . number_format($redeemed / $rate, 2);
+            }
+
+            $data[] = $entry;
         }
 
         return $this->asSuccess(data: [

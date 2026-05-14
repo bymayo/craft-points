@@ -9,6 +9,7 @@
   - `Available Spend` — monetary value of their *current* balance, formatted with the configured currency symbol *(Pro)*
   - `Redeemed` — monetary value of their *lifetime* redemptions *(Pro)*
 - Leaderboard CP page and Leaderboard dashboard widget now render levels as a coloured dot + name (matching the Users element index) instead of the old solid-coloured pill.
+- Leaderboard CP page now shows `Available Spend` and `Redeemed` columns on Pro — matches the Users element index so the leaderboard doubles as a quick-view of value per top earner.
 - New service method: `Awards::getRedeemedPointsForUser($userId)` — returns lifetime redemption total as a positive int.
 - **Awards element index now uses the rule name as the row title** instead of the auto-generated "Currency Award {id}" string — much more scannable. The standalone Rule column is removed from default attributes (still available via column settings).
 - **Three ways to fire a Manual rule from the frontend**, all sharing the same login-required, CSRF-protected, current-user-only, Manual-rules-only, Limits-enforcing security model:

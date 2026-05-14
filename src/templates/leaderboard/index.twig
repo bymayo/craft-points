@@ -20,6 +20,10 @@
             { name: '__slot:title', title: Craft.t('points', 'User') },
             { name: 'level', title: Craft.t('points', 'Level'), callback: (v) => v || '' },
             { name: 'points', title: Craft.t('points', '{currency}', { currency: '{{ craft.points.currencyPlural }}' }) },
+            {% if craft.points.isPro %}
+            { name: 'availableSpend', title: Craft.t('points', 'Available Spend') },
+            { name: 'redeemed', title: Craft.t('points', 'Redeemed') },
+            {% endif %}
         ],
         container: '#leaderboard-vue-admin-table',
         emptyMessage: Craft.t('points', 'No awards yet.'),

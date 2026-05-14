@@ -52,7 +52,7 @@
     {% if award.id %}
         {{ forms.textField({
             label: craft.points.currencyPlural,
-            instructions: 'Snapshot of the rule\'s points value when this award was created. Editing the rule later won\'t change this.'|t('points'),
+            instructions: 'Captured when this award was created. Editing the rule won\'t change it.'|t('points'),
             id: 'pointsSnapshot',
             name: 'pointsSnapshot',
             type: 'number',
