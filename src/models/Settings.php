@@ -33,6 +33,20 @@ class Settings extends Model
     /** Display symbol for the points→money conversion helper. */
     public string $currencySymbol = '£';
 
+    /** Minimum points a user can redeem against an order in a single redemption. */
+    public int $redemptionMinPoints = 1;
+
+    /** Maximum percentage of the order total that points can cover (0–100). */
+    public int $redemptionMaxOrderPercent = 100;
+
+    /**
+     * How to handle refunds when an order had a points redemption applied.
+     * `restoreProportional` — partial refund restores a proportional share.
+     * `restoreFullOnly` — only full refunds restore points.
+     * `none` — refunds never restore points (admin must do manually).
+     */
+    public string $redemptionRefundBehaviour = 'restoreProportional';
+
     public function defineRules(): array
     {
         return [
@@ -40,6 +54,9 @@ class Settings extends Model
             [['pluginName', 'currencyName', 'currencyNamePlural'], 'string', 'max' => 50],
             [['birthdayFieldHandle', 'currencySymbol'], 'string', 'max' => 100],
             [['pointsPerCurrencyUnit'], 'integer', 'min' => 1],
+            [['redemptionMinPoints'], 'integer', 'min' => 1],
+            [['redemptionMaxOrderPercent'], 'integer', 'min' => 1, 'max' => 100],
+            [['redemptionRefundBehaviour'], 'in', 'range' => ['restoreProportional', 'restoreFullOnly', 'none']],
         ];
     }
 }

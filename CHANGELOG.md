@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added
+- **Order redemptions** (Pro + Commerce) — logged-in customers can spend points against Commerce orders. Posts to `points/redeem/apply` with `orderId` and `points`; appears as an order adjuster (like a coupon line). Points deduct from the user's balance on `Order::EVENT_AFTER_ORDER_PAID`. Refunds can optionally restore points (proportional / full-only / none).
+- New settings: **Minimum to redeem**, **Max % of order**, **On refund** (restore behaviour).
+- New service: `OrderRedemptions` — `apply($orderId, $userId, $points)`, `remove($orderId)`, `getForOrder($orderId)`, `processPaidOrder($order)`, `processRefund($tx)`.
+- New Twig helpers: `craft.points.orderRedemption(orderId)`, `craft.points.appliedToOrder(orderId)`.
+- New internal "Points redemption" rule (handle `__redemption`) — created on migration so deduction Awards have a valid `ruleId`. Don't delete it via the CP UI.
+
+### Fixed
+- `Awards::addAward` was silently behaving as "once per user" for every rule because it still referenced the long-removed `$rule->multiple` and `$rule->points` properties. Removed both — limits are enforced in `Triggers::dispatch` for automatic firings; Twig-side awards no longer have the false "once" gate.
+- `SubscriptionPlanChangedTrigger` read `$event->newSubscription` which doesn't exist on Commerce's `SubscriptionSwitchPlansEvent`. Switched to `$event->subscription`.
+- `EntryCreatedTrigger` / `EntryUpdatedTrigger` now skip drafts, revisions, and propagating saves — previously they could fire many times for a single user save action.
+
 ### Added (continued)
 - **Plugin editions** — Lite (free) and Pro. Lite is the full gamification feature set (events, awards, levels, leaderboard, widgets, triggers for Entry/Category/User/Asset, Twig + GraphQL APIs, plugin events). Pro adds:
   - Commerce triggers (Order completed, Subscription created)

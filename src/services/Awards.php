@@ -101,17 +101,8 @@ class Awards extends Component
             return null;
         }
 
-        if (!$rule->multiple) {
-            $exists = PointAward::find()
-                ->userId($userId)
-                ->ruleId($rule->id)
-                ->exists();
-            if ($exists) {
-                return null;
-            }
-        }
-
-        $pointsToAward = $pointsOverride ?? $rule->points;
+        // Default points fall back to the rule's reward config if no override given.
+        $pointsToAward = $pointsOverride ?? (int) ($rule->reward['points'] ?? 0);
 
         if ($this->hasEventHandlers(self::EVENT_BEFORE_ADD_AWARD)) {
             $beforeEvent = new AwardEvent([

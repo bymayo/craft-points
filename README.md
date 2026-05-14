@@ -17,6 +17,7 @@ Award points to users for actions they perform, build leaderboards, and unlock t
 | **Craft Commerce triggers** (Order completed / paid / refunded, Subscriptions) | — | ✅ |
 | **Percentage-of-order-total** point awards | — | ✅ |
 | **Commerce conditions** (Order total, item count, contains product, coupon) | — | ✅ |
+| **Order redemptions** (customers spend points at checkout, gateway-agnostic) | — | ✅ |
 
 Switch edition during development via `config/project/project.yaml`:
 
@@ -163,6 +164,47 @@ Each row is `{ user: User, points: int, level: Level|null }`. The CP page is at 
 {% endfor %}
 ```
 
+### Spending points at checkout (Pro + Commerce)
+
+Customers can apply points against an order — shows up like a coupon discount on the order summary, works with any gateway (Stripe, PayPal, manual).
+
+**Cart template:**
+
+```twig
+{% set cart = craft.commerce.carts.cart %}
+{% set balance = craft.points.sumForUser() %}
+{% set applied = craft.points.appliedToOrder(cart.id) %}
+
+<p>You have {{ balance }} {{ craft.points.currencyPlural|lower }} ({{ craft.points.formatMoney() }})</p>
+
+{% if applied %}
+    <p>{{ applied }} {{ craft.points.currencyPlural|lower }} applied to this order</p>
+    <form method="post">
+        {{ csrfInput() }}{{ actionInput('points/redeem/remove') }}
+        <input type="hidden" name="orderId" value="{{ cart.id }}">
+        <button type="submit">Remove</button>
+    </form>
+{% else %}
+    <form method="post">
+        {{ csrfInput() }}{{ actionInput('points/redeem/apply') }}
+        <input type="hidden" name="orderId" value="{{ cart.id }}">
+        <input type="number" name="points" min="1" max="{{ balance }}">
+        <button type="submit">Apply points</button>
+    </form>
+{% endif %}
+```
+
+**How it works:**
+
+1. User posts to `points/redeem/apply` with `orderId` and `points`
+2. We validate (balance, min, max % of order), store the intent, and trigger Commerce to recalculate the order
+3. The `PointsAdjuster` adds a negative line item (`-£X.XX (500 points)`) to the order
+4. User pays the reduced total via any gateway
+5. On `Order::EVENT_AFTER_ORDER_PAID`, the points are deducted from the user's balance — a negative `PointAward` is created (audit trail shows up in **Points → Awards**)
+6. On refund, points are restored according to the **On refund** setting (`Restore proportionally` / `Restore only on full refund` / `Never restore`)
+
+**Configure:** the conversion rate (`Points per £1`), min points per redemption, max % of order, and refund behaviour all live in **Points → Settings**.
+
 ### Dashboard widgets
 
 Add via the Craft dashboard → + New widget:
@@ -293,6 +335,8 @@ query Recent($userId: Int!) {
 | `craft.points.currencyPlural` | `string` — plural currency label |
 | `craft.points.symbol` | `string` — currency symbol from settings |
 | `craft.points.isPro` | `bool` — true on Pro edition |
+| `craft.points.orderRedemption(orderId)` | `OrderRedemption\|null` — current redemption on the order |
+| `craft.points.appliedToOrder(orderId)` | `int` — points currently applied to the order |
 
 ## Element queries
 

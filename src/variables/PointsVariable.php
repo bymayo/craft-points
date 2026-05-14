@@ -190,6 +190,23 @@ class PointsVariable
     }
 
     /**
+     * Currently-applied points redemption for an order, or null if none.
+     *
+     * @return \bymayo\points\models\OrderRedemption|null
+     */
+    public function orderRedemption(int $orderId)
+    {
+        return Points::getInstance()->orderRedemptions->getForOrder($orderId);
+    }
+
+    /** Number of points currently applied to the order, or 0. */
+    public function appliedToOrder(int $orderId): int
+    {
+        $r = Points::getInstance()->orderRedemptions->getForOrder($orderId);
+        return $r ? $r->points : 0;
+    }
+
+    /**
      * Convert a point balance into its monetary value.
      *
      * Uses the `pointsPerCurrencyUnit` setting. With the default of 100, 250 points → 2.50.

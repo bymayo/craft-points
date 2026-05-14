@@ -12,6 +12,7 @@ use bymayo\points\services\Awards;
 use bymayo\points\services\Conditions;
 use bymayo\points\services\Levels;
 use bymayo\points\services\Limits;
+use bymayo\points\services\OrderRedemptions;
 use bymayo\points\services\Rewards;
 use bymayo\points\services\Rules;
 use bymayo\points\services\Triggers;
@@ -47,6 +48,7 @@ use yii\base\Event;
  * @property-read Conditions $conditions
  * @property-read Limits $limits
  * @property-read Rewards $rewards
+ * @property-read OrderRedemptions $orderRedemptions
  * @author ByMayo <jason@bymayo.co.uk>
  * @copyright ByMayo
  * @license https://craftcms.github.io/license/ Craft License
@@ -56,7 +58,7 @@ class Points extends Plugin
     public const EDITION_LITE = 'lite';
     public const EDITION_PRO = 'pro';
 
-    public string $schemaVersion = '1.7.0';
+    public string $schemaVersion = '1.8.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -79,6 +81,7 @@ class Points extends Plugin
                 'conditions' => Conditions::class,
                 'limits' => Limits::class,
                 'rewards' => Rewards::class,
+                'orderRedemptions' => OrderRedemptions::class,
             ],
         ];
     }
@@ -200,6 +203,55 @@ class Points extends Plugin
         $this->registerGraphQl();
 
         $this->attachUserPermissions();
+        $this->attachOrderRedemptions();
+    }
+
+    /**
+     * Pro + Commerce only: wire up the points-as-checkout-discount feature.
+     */
+    private function attachOrderRedemptions(): void
+    {
+        if (!$this->is(self::EDITION_PRO)) return;
+        if (!Craft::$app->getPlugins()->isPluginEnabled('commerce')) return;
+
+        // Register the adjuster that adds the negative line item to orders.
+        Event::on(
+            \craft\commerce\services\OrderAdjustments::class,
+            \craft\commerce\services\OrderAdjustments::EVENT_REGISTER_ORDER_ADJUSTERS,
+            function(RegisterComponentTypesEvent $event) {
+                $event->types[] = \bymayo\points\adjusters\PointsAdjuster::class;
+            }
+        );
+
+        // Deduct points from the user's balance once the order is paid.
+        Event::on(
+            \craft\commerce\elements\Order::class,
+            \craft\commerce\elements\Order::EVENT_AFTER_ORDER_PAID,
+            function($event) {
+                $this->orderRedemptions->processPaidOrder($event->sender);
+            }
+        );
+
+        // Optionally restore points on successful refund (behaviour configurable).
+        Event::on(
+            \craft\commerce\services\Transactions::class,
+            \craft\commerce\services\Transactions::EVENT_AFTER_SAVE_TRANSACTION,
+            function($event) {
+                $tx = $event->transaction ?? null;
+                if (!$tx) return;
+                if ($tx->type !== 'refund' || $tx->status !== 'success') return;
+                $this->orderRedemptions->processRefund($tx);
+            }
+        );
+
+        // Route for the apply / remove form actions.
+        Event::on(
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_SITE_URL_RULES,
+            function(RegisterUrlRulesEvent $event) {
+                // Action routing handles it; no site rules needed.
+            }
+        );
     }
 
     private function attachUserPermissions(): void

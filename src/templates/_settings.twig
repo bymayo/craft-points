@@ -76,6 +76,46 @@
     errors: settings.getErrors('currencySymbol'),
 }) }}
 
+{% if plugin.is('pro') and craft.app.plugins.isPluginEnabled('commerce') %}
+    <hr>
+
+    <h2>{{ 'Order redemptions'|t('points') }}</h2>
+    <p>{{ 'Let logged-in customers spend points against Commerce orders. The discount appears as an order adjuster (like a coupon).'|t('points') }}</p>
+
+    {{ forms.textField({
+        label: 'Minimum to redeem'|t('points'),
+        instructions: 'Smallest number of points a customer can apply in one go.'|t('points'),
+        id: 'redemptionMinPoints',
+        name: 'redemptionMinPoints',
+        type: 'number',
+        value: settings.redemptionMinPoints,
+        errors: settings.getErrors('redemptionMinPoints'),
+    }) }}
+
+    {{ forms.textField({
+        label: 'Max % of order'|t('points'),
+        instructions: 'Highest portion of the order total points can cover (1–100).'|t('points'),
+        id: 'redemptionMaxOrderPercent',
+        name: 'redemptionMaxOrderPercent',
+        type: 'number',
+        value: settings.redemptionMaxOrderPercent,
+        errors: settings.getErrors('redemptionMaxOrderPercent'),
+    }) }}
+
+    {{ forms.selectField({
+        label: 'On refund'|t('points'),
+        instructions: 'What to do with redeemed points when a transaction is refunded.'|t('points'),
+        id: 'redemptionRefundBehaviour',
+        name: 'redemptionRefundBehaviour',
+        options: [
+            { label: 'Restore proportionally'|t('points'), value: 'restoreProportional' },
+            { label: 'Restore only on full refund'|t('points'), value: 'restoreFullOnly' },
+            { label: 'Never restore (admin manual)'|t('points'), value: 'none' },
+        ],
+        value: settings.redemptionRefundBehaviour,
+    }) }}
+{% endif %}
+
 <hr>
 
 <h2>{{ 'Edition'|t('points') }}</h2>
