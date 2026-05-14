@@ -33,7 +33,12 @@ class OrderRedemptions extends Component
      */
     public function apply(int $orderId, int $userId, int $points): array
     {
-        $settings = Points::getInstance()->getSettings();
+        $plugin = Points::getInstance();
+        if (!$plugin->is(Points::EDITION_PRO) || !$plugin->hasCommerce()) {
+            return ['success' => false, 'error' => 'Order redemptions require Pro + Craft Commerce.', 'redemption' => null];
+        }
+
+        $settings = $plugin->getSettings();
         $points = max(0, $points);
 
         if ($points === 0) {
@@ -118,6 +123,11 @@ class OrderRedemptions extends Component
 
     public function remove(int $orderId): bool
     {
+        $plugin = Points::getInstance();
+        if (!$plugin->is(Points::EDITION_PRO) || !$plugin->hasCommerce()) {
+            return false;
+        }
+
         $record = OrderRedemptionRecord::findOne(['orderId' => $orderId]);
         if (!$record) return false;
         if ($record->awardId) {
