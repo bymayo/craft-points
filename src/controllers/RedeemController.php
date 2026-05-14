@@ -5,6 +5,7 @@ namespace bymayo\points\controllers;
 use bymayo\points\Points;
 use Craft;
 use craft\web\Controller;
+use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 class RedeemController extends Controller
@@ -14,6 +15,8 @@ class RedeemController extends Controller
     public function actionApply(): ?Response
     {
         $this->requirePostRequest();
+        $this->requireProCommerce();
+
         $user = Craft::$app->getUser()->getIdentity();
         if (!$user) {
             return $this->asFailure('You must be logged in.');
@@ -34,6 +37,8 @@ class RedeemController extends Controller
     public function actionRemove(): ?Response
     {
         $this->requirePostRequest();
+        $this->requireProCommerce();
+
         $user = Craft::$app->getUser()->getIdentity();
         if (!$user) {
             return $this->asFailure('You must be logged in.');
@@ -43,5 +48,18 @@ class RedeemController extends Controller
         Points::getInstance()->orderRedemptions->remove($orderId);
 
         return $this->asSuccess('Points removed.');
+    }
+
+    /**
+     * Order redemptions are a Pro + Commerce feature. Treat any request for
+     * a disabled feature as a 404 (don't leak the existence of the endpoint
+     * or hint at the edition gating).
+     */
+    private function requireProCommerce(): void
+    {
+        $plugin = Points::getInstance();
+        if (!$plugin->is(Points::EDITION_PRO) || !$plugin->hasCommerce()) {
+            throw new NotFoundHttpException();
+        }
     }
 }

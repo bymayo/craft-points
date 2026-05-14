@@ -1,0 +1,249 @@
+{# @var plugin \bymayo\points\Points #}
+{# @var settings \bymayo\points\models\Settings #}
+
+{% extends '_layouts/cp' %}
+
+{% import '_includes/forms' as forms %}
+
+{% set fullPageForm = true %}
+{% set title = 'Settings'|t('points') %}
+{% set selectedSubnavItem = 'settings' %}
+
+{% set crumbs = [
+    { label: plugin.getSettings().pluginName, url: cpUrl('points') },
+] %}
+
+{% set hasCommerce = plugin.hasCommerce() %}
+{% set isPro = plugin.is('pro') %}
+{% set storeCode = plugin.getStoreCurrencyCode() %}
+{% set storeSymbol = plugin.getStoreCurrencySymbol() %}
+
+{% set tabs = { general: { label: 'General'|t('points'), url: '#general' } } %}
+{% if isPro %}
+    {% set tabs = tabs|merge({ commerce: { label: 'Commerce'|t('points'), url: '#commerce' } }) %}
+{% endif %}
+{% set tabs = tabs|merge({ rules: { label: 'Rules'|t('points'), url: '#rules' } }) %}
+
+{% block content %}
+
+    <input type="hidden" name="action" value="points/settings/save">
+    {{ redirectInput('points/settings') }}
+
+    <div id="general">
+        {{ forms.textField({
+            first: true,
+            label: 'Plugin name'|t('points'),
+            instructions: 'e.g. Rewards, Loyalty Program, VIP Club.'|t('points'),
+            id: 'pluginName',
+            name: 'settings[pluginName]',
+            value: settings.pluginName,
+            required: true,
+            errors: settings.getErrors('pluginName'),
+        }) }}
+
+        {{ forms.textField({
+            label: 'Reward unit (singular)'|t('points'),
+            instructions: 'e.g. Point, Coin, Credit, Star.'|t('points'),
+            id: 'currencyName',
+            name: 'settings[currencyName]',
+            value: settings.currencyName,
+            required: true,
+            errors: settings.getErrors('currencyName'),
+        }) }}
+
+        {{ forms.textField({
+            label: 'Reward unit (plural)'|t('points'),
+            instructions: 'e.g. Points, Coins, Credits, Stars.'|t('points'),
+            id: 'currencyNamePlural',
+            name: 'settings[currencyNamePlural]',
+            value: settings.currencyNamePlural,
+            required: true,
+            errors: settings.getErrors('currencyNamePlural'),
+        }) }}
+
+        <hr style="margin-left: calc(-1 * var(--xl, 24px)); margin-right: calc(-1 * var(--xl, 24px));">
+
+        <h2>{{ 'Edition'|t('points') }}</h2>
+
+        <div class="pane hairline points-edition-table" style="max-width: 360px;">
+            <table class="data fullwidth">
+                <tbody>
+                    <tr>
+                        <th>{{ 'Edition'|t('points') }}</th>
+                        <td><strong>{{ plugin.edition|capitalize }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Craft Commerce installed'|t('points') }}</th>
+                        <td>
+                            {% if hasCommerce %}
+                                <span class="status green"></span> {{ 'Yes'|t('points') }}
+                            {% else %}
+                                <span class="status off"></span> {{ 'No'|t('points') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Commerce features'|t('points') }}</th>
+                        <td>
+                            {% if isPro and hasCommerce %}
+                                <span class="status green"></span> {{ 'Yes'|t('points') }}
+                            {% elseif not isPro and hasCommerce %}
+                                <span class="status orange"></span>
+                                <a href="{{ cpUrl('plugin-store/points') }}">{{ 'Upgrade to Pro'|t('points') }}</a>
+                            {% elseif isPro and not hasCommerce %}
+                                <span class="status orange"></span> {{ 'Install Craft Commerce'|t('points') }}
+                            {% else %}
+                                <span class="status off"></span> {{ 'Requires Pro + Craft Commerce'|t('points') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if hasCommerce %}
+                        <tr>
+                            <th>{{ 'Currency'|t('points') }}</th>
+                            <td>{{ storeSymbol }}{{ storeCode }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        {% css %}
+            /* Upgrade nudge — Craft-blue accented callout with a primary CTA. */
+            .points-upgrade-callout {
+                margin-top: 20px;
+                max-width: 360px;
+                padding: 14px 16px;
+                border-radius: var(--medium-border-radius, 5px);
+                border: 1px solid var(--hairline-color);
+                border-left: 3px solid var(--link-color, #1f5fea);
+                background: var(--gray-050, #f9fafb);
+            }
+            .points-upgrade-callout > strong {
+                display: block;
+                font-size: 14px;
+                margin-bottom: 4px;
+            }
+            .points-upgrade-callout > p {
+                margin: 0 0 12px;
+                color: var(--medium-text-color);
+                font-size: 13px;
+                line-height: 1.45;
+            }
+            /* Strip .pane's default inner padding so the table fits flush. */
+            .points-edition-table.pane {
+                padding: 0;
+                overflow: hidden;
+            }
+            /* Craft sets row borders to transparent by default — colour them in. */
+            .points-edition-table tbody tr:not(:last-child) > th,
+            .points-edition-table tbody tr:not(:last-child) > td {
+                border-bottom: 1px solid var(--hairline-color);
+            }
+            /* Craft has no condensed table variant; tighten the cell padding. */
+            .points-edition-table table.data td,
+            .points-edition-table table.data th {
+                padding-block: 5px;
+                padding-inline: 10px;
+                font-size: 13px;
+            }
+        {% endcss %}
+
+        {% if not isPro %}
+            <div class="points-upgrade-callout">
+                <strong>{{ 'Selling with Craft Commerce?'|t('points') }}</strong>
+                <p>{{ 'Pro turns every order into points — plus percentage rewards, subscription perks, and points-at-checkout redemptions.'|t('points') }}</p>
+                <a class="btn submit" href="{{ cpUrl('plugin-store/points') }}">{{ 'Upgrade to Pro'|t('points') }}</a>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if isPro %}
+        <div id="commerce" class="hidden">
+            {% if not hasCommerce %}
+                <p class="warning">{{ 'Commerce features require the Craft Commerce plugin. Install it to enable conversion rates, the Available Spend / Redeemed columns, and order redemptions.'|t('points') }}</p>
+            {% else %}
+                <div class="field">
+                    <div class="heading">
+                        <label>{{ 'Conversion rate'|t('points') }}</label>
+                        <div class="instructions">
+                            <p>{{ 'How many {plural} equal how much store currency. e.g. 100 {plural} = {sym}1, or 5 {plural} = {sym}1.'|t('points', { plural: settings.currencyNamePlural|lower, sym: storeSymbol ?: storeCode ?: '' }) }}</p>
+                        </div>
+                    </div>
+                    <div class="input">
+                        <div class="flex flex-nowrap" style="align-items: center; gap: 10px;">
+                            {{ forms.text({
+                                id: 'conversionPointsCount',
+                                name: 'settings[conversionPointsCount]',
+                                type: 'number',
+                                size: 6,
+                                value: settings.conversionPointsCount,
+                            }) }}
+                            <span class="light">{{ settings.currencyNamePlural }}</span>
+                            <span class="light" style="font-size: 18px;">=</span>
+                            {% if storeSymbol %}<span class="light">{{ storeSymbol }}</span>{% endif %}
+                            {{ forms.text({
+                                id: 'conversionCurrencyUnits',
+                                name: 'settings[conversionCurrencyUnits]',
+                                type: 'number',
+                                size: 6,
+                                value: settings.conversionCurrencyUnits,
+                            }) }}
+                            {% if storeCode %}<span class="light">{{ storeCode }}</span>{% endif %}
+                        </div>
+                        {% set errs = settings.getErrors('conversionPointsCount')|merge(settings.getErrors('conversionCurrencyUnits')) %}
+                        {% if errs %}
+                            <ul class="errors">
+                                {% for e in errs %}<li>{{ e }}</li>{% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {{ forms.textField({
+                    label: 'Minimum {plural} per redemption'|t('points', { plural: settings.currencyNamePlural|lower }),
+                    id: 'redemptionMinPoints',
+                    name: 'settings[redemptionMinPoints]',
+                    type: 'number',
+                    value: settings.redemptionMinPoints,
+                    errors: settings.getErrors('redemptionMinPoints'),
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Max % of order paid in {plural}'|t('points', { plural: settings.currencyNamePlural|lower }),
+                    instructions: 'e.g. 50 means customers must pay at least 50% in cash.'|t('points'),
+                    id: 'redemptionMaxOrderPercent',
+                    name: 'settings[redemptionMaxOrderPercent]',
+                    type: 'number',
+                    value: settings.redemptionMaxOrderPercent,
+                    errors: settings.getErrors('redemptionMaxOrderPercent'),
+                }) }}
+
+                {{ forms.selectField({
+                    label: 'Refunded {plural}'|t('points', { plural: settings.currencyNamePlural }),
+                    instructions: 'What to do with redeemed {plural} when a transaction is refunded.'|t('points', { plural: settings.currencyNamePlural|lower }),
+                    id: 'redemptionRefundBehaviour',
+                    name: 'settings[redemptionRefundBehaviour]',
+                    options: [
+                        { label: 'Restore proportionally'|t('points'), value: 'restoreProportional' },
+                        { label: 'Restore only on full refund'|t('points'), value: 'restoreFullOnly' },
+                        { label: 'Never restore'|t('points'), value: 'none' },
+                    ],
+                    value: settings.redemptionRefundBehaviour,
+                }) }}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div id="rules" class="hidden">
+        {{ forms.textField({
+            label: 'Birthday field handle'|t('points'),
+            instructions: 'Handle of a Date field on the user layout storing each user\'s birthday. The "User birthday" trigger only appears in the rule picker once this is set and the field exists.'|t('points'),
+            id: 'birthdayFieldHandle',
+            name: 'settings[birthdayFieldHandle]',
+            class: 'code',
+            value: settings.birthdayFieldHandle,
+            placeholder: 'birthday',
+        }) }}
+    </div>
+
+{% endblock %}

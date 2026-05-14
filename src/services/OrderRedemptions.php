@@ -70,9 +70,9 @@ class OrderRedemptions extends Component
             return ['success' => false, 'error' => 'Order not found.', 'redemption' => null];
         }
 
-        // Per-currency-unit rate. Defensive against zero.
-        $rate = max(1, $settings->pointsPerCurrencyUnit);
-        $discount = round($points / $rate, 2);
+        // Apply the X:Y points → currency conversion. Defensive against zero.
+        $pointsCount = max(1, $settings->conversionPointsCount);
+        $discount = round($points * $settings->conversionCurrencyUnits / $pointsCount, 2);
 
         // Cap at max % of the order's *gross* total (before our adjustment).
         $orderTotalBeforeUs = (float) $order->getTotalPrice()

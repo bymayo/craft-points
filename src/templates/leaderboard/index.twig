@@ -20,7 +20,7 @@
             { name: '__slot:title', title: Craft.t('points', 'User') },
             { name: 'level', title: Craft.t('points', 'Level'), callback: (v) => v || '' },
             { name: 'points', title: Craft.t('points', '{currency}', { currency: '{{ craft.points.currencyPlural }}' }) },
-            {% if craft.points.isPro %}
+            {% if craft.points.isPro and craft.app.plugins.isPluginEnabled('commerce') %}
             { name: 'availableSpend', title: Craft.t('points', 'Available Spend') },
             { name: 'redeemed', title: Craft.t('points', 'Redeemed') },
             {% endif %}

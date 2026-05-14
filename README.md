@@ -97,7 +97,7 @@ Defaults are "Points" everywhere. You can rename:
 
 - **Plugin name** — what shows in the CP sidebar and breadcrumbs (e.g. *"Rewards System"*)
 - **Currency name** — used in award labels, value suffixes etc. (singular & plural — e.g. *"Coin"* / *"Coins"*)
-- **Currency symbol** — for money conversion display (e.g. `£`, `$`)
+- **Conversion rate** — how many points equal how many units of money. Currency itself comes from Craft Commerce's primary store automatically — there's no symbol setting.
 
 All in **Points → Settings**. Plugin handle, URLs and database don't change.
 
@@ -112,13 +112,14 @@ Plugin settings (currency labels, plugin name, conversion rate, redemption rules
 // config/points.php
 return [
     '*' => [
-        'pointsPerCurrencyUnit' => 100,
-    ],
-    'staging' => [
-        'currencySymbol' => '🪙',
+        'conversionPointsCount' => 100,   // 100 points
+        'conversionCurrencyUnits' => 1,   // = 1 unit of the Commerce primary store's currency
+        'redemptionMaxOrderPercent' => 50,
     ],
 ];
 ```
+
+> Currency itself is **not configurable** — it always tracks your Craft Commerce primary store's currency. Money helpers (`toMoney()`, `formatMoney()`, Available Spend / Redeemed columns, Order redemptions) require Commerce to be installed. On Lite or Pro-without-Commerce, `formatMoney()` returns an empty string and the money columns are hidden.
 
 ### Permissions
 
@@ -355,7 +356,7 @@ The same security model applies as for the form / JS API: must be authenticated,
 
 {# Money conversion (uses Points per currency unit + Currency symbol settings) #}
 {{ craft.points.toMoney() }}            {# e.g. 2.5 #}
-{{ craft.points.formatMoney() }}        {# e.g. "£2.50" #}
+{{ craft.points.formatMoney() }}        {# e.g. "£2.50" or "" if Commerce isn't installed #}
 ```
 
 ### Levels
@@ -432,7 +433,7 @@ Customers can apply points against an order — shows up like a coupon discount 
 5. On `Order::EVENT_AFTER_ORDER_PAID`, the points are deducted from the user's balance — a negative `PointAward` is created (audit trail shows up in **Points → Awards**)
 6. On refund, points are restored according to the **On refund** setting (`Restore proportionally` / `Restore only on full refund` / `Never restore`)
 
-**Configure:** the conversion rate (`Points per £1`), min points per redemption, max % of order, and refund behaviour all live in **Points → Settings**.
+**Configure:** the conversion rate (X points : Y currency units), min points per redemption, max % of order, and refund behaviour all live in **Points → Settings → Money**. Currency itself tracks your Commerce primary store automatically.
 
 ### Dashboard widgets
 
@@ -449,7 +450,7 @@ The plugin adds optional columns to Craft's built-in **Users** element index so 
 |---|---|---|
 | `{Currency Plural}` (e.g. *Points*, *Credits*) | Lite | Total points balance, formatted with thousands separators |
 | `Level` | Lite | Current level with a small coloured dot (matches the Leaderboard styling) |
-| `Available Spend` | Pro | Monetary value of the user's *current* balance, using the configured currency symbol and `Points per £1` rate |
+| `Available Spend` | Pro + Commerce | Monetary value of the user's *current* balance, formatted in the Commerce primary store's currency |
 | `Redeemed` | Pro | Monetary value of the user's *lifetime* redemptions through Commerce checkout |
 
 The column labels follow your plugin settings — set **Currency name (plural)** to "Coins" and the first column is "Coins"; set **Currency symbol** to `$` and the money-valued columns format as `$2.50`.
@@ -528,7 +529,7 @@ A grab-bag of real-world setups to get you thinking. Each one lists the **Rule c
 **1 point per £1 spent**
 
 - *Trigger:* Order paid
-- *Reward:* Percentage — 100% of order total (i.e. order total in pence/cents → 1 point per minor unit). Or set `Points per £1` in settings and let the percent reward do the math
+- *Reward:* Percentage — 100% of order total (i.e. order total in pence/cents → 1 point per minor unit). Or use the conversion rate in **Settings → Money** and let the percent reward do the math
 - *Frontend:* none
 
 **Welcome bonus on first order**

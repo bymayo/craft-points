@@ -143,10 +143,22 @@ class PointsVariable
         return Points::getInstance()->getSettings()->currencyNamePlural;
     }
 
-    /** Currency symbol from plugin settings (e.g. "£", "$"). */
+    /**
+     * Currency symbol derived from the Commerce primary store's currency
+     * (e.g. "£", "$", "€"). Returns an empty string outside of Pro+Commerce
+     * — currency/money helpers are gated to that combination.
+     */
     public function symbol(): string
     {
-        return Points::getInstance()->getSettings()->currencySymbol;
+        if (!$this->isProCommerce()) return '';
+        return Points::getInstance()->getStoreCurrencySymbol() ?? '';
+    }
+
+    /** 3-letter ISO 4217 currency code from the Commerce primary store. Null outside Pro+Commerce. */
+    public function currencyCode(): ?string
+    {
+        if (!$this->isProCommerce()) return null;
+        return Points::getInstance()->getStoreCurrencyCode();
     }
 
     /** True if the plugin is running on Pro edition. */
@@ -156,18 +168,20 @@ class PointsVariable
     }
 
     /**
-     * Currently-applied points redemption for an order, or null if none.
+     * Currently-applied points redemption for an order, or null. Pro+Commerce only.
      *
      * @return \bymayo\points\models\OrderRedemption|null
      */
     public function orderRedemption(int $orderId)
     {
+        if (!$this->isProCommerce()) return null;
         return Points::getInstance()->orderRedemptions->getForOrder($orderId);
     }
 
-    /** Number of points currently applied to the order, or 0. */
+    /** Number of points currently applied to the order. 0 outside Pro+Commerce. */
     public function appliedToOrder(int $orderId): int
     {
+        if (!$this->isProCommerce()) return 0;
         $r = Points::getInstance()->orderRedemptions->getForOrder($orderId);
         return $r ? $r->points : 0;
     }
@@ -244,23 +258,41 @@ JS;
     /**
      * Convert a point balance into its monetary value.
      *
-     * Uses the `pointsPerCurrencyUnit` setting. With the default of 100, 250 points → 2.50.
+     * Uses the configured `conversionPointsCount`:`conversionCurrencyUnits`
+     * ratio. With the defaults (100:1), 250 points → 2.5.
+     *
+     * Returns null outside Pro+Commerce — money helpers need a real store
+     * currency, which we only resolve when both are present.
      */
-    public function toMoney(?int $points = null): float
+    public function toMoney(?int $points = null): ?float
     {
+        if (!$this->isProCommerce()) {
+            return null;
+        }
+        $plugin = Points::getInstance();
         $points = $points ?? $this->sumForUser();
-        $rate = max(1, Points::getInstance()->getSettings()->pointsPerCurrencyUnit);
-        return $points / $rate;
+        $settings = $plugin->getSettings();
+        $pointsCount = max(1, $settings->conversionPointsCount);
+        return $points * $settings->conversionCurrencyUnits / $pointsCount;
     }
 
     /**
-     * Same as toMoney() but pre-formatted with the configured currency symbol
-     * and two decimal places. e.g. "£2.50".
+     * Same as toMoney() but locale-formatted using the Commerce primary store's
+     * currency (e.g. "£2.50", "$2.50", "2,50 €"). Empty string outside Pro+Commerce.
      */
     public function formatMoney(?int $points = null): string
     {
-        $symbol = Points::getInstance()->getSettings()->currencySymbol;
-        return $symbol . number_format($this->toMoney($points), 2);
+        $value = $this->toMoney($points);
+        if ($value === null) {
+            return '';
+        }
+        return Points::getInstance()->formatStoreMoney($value);
+    }
+
+    private function isProCommerce(): bool
+    {
+        $plugin = Points::getInstance();
+        return $plugin->is(Points::EDITION_PRO) && $plugin->hasCommerce();
     }
 
     private function currentUserId(): ?int

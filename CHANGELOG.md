@@ -2,7 +2,22 @@
 
 ## Unreleased
 
+### Fixed
+- **Settings save was silently reverting on the next page load.** Craft's `Plugin` base passes the legacy `plugins.settings` DB column (synced from Project Config) into `setSettings()` during plugin construction, which overlaid stale values on top of our freshly DB-loaded model. Overrode `setSettings()` as a no-op so `{{%points_settings}}` stays the only source of truth.
+- **Commerce gating gaps closed:**
+  - `RedeemController::actionApply` / `actionRemove` now throw 404 when not on Pro+Commerce (was previously only requiring login — a Lite user could create orphan redemption records the adjuster never honoured).
+  - `craft.points.toMoney` / `formatMoney` / `symbol` / `currencyCode` / `orderRedemption` / `appliedToOrder` now require Pro+Commerce uniformly. Previously some checked `hasCommerce` without `isPro`, others checked nothing.
+- **Settings → Commerce tab now only appears on Pro.** The tab is conditionally added to the `tabs` hash so Lite users never see it.
+
+### Changed (breaking)
+- **Currency is no longer configured in the plugin.** It always tracks Craft Commerce's primary store currency — the manual `currencySymbol` setting has been removed. Symbol and 3-letter ISO code are derived from Commerce, formatted locale-aware via PHP's `NumberFormatter`.
+- **Money helpers are now Pro + Commerce only.** `craft.points.toMoney()`, `craft.points.formatMoney()`, the `Available Spend` / `Redeemed` columns on the Users index, the Leaderboard money columns, and the order-redemption flow all require Commerce. On Lite (or Pro-without-Commerce), `toMoney()` returns `null`, `formatMoney()` returns `''`, and the money columns aren't registered.
+- **`pointsPerCurrencyUnit` replaced with a paired `conversionPointsCount` + `conversionCurrencyUnits` setting** so admins can express ratios like "5 points = 1 unit" without forcing fractional integers. UI renders as `[X] points = [symbol] [Y] [code]`. Migration path: pre-release plugin, existing settings JSON keys are simply ignored on load (defaults to 100:1).
+- New plugin helpers: `Points::hasCommerce()`, `Points::getStoreCurrencyCode()`, `Points::getStoreCurrencySymbol()`, `Points::formatStoreMoney($value)`, and the static `Points::pointsToMoney($points, $settings)`.
+- New Twig: `craft.points.currencyCode` (alongside the existing `craft.points.symbol`, now Commerce-derived).
+
 ### Changed
+- **Plugin settings page rewritten as a full-page form with native Craft tabs** — General (plugin name + Reward unit labels, plus an Edition info block), Commerce (Pro-only — conversion rate + redemption settings), Triggers (birthday field handle). New `SettingsController` + `templates/settings/edit.twig` extending `_layouts/cp` so it uses Craft's built-in tab UI (URL-fragment based, JS-handled). `Points::getSettingsResponse()` redirects the Craft Settings → Plugins → Points route to our own page so both entry points land in the same UI. The previous single-page `settingsHtml()` rendering is gone; the old `_settings.twig` removed.
 - **Awards element index `Points` column now uses the configured currency label.** Sort options and table attribute labels read `Settings::$currencyNamePlural` instead of the hardcoded "Points" — rename to "Coins" in settings and the column header follows.
 - **Birthday field handle setting now defaults to blank** (was `'birthday'`). The User birthday trigger is hidden from the rule builder picker until the admin sets the handle AND a matching Date field exists on the user field layout — checking via a new `TriggerInterface::isAvailable()` static method (defaults to `true` in `BaseTrigger`). Stops the trigger appearing in places where it can never fire.
 

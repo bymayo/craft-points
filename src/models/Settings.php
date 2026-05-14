@@ -26,13 +26,18 @@ class Settings extends Model
     public string $birthdayFieldHandle = '';
 
     /**
-     * How many points equal one unit of real currency. Used by `craft.points.toMoney()`.
-     * e.g. 100 means "100 points = £1". e.g. 1 means "1 point = £1".
+     * Conversion ratio between points and store currency. The values are
+     * a paired X:Y expression — `$conversionPointsCount` points are worth
+     * `$conversionCurrencyUnits` units of the (Commerce-derived) store
+     * currency. Defaults: 100 points = 1 unit.
+     *
+     * No currency symbol setting exists — the symbol comes from the
+     * configured Commerce primary store's currency, since money helpers
+     * are now Pro+Commerce only.
      */
-    public int $pointsPerCurrencyUnit = 100;
+    public int $conversionPointsCount = 100;
 
-    /** Display symbol for the points→money conversion helper. */
-    public string $currencySymbol = '£';
+    public int $conversionCurrencyUnits = 1;
 
     /** Minimum points a user can redeem against an order in a single redemption. */
     public int $redemptionMinPoints = 1;
@@ -53,8 +58,8 @@ class Settings extends Model
         return [
             [['pluginName', 'currencyName', 'currencyNamePlural'], 'required'],
             [['pluginName', 'currencyName', 'currencyNamePlural'], 'string', 'max' => 50],
-            [['birthdayFieldHandle', 'currencySymbol'], 'string', 'max' => 100],
-            [['pointsPerCurrencyUnit'], 'integer', 'min' => 1],
+            [['birthdayFieldHandle'], 'string', 'max' => 100],
+            [['conversionPointsCount', 'conversionCurrencyUnits'], 'integer', 'min' => 1],
             [['redemptionMinPoints'], 'integer', 'min' => 1],
             [['redemptionMaxOrderPercent'], 'integer', 'min' => 1, 'max' => 100],
             [['redemptionRefundBehaviour'], 'in', 'range' => ['restoreProportional', 'restoreFullOnly', 'none']],

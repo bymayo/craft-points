@@ -127,7 +127,7 @@ class Points extends Plugin
             $subnav['leaderboard'] = ['label' => Craft::t('points', 'Leaderboard'), 'url' => 'points/leaderboard'];
         }
         if ($user->checkPermission('points-manageSettings')) {
-            $subnav['settings'] = ['label' => Craft::t('points', 'Settings'), 'url' => 'settings/plugins/points'];
+            $subnav['settings'] = ['label' => Craft::t('points', 'Settings'), 'url' => 'points/settings'];
         }
 
         // Suppress the entire nav item if the user can't access any subpage.
@@ -184,6 +184,20 @@ class Points extends Plugin
     }
 
     /**
+     * Intentional no-op. The default Plugin contract calls setSettings()
+     * during construction with whatever's in the `plugins.settings` DB column
+     * (synced from Project Config). Since we've opted out of Project Config
+     * for settings (see createSettingsModel / saveSettings), allowing the
+     * default behaviour would overlay potentially-stale values on top of
+     * our DB-loaded model — making saved changes appear to revert. Blocking
+     * it here keeps `{{%points_settings}}` as the single source of truth.
+     */
+    public function setSettings(array $settings): void
+    {
+        // no-op
+    }
+
+    /**
      * Override Craft's default settings save (which routes through Project
      * Config) and write directly to `{{%points_settings}}` instead.
      */
@@ -226,12 +240,96 @@ class Points extends Plugin
         return true;
     }
 
-    protected function settingsHtml(): ?string
+    /**
+     * Redirect Craft's built-in plugin settings route (`/admin/settings/plugins/points`)
+     * to our own tabbed Settings page so both entry points (Craft Settings → Plugins,
+     * and our own sidebar) land on the same UI.
+     */
+    public function getSettingsResponse(): mixed
     {
-        return Craft::$app->view->renderTemplate('points/_settings.twig', [
-            'plugin' => $this,
-            'settings' => $this->getSettings(),
-        ]);
+        return Craft::$app->getResponse()->redirect(
+            \craft\helpers\UrlHelper::cpUrl('points/settings')
+        );
+    }
+
+    /**
+     * Apply the configured X:Y points→currency ratio to a point balance.
+     * Returns the monetary value (in the store currency's units).
+     */
+    public static function pointsToMoney(int $points, Settings $settings): float
+    {
+        $count = max(1, $settings->conversionPointsCount);
+        return $points * $settings->conversionCurrencyUnits / $count;
+    }
+
+    /**
+     * Is Commerce installed and enabled? Money helpers, redemption flows,
+     * and the Available Spend / Redeemed columns all require this — currency
+     * is read from the Commerce primary store.
+     */
+    public function hasCommerce(): bool
+    {
+        return Craft::$app->getPlugins()->isPluginEnabled('commerce');
+    }
+
+    /**
+     * ISO 4217 currency code of the Commerce primary store (e.g. "GBP"), or
+     * null if Commerce isn't installed. The single source of truth for
+     * currency — there's no plugin setting for this anymore.
+     */
+    public function getStoreCurrencyCode(): ?string
+    {
+        if (!$this->hasCommerce()) {
+            return null;
+        }
+        $commerce = \craft\commerce\Plugin::getInstance();
+        if (!$commerce) {
+            return null;
+        }
+        $store = $commerce->getStores()->getPrimaryStore();
+        return $store ? $store->getCurrency() : null;
+    }
+
+    /**
+     * Locale-derived display symbol for the store currency (e.g. "£", "$", "€").
+     * Returns null if Commerce isn't installed.
+     */
+    public function getStoreCurrencySymbol(): ?string
+    {
+        $code = $this->getStoreCurrencyCode();
+        if (!$code) {
+            return null;
+        }
+        $locale = str_replace('-', '_', Craft::$app->language ?? 'en_US');
+        try {
+            $fmt = new \NumberFormatter("$locale@currency=$code", \NumberFormatter::CURRENCY);
+            $symbol = $fmt->getSymbol(\NumberFormatter::CURRENCY_SYMBOL);
+            return $symbol ?: $code;
+        } catch (\Throwable) {
+            return $code;
+        }
+    }
+
+    /**
+     * Locale-aware money formatting using the store currency. Falls back to
+     * a plain number with two decimals if Commerce isn't installed or the
+     * formatter can't be built.
+     */
+    public function formatStoreMoney(float $value): string
+    {
+        $code = $this->getStoreCurrencyCode();
+        $locale = str_replace('-', '_', Craft::$app->language ?? 'en_US');
+        if ($code) {
+            try {
+                $fmt = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
+                $formatted = $fmt->formatCurrency($value, $code);
+                if (is_string($formatted)) {
+                    return $formatted;
+                }
+            } catch (\Throwable) {
+            }
+        }
+        return number_format($value, 2);
     }
 
     private function attachEventHandlers(): void
@@ -279,6 +377,9 @@ class Points extends Plugin
 
                 $event->rules['points/leaderboard'] = 'points/leaderboard/index';
                 $event->rules['points/leaderboard/table-data'] = 'points/leaderboard/table-data';
+
+                $event->rules['points/settings'] = 'points/settings/edit';
+                $event->rules['POST points/settings'] = 'points/settings/save';
             }
         );
 
@@ -627,16 +728,14 @@ class Points extends Plugin
                         break;
 
                     case 'pointsSpend':
-                        $rate = max(1, (int)$settings->pointsPerCurrencyUnit);
-                        $value = $points / $rate;
-                        $event->html = Html::encode($settings->currencySymbol) . number_format($value, 2);
+                        $value = self::pointsToMoney($points, $settings);
+                        $event->html = Html::encode($plugin->formatStoreMoney($value));
                         break;
 
                     case 'pointsRedeemed':
                         $redeemed = $plugin->awards->getRedeemedPointsForUser($user->id);
-                        $rate = max(1, (int)$settings->pointsPerCurrencyUnit);
-                        $value = $redeemed / $rate;
-                        $event->html = Html::encode($settings->currencySymbol) . number_format($value, 2);
+                        $value = self::pointsToMoney($redeemed, $settings);
+                        $event->html = Html::encode($plugin->formatStoreMoney($value));
                         break;
                 }
             }

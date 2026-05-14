@@ -33,8 +33,7 @@ class LeaderboardController extends Controller
         $plugin = Points::getInstance();
         $awards = $plugin->awards;
         $settings = $plugin->getSettings();
-        $isPro = $plugin->is(Points::EDITION_PRO);
-        $rate = max(1, (int) $settings->pointsPerCurrencyUnit);
+        $showMoney = $plugin->is(Points::EDITION_PRO) && $plugin->hasCommerce();
 
         $rows = $awards->leaderboard($limit, $offset);
         $total = $awards->getDistinctRecipientCount();
@@ -60,10 +59,14 @@ class LeaderboardController extends Controller
                 'points' => $row['points'],
             ];
 
-            if ($isPro) {
+            if ($showMoney) {
                 $redeemed = $awards->getRedeemedPointsForUser($row['user']->id);
-                $entry['availableSpend'] = Html::encode($settings->currencySymbol) . number_format($row['points'] / $rate, 2);
-                $entry['redeemed'] = Html::encode($settings->currencySymbol) . number_format($redeemed / $rate, 2);
+                $entry['availableSpend'] = Html::encode($plugin->formatStoreMoney(
+                    Points::pointsToMoney($row['points'], $settings)
+                ));
+                $entry['redeemed'] = Html::encode($plugin->formatStoreMoney(
+                    Points::pointsToMoney($redeemed, $settings)
+                ));
             }
 
             $data[] = $entry;
