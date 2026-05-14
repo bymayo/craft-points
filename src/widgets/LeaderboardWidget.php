@@ -8,7 +8,7 @@ use craft\base\Widget;
 
 class LeaderboardWidget extends Widget
 {
-    public int $limit = 10;
+    public int $limit = 5;
 
     public static function displayName(): string
     {
