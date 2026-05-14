@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- **Up to four new columns available on the Users element index** — register via the Users index column settings:
+  - `{Currency Plural}` (e.g. *Points*, *Credits*) — total points balance, formatted with thousands separators *(Lite)*
+  - `Level` — current level with a coloured dot *(Lite)*
+  - `Available Spend` — monetary value of their *current* balance, formatted with the configured currency symbol *(Pro)*
+  - `Redeemed` — monetary value of their *lifetime* redemptions *(Pro)*
+- Leaderboard CP page and Leaderboard dashboard widget now render levels as a coloured dot + name (matching the Users element index) instead of the old solid-coloured pill.
+- New service method: `Awards::getRedeemedPointsForUser($userId)` — returns lifetime redemption total as a positive int.
+- **Awards element index now uses the rule name as the row title** instead of the auto-generated "Currency Award {id}" string — much more scannable. The standalone Rule column is removed from default attributes (still available via column settings).
 - **Three ways to fire a Manual rule from the frontend**, all sharing the same login-required, CSRF-protected, current-user-only, Manual-rules-only, Limits-enforcing security model:
   1. **HTML form** — POST to `points/awards/fire` (or `points/awards/remove`) with `csrfInput()`, `actionInput()`, `redirectInput()` and a `ruleHandle`. Sets a flash and redirects. The default pattern for server-rendered pages.
   2. **JS API** — `{{ craft.points.script() }}` defines `window.Points.addAward(ruleHandle)` and `window.Points.removeAward(ruleHandle)`. Cache-safe (CSRF token fetched at runtime, never embedded into cached HTML) — works inside Blitz, `{% cache %}`, and any static cache.

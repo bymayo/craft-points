@@ -14,10 +14,12 @@ Award points to users for actions they perform, build leaderboards, and unlock t
 | Twig & GraphQL APIs | ✅ | ✅ |
 | Plugin events | ✅ | ✅ |
 | Renameable plugin & currency labels | ✅ | ✅ |
+| Users index columns: balance + level | ✅ | ✅ |
 | **Craft Commerce triggers** (Order completed / paid / refunded, Subscriptions) | — | ✅ |
 | **Percentage-of-order-total** point awards | — | ✅ |
 | **Commerce conditions** (Order total, item count, contains product, coupon) | — | ✅ |
 | **Order redemptions** (customers spend points at checkout, gateway-agnostic) | — | ✅ |
+| Users index columns: available spend + lifetime redeemed | — | ✅ |
 
 Switch edition during development via `config/project/project.yaml`:
 
@@ -34,6 +36,7 @@ plugins.points.edition: pro
 - **Awards** — entry-style element index of every points award, with all the standard Craft sources, search, sort, and bulk actions
 - **Levels** — tier users by accumulated points (Bronze / Silver / Gold style) with colour
 - **Leaderboard** — CP page and dashboard widget showing top users by total points
+- **Users index columns** — opt-in columns on Craft's built-in Users table for points balance, level, available spend (Pro), and lifetime redeemed (Pro)
 - **Renameable** — name the plugin in the sidebar ("Rewards System"), the currency ("Coins"), and your money symbol independently
 - **Twig & GraphQL APIs** — read points, list awards, fetch the leaderboard
 - **Extensible** — plugin events (`EVENT_BEFORE_ADD_AWARD`, `EVENT_LEVEL_CHANGED`, …), pluggable triggers / conditions / limits / rewards via PHP
@@ -356,6 +359,21 @@ Add via the Craft dashboard → + New widget:
 
 - **Points Leaderboard** — top N users by total
 - **Latest Points Awards** — most recent N awards across all users
+
+### Users element index columns
+
+The plugin adds optional columns to Craft's built-in **Users** element index so admins can see each user's loyalty state at a glance, alongside their email, last login, groups, etc. None are enabled by default — opt in via the **Customize column** settings on the Users page.
+
+| Column | Edition | What it shows |
+|---|---|---|
+| `{Currency Plural}` (e.g. *Points*, *Credits*) | Lite | Total points balance, formatted with thousands separators |
+| `Level` | Lite | Current level with a small coloured dot (matches the Leaderboard styling) |
+| `Available Spend` | Pro | Monetary value of the user's *current* balance, using the configured currency symbol and `Points per £1` rate |
+| `Redeemed` | Pro | Monetary value of the user's *lifetime* redemptions through Commerce checkout |
+
+The column labels follow your plugin settings — set **Currency name (plural)** to "Coins" and the first column is "Coins"; set **Currency symbol** to `$` and the money-valued columns format as `$2.50`.
+
+**Heads-up on performance:** each row fetches the user's balance independently, so on very large Users indexes (thousands+ per page) you'll see one extra query per row. Fine for typical CP pagination (50 / page).
 
 ## Examples
 

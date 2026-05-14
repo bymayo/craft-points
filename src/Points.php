@@ -21,14 +21,19 @@ use bymayo\points\variables\PointsVariable;
 use bymayo\points\widgets\LatestAwardsWidget;
 use bymayo\points\widgets\LeaderboardWidget;
 use Craft;
+use craft\base\Element;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\elements\User;
+use craft\events\DefineAttributeHtmlEvent;
 use craft\events\RegisterComponentTypesEvent;
+use craft\events\RegisterElementTableAttributesEvent;
 use craft\events\RegisterGqlMutationsEvent;
 use craft\events\RegisterGqlQueriesEvent;
 use craft\events\RegisterGqlTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\helpers\Html;
 use craft\services\Dashboard;
 use craft\services\Elements;
 use craft\services\Gql;
@@ -176,6 +181,7 @@ class Points extends Plugin
                 $event->rules['points/awards/new'] = 'points/awards/edit';
                 $event->rules['points/awards/<awardId:\d+>'] = 'points/awards/edit';
                 $event->rules['POST points/awards/fire'] = 'points/awards/fire';
+                $event->rules['POST points/awards/remove'] = 'points/awards/remove';
                 $event->rules['points/awards/token'] = 'points/awards/token';
 
                 $event->rules['points/rules'] = 'points/rules/index';
@@ -438,6 +444,95 @@ class Points extends Plugin
                     },
                     'description' => 'Top users by total points.',
                 ];
+            }
+        );
+
+        // Add optional columns to Craft's built-in Users element index so admins
+        // can see each user's running balance, current level, available spend
+        // value, and lifetime redemptions. All opt-in via column settings.
+        //
+        // Currency total and Level are Lite features. Available Spend and
+        // Redeemed are Commerce concepts and gate behind Pro.
+        Event::on(
+            User::class,
+            Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
+            function(RegisterElementTableAttributesEvent $event) {
+                $plugin = self::getInstance();
+                $settings = $plugin->getSettings();
+
+                $event->tableAttributes['pointsTotal'] = [
+                    'label' => $settings->currencyNamePlural,
+                ];
+                $event->tableAttributes['pointsLevel'] = [
+                    'label' => Craft::t('points', 'Level'),
+                ];
+                if ($plugin->is(self::EDITION_PRO)) {
+                    $event->tableAttributes['pointsSpend'] = [
+                        'label' => Craft::t('points', 'Available Spend'),
+                    ];
+                    $event->tableAttributes['pointsRedeemed'] = [
+                        'label' => Craft::t('points', 'Redeemed'),
+                    ];
+                }
+            }
+        );
+
+        Event::on(
+            User::class,
+            Element::EVENT_DEFINE_ATTRIBUTE_HTML,
+            function(DefineAttributeHtmlEvent $event) {
+                if (!in_array($event->attribute, ['pointsTotal', 'pointsLevel', 'pointsSpend', 'pointsRedeemed'], true)) {
+                    return;
+                }
+
+                /** @var User $user */
+                $user = $event->sender;
+                if (!$user->id) {
+                    $event->html = '';
+                    return;
+                }
+
+                $plugin = self::getInstance();
+                $settings = $plugin->getSettings();
+                $points = $plugin->awards->sumForUser($user->id);
+
+                switch ($event->attribute) {
+                    case 'pointsTotal':
+                        $event->html = Craft::$app->getFormatter()->asInteger($points);
+                        break;
+
+                    case 'pointsLevel':
+                        $level = $plugin->levels->levelForPoints($points);
+                        if (!$level) {
+                            $event->html = '<span class="light">—</span>';
+                            break;
+                        }
+                        $colour = method_exists($level, 'getColourHex')
+                            ? ($level->getColourHex() ?: '#808080')
+                            : '#808080';
+                        $event->html = sprintf(
+                            '<span style="display:inline-flex;align-items:center;gap:6px;">'
+                            . '<span style="display:inline-block;width:10px;height:10px;border-radius:50%%;background:%s;"></span>'
+                            . '%s'
+                            . '</span>',
+                            Html::encode($colour),
+                            Html::encode($level->name),
+                        );
+                        break;
+
+                    case 'pointsSpend':
+                        $rate = max(1, (int)$settings->pointsPerCurrencyUnit);
+                        $value = $points / $rate;
+                        $event->html = Html::encode($settings->currencySymbol) . number_format($value, 2);
+                        break;
+
+                    case 'pointsRedeemed':
+                        $redeemed = $plugin->awards->getRedeemedPointsForUser($user->id);
+                        $rate = max(1, (int)$settings->pointsPerCurrencyUnit);
+                        $value = $redeemed / $rate;
+                        $event->html = Html::encode($settings->currencySymbol) . number_format($value, 2);
+                        break;
+                }
             }
         );
     }

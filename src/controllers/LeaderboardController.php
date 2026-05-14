@@ -44,8 +44,11 @@ class LeaderboardController extends Controller
                 'url' => $row['user']->getCpEditUrl(),
                 'level' => $level
                     ? sprintf(
-                        '<span style="display:inline-block; padding:2px 8px; border-radius:10px; color:#fff; background:%s; font-size:12px;">%s</span>',
-                        Html::encode($level->colourHex ?: '#666'),
+                        '<span style="display:inline-flex;align-items:center;gap:6px;">'
+                        . '<span style="display:inline-block;width:10px;height:10px;border-radius:50%%;background:%s;"></span>'
+                        . '%s'
+                        . '</span>',
+                        Html::encode($level->colourHex ?: '#808080'),
                         Html::encode($level->name)
                     )
                     : '',

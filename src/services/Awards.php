@@ -53,6 +53,29 @@ class Awards extends Component
     }
 
     /**
+     * Total points the user has redeemed at checkout (Pro + Commerce).
+     * Returned as a positive integer regardless of how redemptions are stored.
+     */
+    public function getRedeemedPointsForUser(int $userId): int
+    {
+        $redemptionRule = \bymayo\points\Points::getInstance()->rules->getRuleByHandle('__redemption');
+        if (!$redemptionRule) {
+            return 0;
+        }
+        $sum = (int) (new Query())
+            ->from(['a' => '{{%points_awards}}'])
+            ->innerJoin(['el' => '{{%elements}}'], '[[el.id]] = [[a.id]]')
+            ->where([
+                'a.userId' => $userId,
+                'a.ruleId' => $redemptionRule->id,
+                'el.dateDeleted' => null,
+            ])
+            ->sum('a.pointsSnapshot');
+        // Redemptions are stored as negative awards — flip the sign.
+        return abs($sum);
+    }
+
+    /**
      * Total number of distinct users with at least one award.
      * Used for leaderboard pagination.
      */

@@ -4,7 +4,10 @@
             <li style="padding:4px 0; display:flex; align-items:center; gap:8px;">
                 <a href="{{ row.user.getCpEditUrl() }}" style="flex:1;">{{ row.user.name }}</a>
                 {% if row.level %}
-                    <span style="display:inline-block; padding:1px 6px; border-radius:3px; color:#fff; background:{{ row.level.colour|default('#666') }}; font-size:11px;">{{ row.level.name }}</span>
+                    <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px;">
+                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ row.level.colourHex|default('#808080') }};"></span>
+                        {{ row.level.name }}
+                    </span>
                 {% endif %}
                 <strong>{{ row.points }}</strong>
             </li>
