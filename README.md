@@ -4,7 +4,7 @@
 
 A friendly points-and-rewards engine for Craft. Give users points when they sign up, log in, buy something, share a page - anything you like. Build leaderboards. Tier them into Bronze / Silver / Gold. Let customers spend their points at checkout. All from inside the CP.
 
-<img src="https://raw.githubusercontent.com/bymayo/craft-points/craft-5/resources/screenshot.jpg" width="850">
+<img src="https://raw.githubusercontent.com/bymayo/craft-points/craft-5/resources/screenshot.png" width="850">
 
 ## Features
 
