@@ -13,6 +13,15 @@ interface TriggerInterface
     /** Group label for optgroup'ing the trigger select (e.g. 'Entries', 'Users'). */
     public static function group(): string;
 
+    /** The element/subject this trigger fires on, e.g. 'entry', 'user', 'order'. */
+    public static function subject(): string;
+
+    /** Human-readable subject label, e.g. 'Entry', 'User', 'Order'. */
+    public static function subjectLabel(): string;
+
+    /** Action verb for the trigger, e.g. 'Created', 'Updated', 'Logged in'. */
+    public static function actionLabel(): string;
+
     /** The Yii/Craft event source class to listen on. */
     public static function eventClass(): string;
 

@@ -3,7 +3,7 @@
 namespace bymayo\points\events;
 
 use bymayo\points\elements\PointAward;
-use bymayo\points\models\Event as PointsEvent;
+use bymayo\points\models\Rule;
 use yii\base\Event;
 
 class AwardEvent extends Event
@@ -11,8 +11,8 @@ class AwardEvent extends Event
     /** The user receiving (or losing) points. */
     public int $userId;
 
-    /** The Points Event triggering this. */
-    public ?PointsEvent $event = null;
+    /** The Points Rule triggering this. */
+    public ?Rule $rule = null;
 
     /**
      * The PointAward. Populated on AFTER events; null on BEFORE_ADD events.

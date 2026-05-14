@@ -1,0 +1,68 @@
+{% extends '_layouts/cp' %}
+
+{% set title = 'Rules'|t('points') %}
+{% set selectedSubnavItem = 'rules' %}
+
+{% set crumbs = [
+    { label: craft.points.currencyPlural, url: url('points') },
+] %}
+
+{% block actionButton %}
+    <a href="{{ url('points/rules/new') }}" class="btn submit add icon">
+        {{ 'New rule'|t('points') }}
+    </a>
+{% endblock %}
+
+{% block content %}
+    {% if rules|length %}
+        <table class="data fullwidth collapsible">
+            <thead>
+                <tr>
+                    <th scope="col">{{ 'Name'|t('points') }}</th>
+                    <th scope="col">{{ 'Handle'|t('points') }}</th>
+                    <th scope="col">{{ 'Trigger'|t('points') }}</th>
+                    <th scope="col">{{ 'Reward'|t('points') }}</th>
+                    <th scope="col">{{ 'Enabled'|t('points') }}</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rule in rules %}
+                    <tr>
+                        <td>
+                            <a href="{{ url('points/rules/' ~ rule.id) }}">{{ rule.name }}</a>
+                        </td>
+                        <td><code>{{ rule.handle }}</code></td>
+                        <td>
+                            {% if rule.trigger %}
+                                <code>{{ rule.trigger }}</code>
+                            {% else %}
+                                <span style="opacity:0.5;">{{ 'Manual'|t('points') }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ rule.getRewardSummary() }}</td>
+                        <td>
+                            {% if rule.enabled %}
+                                <span class="status green"></span> {{ 'Active'|t('points') }}
+                            {% else %}
+                                <span class="status"></span> <span style="opacity:0.6;">{{ 'Disabled'|t('points') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="thin">
+                            <form method="post" onsubmit="return confirm('{{ 'Delete this rule?'|t('points') }}');">
+                                {{ csrfInput() }}
+                                {{ actionInput('points/rules/delete') }}
+                                <input type="hidden" name="id" value="{{ rule.id }}">
+                                <button type="submit" class="btn small delete icon" title="{{ 'Delete'|t('app') }}"></button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="zilch">
+            <p>{{ "No rules yet."|t('points') }}</p>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -8,35 +8,37 @@ class Install extends Migration
 {
     public function safeUp(): bool
     {
-        $this->createTable('{{%points_events}}', [
+        $this->createTable('{{%points_rules}}', [
             'id' => $this->primaryKey(),
             'name' => $this->string()->notNull(),
             'handle' => $this->string()->notNull(),
-            'points' => $this->integer()->notNull()->defaultValue(0),
-            'pointsType' => $this->string(20)->notNull()->defaultValue('flat'),
-            'multiple' => $this->boolean()->notNull()->defaultValue(false),
             'trigger' => $this->string(),
-            'triggerConfig' => $this->text(),
+            'conditions' => $this->text(),
+            'limits' => $this->text(),
+            'reward' => $this->text(),
+            'enabled' => $this->boolean()->notNull()->defaultValue(true),
+            'activeFrom' => $this->dateTime(),
+            'activeTo' => $this->dateTime(),
             'dateCreated' => $this->dateTime()->notNull(),
             'dateUpdated' => $this->dateTime()->notNull(),
             'uid' => $this->uid(),
         ]);
 
-        $this->createIndex(null, '{{%points_events}}', ['handle'], true);
+        $this->createIndex(null, '{{%points_rules}}', ['handle'], true);
 
         $this->createTable('{{%points_awards}}', [
             'id' => $this->integer()->notNull(),
-            'eventId' => $this->integer()->notNull(),
+            'ruleId' => $this->integer()->notNull(),
             'userId' => $this->integer()->notNull(),
             'pointsSnapshot' => $this->integer()->notNull()->defaultValue(0),
             'PRIMARY KEY([[id]])',
         ]);
 
-        $this->createIndex(null, '{{%points_awards}}', ['eventId']);
+        $this->createIndex(null, '{{%points_awards}}', ['ruleId']);
         $this->createIndex(null, '{{%points_awards}}', ['userId']);
 
         $this->addForeignKey(null, '{{%points_awards}}', ['id'], '{{%elements}}', ['id'], 'CASCADE');
-        $this->addForeignKey(null, '{{%points_awards}}', ['eventId'], '{{%points_events}}', ['id'], 'CASCADE');
+        $this->addForeignKey(null, '{{%points_awards}}', ['ruleId'], '{{%points_rules}}', ['id'], 'CASCADE');
         $this->addForeignKey(null, '{{%points_awards}}', ['userId'], '{{%users}}', ['id'], 'CASCADE');
 
         $this->createTable('{{%points_levels}}', [
@@ -61,7 +63,7 @@ class Install extends Migration
     {
         $this->dropTableIfExists('{{%points_levels}}');
         $this->dropTableIfExists('{{%points_awards}}');
-        $this->dropTableIfExists('{{%points_events}}');
+        $this->dropTableIfExists('{{%points_rules}}');
         return true;
     }
 }

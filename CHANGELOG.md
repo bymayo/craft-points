@@ -9,8 +9,30 @@
 - **Configurable currency name** — plugin settings let you rename "Points" to anything (Coins, Credits, Stars, Tokens…). The label appears in the CP nav, element type names, widget titles, page breadcrumbs, and frontend Twig via `craft.points.currency` / `craft.points.currencyPlural`. Plugin handle, URLs, table names, and Twig API namespaces are unchanged — only display labels are affected.
 - `craft.points.isPro` Twig helper for conditional templating
 
+### Added (continued)
+- **New rule editor UI** — replaces the old Points/Multiple/Trigger form with a Zapier-style builder: WHEN (trigger) → IF (repeatable conditions) → LIMITS (repeatable frequency caps) → REWARD (type-specific points calculation) → ACTIVE PERIOD (optional date range). Vanilla JS, no Vue/React. Each row's irrelevant config fields are auto-disabled so only the active variant's values get submitted.
+- **Conditions / Limits / Rewards engine** — Rules now compose a trigger with:
+  - **Conditions** (predicates evaluated when the trigger fires) — pluggable, registered via `Conditions::EVENT_REGISTER_CONDITION_RULES`. v1 ships: Section, CategoryGroup, Volume, UserGroup, UserLevel, DayOfWeek. Pro adds: OrderTotal, OrderItemCount.
+  - **Limits** (frequency caps) — pluggable, registered via `Limits::EVENT_REGISTER_LIMITS`. v1 ships: OncePerUser, MaxPerUser, PerPeriod (hour/day/week/month/year), Cooldown.
+  - **Rewards** (how points are calculated) — pluggable, registered via `Rewards::EVENT_REGISTER_REWARDS`. v1 ships: Flat. Pro adds: Percent (% of trigger amount), PointsPerUnit (1 pt per £X spent).
+- Rule model gains `enabled` flag and `activeFrom`/`activeTo` dates for campaign-style scheduling.
+- Existing rule data is auto-migrated to the new shape on upgrade: `multiple=false` → `[oncePerUser]` limit; `pointsType=flat` → flat reward; `pointsType=percent` → percent reward; `triggerConfig.scopeIds` → section/categoryGroup/volume condition (chosen by trigger family).
+- Stage 2 of the v3 redesign — the **CP UI for building rules** is Stage 3 (next). Existing rules continue to work; new rules created via Stage 3 UI will use the full conditions/limits/rewards engine.
+
 ### Breaking
-- **Removed `craft.points.addEvent`** — events are now CMS-managed only. Creating events from Twig caused event sprawl, bypassed admin curation, and didn't sync via project config. To award points per-content, use a single event (e.g. `articleViewed`) with `multiple: true` and let `craft.points.addAward({eventHandle:'articleViewed'})` be called from your template.
+- **Legacy rule columns dropped** — `points`, `pointsType`, `multiple`, `triggerConfig`. Rules now store all configuration in the `conditions` / `limits` / `reward` JSON columns. If you'd been testing with old-shape data, you'll need to re-create rules in the new editor.
+- **"Event" renamed to "Rule" throughout** — the word "event" was overloaded with Craft's PHP `Event` concept and with system events that triggers listen for. "Rule" matches the industry vocabulary (Smile, LoyaltyLion, Yotpo all use "earning rules"). This affects:
+  - DB table: `points_events` → `points_rules`; column `points_awards.eventId` → `ruleId` (migration handles both)
+  - Classes: `Event` model → `Rule`, `EventRecord` → `RuleRecord`, `Events` service → `Rules`, `EventsController` → `RulesController`, `EventType` (GQL) → `RuleType`
+  - Service property: `Points::getInstance()->events` → `->rules`
+  - Element: `PointAward::$eventId` → `ruleId`, `getEvent()` → `getRule()`, `award.event` (Twig) → `award.rule`
+  - Twig API: `craft.points.events` → `craft.points.rules`, `eventById/eventByHandle/event(handle)` → `ruleById/ruleByHandle/rule(handle)`; `addAward({eventHandle:})` → `addAward({ruleHandle:})`; `removeAward({eventHandle:})` → `removeAward({ruleHandle:})`. Method `craft.points.eventOptions` removed.
+  - Plugin event class: `AwardEvent::$event` (the Rule reference) → `AwardEvent::$rule`
+  - GraphQL: query `pointsEvents` → `pointsRules`, query `pointsEvent` → `pointsRule`, type `PointsEvent` → `PointsRule`, `PointsAward.eventId/event` → `ruleId/rule`, `pointsAwards` query arg `eventId` → `ruleId`
+  - CP URLs: `/admin/points/events/*` → `/admin/points/rules/*`
+  - Permission: `points-manageEvents` → `points-manageRules`
+  - CP subnav: "Events" → "Rules"
+- **Removed `craft.points.addEvent`** — rules are now CMS-managed only. Creating rules from Twig caused sprawl, bypassed admin curation, and didn't sync via project config. To award points per-content, use a single rule (e.g. `articleViewed`) with `multiple: true` and let `craft.points.addAward({ruleHandle:'articleViewed'})` be called from your template.
 - **"Entry" renamed to "Award" throughout** to avoid clashing with Craft's own Entry element. This affects:
   - DB table: `points_entries` → `points_awards` (versioned migration handles the rename, data preserved)
   - Element class: `PointEntry` → `PointAward`

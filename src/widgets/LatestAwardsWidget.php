@@ -2,6 +2,7 @@
 
 namespace bymayo\points\widgets;
 
+use bymayo\points\Points;
 use bymayo\points\elements\PointAward;
 use Craft;
 use craft\base\Widget;

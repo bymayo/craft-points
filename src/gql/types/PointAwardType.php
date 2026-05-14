@@ -22,19 +22,19 @@ class PointAwardType
             'fields' => [
                 'id' => Type::int(),
                 'userId' => Type::int(),
-                'eventId' => Type::int(),
+                'ruleId' => Type::int(),
                 'pointsSnapshot' => [
                     'type' => Type::int(),
-                    'description' => 'Points awarded by this record, snapshotted from the event at award time.',
+                    'description' => 'Points awarded by this record, snapshotted from the rule at award time.',
                 ],
                 'dateCreated' => [
                     'type' => Type::string(),
                     'description' => 'ISO 8601 timestamp.',
                     'resolve' => fn(PointAward $award) => $award->dateCreated?->format(\DateTimeInterface::ATOM),
                 ],
-                'event' => [
-                    'type' => EventType::getType(),
-                    'resolve' => fn(PointAward $award) => $award->getEvent(),
+                'rule' => [
+                    'type' => RuleType::getType(),
+                    'resolve' => fn(PointAward $award) => $award->getRule(),
                 ],
             ],
         ]);

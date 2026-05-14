@@ -30,6 +30,44 @@
 
 <hr>
 
+<h2>{{ 'User triggers'|t('points') }}</h2>
+
+{{ forms.textField({
+    label: 'Birthday field handle'|t('points'),
+    instructions: 'Handle of a Date field on the user layout storing each user\'s birthday. Required for the "User birthday" trigger.'|t('points'),
+    id: 'birthdayFieldHandle',
+    name: 'birthdayFieldHandle',
+    class: 'code',
+    value: settings.birthdayFieldHandle,
+}) }}
+
+<hr>
+
+<h2>{{ 'Money conversion'|t('points') }}</h2>
+
+<p>{{ 'Used by `craft.points.toMoney()` to convert a point balance into a monetary value. Has no effect on how points are earned — just on how they\'re displayed when shown as currency.'|t('points') }}</p>
+
+{{ forms.textField({
+    label: 'Points per ' ~ settings.currencySymbol ~ '1'|t('points'),
+    instructions: 'How many points equal one unit of currency. e.g. 100 means 100 points = ' ~ settings.currencySymbol ~ '1.'|t('points'),
+    id: 'pointsPerCurrencyUnit',
+    name: 'pointsPerCurrencyUnit',
+    type: 'number',
+    value: settings.pointsPerCurrencyUnit,
+    errors: settings.getErrors('pointsPerCurrencyUnit'),
+}) }}
+
+{{ forms.textField({
+    label: 'Currency symbol'|t('points'),
+    instructions: 'Used by `formatMoney()` as a prefix.'|t('points'),
+    id: 'currencySymbol',
+    name: 'currencySymbol',
+    value: settings.currencySymbol,
+    errors: settings.getErrors('currencySymbol'),
+}) }}
+
+<hr>
+
 <h2>{{ 'Edition'|t('points') }}</h2>
 
 <p>

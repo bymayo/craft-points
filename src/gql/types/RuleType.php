@@ -5,7 +5,7 @@ namespace bymayo\points\gql\types;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 
-class EventType
+class RuleType
 {
     private static ?ObjectType $type = null;
 
@@ -16,16 +16,16 @@ class EventType
         }
 
         self::$type = new ObjectType([
-            'name' => 'PointsEvent',
-            'description' => 'A Points event definition.',
+            'name' => 'PointsRule',
+            'description' => 'A Points rule definition.',
             'fields' => [
                 'id' => Type::int(),
                 'name' => Type::string(),
                 'handle' => Type::string(),
-                'points' => Type::int(),
-                'pointsType' => Type::string(),
-                'multiple' => Type::boolean(),
                 'trigger' => Type::string(),
+                'enabled' => Type::boolean(),
+                'activeFrom' => Type::string(),
+                'activeTo' => Type::string(),
                 'uid' => Type::string(),
             ],
         ]);

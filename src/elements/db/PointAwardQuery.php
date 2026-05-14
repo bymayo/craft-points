@@ -7,12 +7,12 @@ use craft\helpers\Db;
 
 class PointAwardQuery extends ElementQuery
 {
-    public mixed $eventId = null;
+    public mixed $ruleId = null;
     public mixed $userId = null;
 
-    public function eventId(mixed $value): self
+    public function ruleId(mixed $value): self
     {
-        $this->eventId = $value;
+        $this->ruleId = $value;
         return $this;
     }
 
@@ -27,13 +27,13 @@ class PointAwardQuery extends ElementQuery
         $this->joinElementTable('points_awards');
 
         $this->query->select([
-            'points_awards.eventId',
+            'points_awards.ruleId',
             'points_awards.userId',
             'points_awards.pointsSnapshot',
         ]);
 
-        if ($this->eventId !== null) {
-            $this->subQuery->andWhere(Db::parseParam('points_awards.eventId', $this->eventId));
+        if ($this->ruleId !== null) {
+            $this->subQuery->andWhere(Db::parseParam('points_awards.ruleId', $this->ruleId));
         }
 
         if ($this->userId !== null) {

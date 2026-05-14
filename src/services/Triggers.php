@@ -2,22 +2,25 @@
 
 namespace bymayo\points\services;
 
+use bymayo\points\conditions\RuleEvaluationContext;
 use bymayo\points\events\RegisterTriggersEvent;
 use bymayo\points\Points;
-use bymayo\points\triggers\AssetDeletedTrigger;
-use bymayo\points\triggers\AssetUploadedTrigger;
-use bymayo\points\triggers\CategoryCreatedTrigger;
-use bymayo\points\triggers\CategoryDeletedTrigger;
-use bymayo\points\triggers\CategoryUpdatedTrigger;
+use bymayo\points\triggers\AssetCreatedTrigger;
+use bymayo\points\triggers\commerce\FirstOrderTrigger;
 use bymayo\points\triggers\commerce\OrderCompletedTrigger;
+use bymayo\points\triggers\commerce\OrderPaidTrigger;
+use bymayo\points\triggers\commerce\OrderRefundedTrigger;
+use bymayo\points\triggers\commerce\SubscriptionCancelledTrigger;
 use bymayo\points\triggers\commerce\SubscriptionCreatedTrigger;
+use bymayo\points\triggers\commerce\SubscriptionPlanChangedTrigger;
+use bymayo\points\triggers\commerce\SubscriptionRenewedTrigger;
 use bymayo\points\triggers\EntryCreatedTrigger;
-use bymayo\points\triggers\EntryDeletedTrigger;
 use bymayo\points\triggers\EntryUpdatedTrigger;
 use bymayo\points\triggers\TriggerInterface;
+use bymayo\points\triggers\UserAnniversaryTrigger;
+use bymayo\points\triggers\UserBirthdayTrigger;
 use bymayo\points\triggers\UserLoggedInTrigger;
 use bymayo\points\triggers\UserRegisteredTrigger;
-use bymayo\points\triggers\UserUpdatedTrigger;
 use Craft;
 use yii\base\Component;
 use yii\base\Event;
@@ -39,7 +42,7 @@ class Triggers extends Component
         $this->attachListeners();
     }
 
-    /** @return string[] All registered trigger class names. */
+    /** @return string[] */
     public function getAllTriggers(): array
     {
         return $this->_triggers;
@@ -50,11 +53,7 @@ class Triggers extends Component
         return $this->_byHandle[$handle] ?? null;
     }
 
-    /**
-     * Returns trigger classes that support scoping — useful for the CP edit form.
-     *
-     * @return string[]
-     */
+    /** @return string[] */
     public function getScopedTriggers(): array
     {
         return array_values(array_filter(
@@ -64,9 +63,6 @@ class Triggers extends Component
     }
 
     /**
-     * Flattens scoped triggers into arrays for Twig consumption — Twig can't call
-     * static methods on class-name strings.
-     *
      * @return array<int, array{handle: string, label: string, scopedTo: string, scopeOptions: array}>
      */
     public function getScopedTriggersForTemplate(): array
@@ -80,12 +76,62 @@ class Triggers extends Component
     }
 
     /**
-     * Returns options array for a Craft select field — grouped by trigger group.
+     * Distinct subjects across all registered triggers, with "Manual" prepended.
+     *
+     * @return array<int, array{label: string, value: string}>
      */
+    public function getSubjectOptions(): array
+    {
+        $byHandle = [];
+        foreach ($this->_triggers as $class) {
+            $byHandle[$class::subject()] = $class::subjectLabel();
+        }
+        ksort($byHandle);
+
+        $options = [
+            ['label' => Craft::t('points', 'Choose an element'), 'value' => ''],
+        ];
+        foreach ($byHandle as $handle => $label) {
+            $options[] = ['label' => $label, 'value' => $handle];
+        }
+        return $options;
+    }
+
+    /**
+     * Flat list of every trigger action, each tagged with its subject so the UI
+     * can filter the action dropdown based on the chosen subject.
+     *
+     * @return array<int, array{label: string, value: string, subject: string}>
+     */
+    public function getActionOptions(): array
+    {
+        $options = [];
+        foreach ($this->_triggers as $class) {
+            $options[] = [
+                'value' => $class::handle(),
+                'label' => $class::actionLabel(),
+                'subject' => $class::subject(),
+            ];
+        }
+        return $options;
+    }
+
+    /**
+     * Resolve the subject for a given trigger handle (or null for Manual).
+     */
+    public function getSubjectForTrigger(?string $triggerHandle): string
+    {
+        if (!$triggerHandle) {
+            return '';
+        }
+        $class = $this->_byHandle[$triggerHandle] ?? null;
+        return $class ? $class::subject() : '';
+    }
+
     public function getSelectOptions(): array
     {
         $options = [
-            ['label' => Craft::t('points', 'Manual (Twig only)'), 'value' => ''],
+            ['label' => Craft::t('points', 'Manual'), 'value' => ''],
         ];
 
         $byGroup = [];
@@ -111,23 +157,25 @@ class Triggers extends Component
         $defaults = [
             EntryCreatedTrigger::class,
             EntryUpdatedTrigger::class,
-            EntryDeletedTrigger::class,
-            CategoryCreatedTrigger::class,
-            CategoryUpdatedTrigger::class,
-            CategoryDeletedTrigger::class,
+            AssetCreatedTrigger::class,
             UserRegisteredTrigger::class,
-            UserUpdatedTrigger::class,
             UserLoggedInTrigger::class,
-            AssetUploadedTrigger::class,
-            AssetDeletedTrigger::class,
+            UserBirthdayTrigger::class,
+            UserAnniversaryTrigger::class,
         ];
 
         // Commerce triggers are Pro-only and require Commerce to be installed.
         $isPro = Points::getInstance()->is(Points::EDITION_PRO);
         if ($isPro && Craft::$app->getPlugins()->isPluginEnabled('commerce')) {
             $defaults[] = OrderCompletedTrigger::class;
+            $defaults[] = OrderPaidTrigger::class;
+            $defaults[] = OrderRefundedTrigger::class;
+            $defaults[] = FirstOrderTrigger::class;
             if (class_exists('craft\\commerce\\elements\\Subscription')) {
                 $defaults[] = SubscriptionCreatedTrigger::class;
+                $defaults[] = SubscriptionRenewedTrigger::class;
+                $defaults[] = SubscriptionCancelledTrigger::class;
+                $defaults[] = SubscriptionPlanChangedTrigger::class;
             }
         }
 
@@ -146,7 +194,6 @@ class Triggers extends Component
 
     private function attachListeners(): void
     {
-        // Group triggers by (eventClass, eventName) so we attach one listener per unique source event.
         $grouped = [];
         foreach ($this->_triggers as $class) {
             $key = $class::eventClass() . '::' . $class::eventName();
@@ -167,14 +214,19 @@ class Triggers extends Component
         }
     }
 
+    /**
+     * Evaluate every rule wired to this trigger.
+     *
+     * Pipeline: trigger filters → enabled/active dates → conditions → limits → reward → addAward.
+     */
     private function dispatch(string $triggerClass, $yiiEvent): void
     {
         if (!$triggerClass::appliesToEvent($yiiEvent)) {
             return;
         }
 
-        $pointsEvents = Points::getInstance()->events->getEventsByTrigger($triggerClass::handle());
-        if (empty($pointsEvents)) {
+        $rules = Points::getInstance()->rules->getRulesByTrigger($triggerClass::handle());
+        if (empty($rules)) {
             return;
         }
 
@@ -183,32 +235,44 @@ class Triggers extends Component
             return;
         }
 
-        $scopeId = $triggerClass::scopedTo() ? $triggerClass::scopeIdForEvent($yiiEvent) : null;
         $amount = $triggerClass::getAmountForEvent($yiiEvent);
+        $scopeId = $triggerClass::scopedTo() ? $triggerClass::scopeIdForEvent($yiiEvent) : null;
 
-        foreach ($pointsEvents as $pointsEvent) {
-            if ($triggerClass::scopedTo()) {
-                $scopeIds = $pointsEvent->triggerConfig['scopeIds'] ?? [];
-                if (!empty($scopeIds)) {
-                    if (!$scopeId || !in_array($scopeId, array_map('intval', $scopeIds), true)) {
-                        continue;
-                    }
-                }
+        $points = Points::getInstance();
+        $now = (new \DateTime())->format('Y-m-d H:i:s');
+
+        foreach ($rules as $rule) {
+            // Enabled + active date range
+            if (!$rule->enabled) continue;
+            if ($rule->activeFrom && $now < $rule->activeFrom) continue;
+            if ($rule->activeTo && $now > $rule->activeTo) continue;
+
+            $ctx = new RuleEvaluationContext([
+                'userId' => $userId,
+                'rule' => $rule,
+                'triggerHandle' => $triggerClass::handle(),
+                'triggerEvent' => $yiiEvent,
+                'amount' => $amount,
+                'scopeId' => $scopeId,
+            ]);
+
+            // Conditions
+            if (!empty($rule->conditions) && !$points->conditions->evaluateAll($rule->conditions, $ctx)) {
+                continue;
             }
 
-            $pointsOverride = null;
-            if ($pointsEvent->pointsType === 'percent') {
-                // Percent only works when the trigger provides an amount.
-                if ($amount === null) {
-                    continue;
-                }
-                $pointsOverride = (int)floor($amount * $pointsEvent->points / 100);
-                if ($pointsOverride <= 0) {
-                    continue;
-                }
+            // Limits
+            if (!empty($rule->limits) && !$points->limits->checkAll($rule->limits, $ctx)) {
+                continue;
             }
 
-            Points::getInstance()->awards->addAward($userId, $pointsEvent->handle, $pointsOverride);
+            // Reward (negative values are valid — used for deductions).
+            $awardPoints = $points->rewards->calculate($rule->reward, $ctx);
+            if ($awardPoints === 0) {
+                continue;
+            }
+
+            $points->awards->addAward($userId, $rule->handle, $awardPoints);
         }
     }
 }

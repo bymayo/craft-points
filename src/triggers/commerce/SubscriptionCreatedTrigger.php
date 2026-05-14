@@ -12,6 +12,7 @@ class SubscriptionCreatedTrigger extends BaseTrigger
     public static function handle(): string { return 'commerce.subscriptionCreated'; }
     public static function label(): string { return 'Subscription created'; }
     public static function group(): string { return 'Commerce'; }
+    public static function subject(): string { return 'subscription'; }
     public static function eventClass(): string { return Subscription::class; }
     public static function eventName(): string { return Element::EVENT_AFTER_SAVE; }
 

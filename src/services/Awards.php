@@ -51,29 +51,29 @@ class Awards extends Component
         return (int)PointAward::find()->userId($userId)->count();
     }
 
-    public function addAward(int $userId, string $eventHandle, ?int $pointsOverride = null): ?PointAward
+    public function addAward(int $userId, string $ruleHandle, ?int $pointsOverride = null): ?PointAward
     {
-        $event = Points::getInstance()->events->getEventByHandle($eventHandle);
-        if (!$event) {
+        $rule = Points::getInstance()->rules->getRuleByHandle($ruleHandle);
+        if (!$rule) {
             return null;
         }
 
-        if (!$event->multiple) {
+        if (!$rule->multiple) {
             $exists = PointAward::find()
                 ->userId($userId)
-                ->eventId($event->id)
+                ->ruleId($rule->id)
                 ->exists();
             if ($exists) {
                 return null;
             }
         }
 
-        $pointsToAward = $pointsOverride ?? $event->points;
+        $pointsToAward = $pointsOverride ?? $rule->points;
 
         if ($this->hasEventHandlers(self::EVENT_BEFORE_ADD_AWARD)) {
             $beforeEvent = new AwardEvent([
                 'userId' => $userId,
-                'event' => $event,
+                'rule' => $rule,
                 'pointsToAward' => $pointsToAward,
             ]);
             $this->trigger(self::EVENT_BEFORE_ADD_AWARD, $beforeEvent);
@@ -88,7 +88,7 @@ class Awards extends Component
 
         $award = new PointAward();
         $award->userId = $userId;
-        $award->eventId = $event->id;
+        $award->ruleId = $rule->id;
         $award->pointsSnapshot = $pointsToAward;
 
         if (!Craft::$app->getElements()->saveElement($award)) {
@@ -98,7 +98,7 @@ class Awards extends Component
         if ($this->hasEventHandlers(self::EVENT_AFTER_ADD_AWARD)) {
             $this->trigger(self::EVENT_AFTER_ADD_AWARD, new AwardEvent([
                 'userId' => $userId,
-                'event' => $event,
+                'rule' => $rule,
                 'award' => $award,
                 'pointsToAward' => $pointsToAward,
             ]));
@@ -154,17 +154,17 @@ class Awards extends Component
         return $results;
     }
 
-    public function removeAward(int $userId, string $eventHandle): bool
+    public function removeAward(int $userId, string $ruleHandle): bool
     {
-        $event = Points::getInstance()->events->getEventByHandle($eventHandle);
-        if (!$event) {
+        $rule = Points::getInstance()->rules->getRuleByHandle($ruleHandle);
+        if (!$rule) {
             return false;
         }
 
         /** @var PointAward|null $award */
         $award = PointAward::find()
             ->userId($userId)
-            ->eventId($event->id)
+            ->ruleId($rule->id)
             ->orderBy(['dateCreated' => SORT_ASC])
             ->one();
 
@@ -175,7 +175,7 @@ class Awards extends Component
         if ($this->hasEventHandlers(self::EVENT_BEFORE_REMOVE_AWARD)) {
             $beforeEvent = new AwardEvent([
                 'userId' => $userId,
-                'event' => $event,
+                'rule' => $rule,
                 'award' => $award,
                 'pointsToAward' => $award->pointsSnapshot,
             ]);
@@ -194,7 +194,7 @@ class Awards extends Component
         if ($this->hasEventHandlers(self::EVENT_AFTER_REMOVE_AWARD)) {
             $this->trigger(self::EVENT_AFTER_REMOVE_AWARD, new AwardEvent([
                 'userId' => $userId,
-                'event' => $event,
+                'rule' => $rule,
                 'award' => $award,
                 'pointsToAward' => $award->pointsSnapshot,
             ]));

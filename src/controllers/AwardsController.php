@@ -34,7 +34,7 @@ class AwardsController extends Controller
 
         return $this->renderTemplate('points/awards/_edit', [
             'award' => $award,
-            'events' => Points::getInstance()->events->getAllEvents(),
+            'rules' => Points::getInstance()->rules->getAllRules(),
             'title' => $award->id
                 ? Craft::t('points', 'Edit award')
                 : Craft::t('points', 'New award'),
@@ -60,17 +60,17 @@ class AwardsController extends Controller
 
         $userIds = $request->getBodyParam('userId');
         $userId = is_array($userIds) ? (int)($userIds[0] ?? 0) : (int)$userIds;
-        $eventId = (int)$request->getBodyParam('eventId');
+        $ruleId = (int)$request->getBodyParam('ruleId');
 
         $award->userId = $userId ?: null;
-        $award->eventId = $eventId ?: null;
+        $award->ruleId = $ruleId ?: null;
 
-        // Snapshot points from the event at save time. Only set on first save
+        // Snapshot points from the rule at save time. Only set on first save
         // (so editing an award keeps its original points value).
-        if (!$award->id && $award->eventId) {
-            $event = Points::getInstance()->events->getEventById($award->eventId);
-            if ($event) {
-                $award->pointsSnapshot = $event->points;
+        if (!$award->id && $award->ruleId) {
+            $rule = Points::getInstance()->rules->getRuleById($award->ruleId);
+            if ($rule) {
+                $award->pointsSnapshot = $rule->points;
             }
         }
 

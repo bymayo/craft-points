@@ -10,12 +10,12 @@
     { label: 'Awards'|t('points'), url: url('points/awards') },
 ] %}
 
-{% set eventOptions = [{ label: '----'|t('points'), value: '' }] %}
-{% for event in events %}
-    {% set suffix = event.pointsType == 'percent' ? '%' : ' ' ~ craft.points.currencyPlural %}
-    {% set eventOptions = eventOptions|merge([{
-        label: event.name ~ ' (' ~ event.points ~ suffix ~ ')',
-        value: event.id,
+{% set ruleOptions = [{ label: '----'|t('points'), value: '' }] %}
+{% for rule in rules %}
+    {% set suffix = rule.pointsType == 'percent' ? '%' : ' ' ~ craft.points.currencyPlural %}
+    {% set ruleOptions = ruleOptions|merge([{
+        label: rule.name ~ ' (' ~ rule.points ~ suffix ~ ')',
+        value: rule.id,
     }]) %}
 {% endfor %}
 
@@ -39,19 +39,19 @@
     }) }}
 
     {{ forms.selectField({
-        label: 'Event'|t('points'),
-        id: 'eventId',
-        name: 'eventId',
-        options: eventOptions,
-        value: award.eventId,
+        label: 'Rule'|t('points'),
+        id: 'ruleId',
+        name: 'ruleId',
+        options: ruleOptions,
+        value: award.ruleId,
         required: true,
-        errors: award.getErrors('eventId'),
+        errors: award.getErrors('ruleId'),
     }) }}
 
     {% if award.id %}
         {{ forms.textField({
             label: craft.points.currencyPlural,
-            instructions: 'Snapshot of the event\'s points value when this award was created. Editing the event later won\'t change this.'|t('points'),
+            instructions: 'Snapshot of the rule\'s points value when this award was created. Editing the rule later won\'t change this.'|t('points'),
             id: 'pointsSnapshot',
             name: 'pointsSnapshot',
             type: 'number',

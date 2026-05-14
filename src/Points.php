@@ -3,14 +3,17 @@
 namespace bymayo\points;
 
 use bymayo\points\elements\PointAward;
-use bymayo\points\gql\types\EventType;
 use bymayo\points\gql\types\LeaderboardRowType;
 use bymayo\points\gql\types\LevelType;
 use bymayo\points\gql\types\PointAwardType;
+use bymayo\points\gql\types\RuleType;
 use bymayo\points\models\Settings;
 use bymayo\points\services\Awards;
-use bymayo\points\services\Events;
+use bymayo\points\services\Conditions;
 use bymayo\points\services\Levels;
+use bymayo\points\services\Limits;
+use bymayo\points\services\Rewards;
+use bymayo\points\services\Rules;
 use bymayo\points\services\Triggers;
 use bymayo\points\variables\PointsVariable;
 use bymayo\points\widgets\LatestAwardsWidget;
@@ -37,10 +40,13 @@ use yii\base\Event;
  *
  * @method static Points getInstance()
  * @method Settings getSettings()
- * @property-read Events $events
+ * @property-read Rules $rules
  * @property-read Awards $awards
  * @property-read Levels $levels
  * @property-read Triggers $triggers
+ * @property-read Conditions $conditions
+ * @property-read Limits $limits
+ * @property-read Rewards $rewards
  * @author ByMayo <jason@bymayo.co.uk>
  * @copyright ByMayo
  * @license https://craftcms.github.io/license/ Craft License
@@ -50,7 +56,7 @@ class Points extends Plugin
     public const EDITION_LITE = 'lite';
     public const EDITION_PRO = 'pro';
 
-    public string $schemaVersion = '1.4.0';
+    public string $schemaVersion = '1.7.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -66,10 +72,13 @@ class Points extends Plugin
     {
         return [
             'components' => [
-                'events' => Events::class,
+                'rules' => Rules::class,
                 'awards' => Awards::class,
                 'levels' => Levels::class,
                 'triggers' => Triggers::class,
+                'conditions' => Conditions::class,
+                'limits' => Limits::class,
+                'rewards' => Rewards::class,
             ],
         ];
     }
@@ -95,8 +104,8 @@ class Points extends Plugin
         if ($user->checkPermission('points-manageAwards')) {
             $subnav['awards'] = ['label' => Craft::t('points', 'Awards'), 'url' => 'points/awards'];
         }
-        if ($user->checkPermission('points-manageEvents')) {
-            $subnav['events'] = ['label' => Craft::t('points', 'Events'), 'url' => 'points/events'];
+        if ($user->checkPermission('points-manageRules')) {
+            $subnav['rules'] = ['label' => Craft::t('points', 'Rules'), 'url' => 'points/rules'];
         }
         if ($user->checkPermission('points-manageLevels')) {
             $subnav['levels'] = ['label' => Craft::t('points', 'Levels'), 'url' => 'points/levels'];
@@ -162,9 +171,10 @@ class Points extends Plugin
                 $event->rules['points/awards/new'] = 'points/awards/edit';
                 $event->rules['points/awards/<awardId:\d+>'] = 'points/awards/edit';
 
-                $event->rules['points/events'] = 'points/events/index';
-                $event->rules['points/events/new'] = 'points/events/edit';
-                $event->rules['points/events/<eventId:\d+>'] = 'points/events/edit';
+                $event->rules['points/rules'] = 'points/rules/index';
+                $event->rules['points/rules/new'] = 'points/rules/edit';
+                $event->rules['points/rules/<ruleId:\d+>'] = 'points/rules/edit';
+                $event->rules['POST points/rules/add-row'] = 'points/rules/add-row';
 
                 $event->rules['points/levels'] = 'points/levels/index';
                 $event->rules['points/levels/new'] = 'points/levels/edit';
@@ -198,8 +208,8 @@ class Points extends Plugin
                 $event->permissions[] = [
                     'heading' => $this->getSettings()->currencyNamePlural,
                     'permissions' => [
-                        'points-manageEvents' => [
-                            'label' => Craft::t('points', 'Manage events'),
+                        'points-manageRules' => [
+                            'label' => Craft::t('points', 'Manage rules'),
                         ],
                         'points-manageAwards' => [
                             'label' => Craft::t('points', 'Manage awards'),
@@ -219,7 +229,7 @@ class Points extends Plugin
             Gql::class,
             Gql::EVENT_REGISTER_GQL_TYPES,
             function(RegisterGqlTypesEvent $event) {
-                $event->types[] = EventType::class;
+                $event->types[] = RuleType::class;
                 $event->types[] = LevelType::class;
                 $event->types[] = PointAwardType::class;
                 $event->types[] = LeaderboardRowType::class;
@@ -230,18 +240,18 @@ class Points extends Plugin
             Gql::class,
             Gql::EVENT_REGISTER_GQL_QUERIES,
             function(RegisterGqlQueriesEvent $event) {
-                $event->queries['pointsEvents'] = [
-                    'type' => Type::listOf(EventType::getType()),
+                $event->queries['pointsRules'] = [
+                    'type' => Type::listOf(RuleType::getType()),
                     'args' => [],
-                    'resolve' => fn() => self::getInstance()->events->getAllEvents(),
-                    'description' => 'All Points events.',
+                    'resolve' => fn() => self::getInstance()->rules->getAllRules(),
+                    'description' => 'All Points rules.',
                 ];
 
-                $event->queries['pointsEvent'] = [
-                    'type' => EventType::getType(),
+                $event->queries['pointsRule'] = [
+                    'type' => RuleType::getType(),
                     'args' => ['handle' => Type::nonNull(Type::string())],
-                    'resolve' => fn($source, array $args) => self::getInstance()->events->getEventByHandle($args['handle']),
-                    'description' => 'A single Points event by handle.',
+                    'resolve' => fn($source, array $args) => self::getInstance()->rules->getRuleByHandle($args['handle']),
+                    'description' => 'A single Points rule by handle.',
                 ];
 
                 $event->queries['pointsLevels'] = [
@@ -262,7 +272,7 @@ class Points extends Plugin
                     'type' => Type::listOf(PointAwardType::getType()),
                     'args' => [
                         'userId' => Type::int(),
-                        'eventId' => Type::int(),
+                        'ruleId' => Type::int(),
                         'limit' => Type::int(),
                         'offset' => Type::int(),
                     ],
@@ -272,8 +282,8 @@ class Points extends Plugin
                         if (isset($args['userId'])) {
                             $query->userId((int)$args['userId']);
                         }
-                        if (isset($args['eventId'])) {
-                            $query->eventId((int)$args['eventId']);
+                        if (isset($args['ruleId'])) {
+                            $query->ruleId((int)$args['ruleId']);
                         }
                         if (isset($args['limit'])) {
                             $query->limit((int)$args['limit']);

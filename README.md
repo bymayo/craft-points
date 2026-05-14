@@ -25,7 +25,7 @@ plugins.points.edition: pro
 
 ## Features
 
-- **Events** — define point-awarding actions (e.g. "Signed up to newsletter" = 20pts)
+- **Rules** — define point-awarding actions (e.g. "Signed up to newsletter" = 20pts)
 - **Automatic triggers** — fire events on Entry create/update/delete, Category save/delete, User register/login/update, Asset upload/delete — with per-section / per-group / per-volume scoping
 - **Extensible** — other plugins can register their own triggers via `Triggers::EVENT_REGISTER_TRIGGERS`
 - **Awards** — award those events to users from the CP or Twig
@@ -58,17 +58,17 @@ php craft plugin/install points
 
 | Term | Meaning |
 |---|---|
-| **Event** | A named action worth a fixed number of points, e.g. `signedUp` = 20 |
-| **Award** | A record of an event being awarded to a specific user, at a specific time |
+| **Rule** | A named action worth a fixed number of points, e.g. `signedUp` = 20 |
+| **Award** | A record of a rule being awarded to a specific user, at a specific time |
 | **Level** | A named tier reached once a user's point sum crosses a threshold |
 
 The default currency is "Points", but you can rename it in **Points → Settings** (e.g. Coins, Credits, Stars). The chosen name appears throughout the CP and is available in Twig as `{{ craft.points.currency }}` / `{{ craft.points.currencyPlural }}`.
 
 ## Usage
 
-### Events
+### Rules
 
-Navigate to **Points → Events** in the CP. Create an event with:
+Navigate to **Points → Rules** in the CP. Create a rule with:
 
 - **Name** — display label, e.g. "Signed up to newsletter"
 - **Handle** — short identifier you'll use in Twig, e.g. `signedUp`
@@ -186,13 +186,13 @@ query Recent($userId: Int!) {
     id
     pointsSnapshot
     dateCreated
-    event { name handle pointsType }
+    rule { name handle pointsType }
   }
 }
 
-# Look up an event by handle
-query Event {
-  pointsEvent(handle: "signedUp") {
+# Look up a rule by handle
+query Rule {
+  pointsRule(handle: "signedUp") {
     name
     points
     pointsType
@@ -215,11 +215,11 @@ Available queries:
 
 | Query | Args | Returns |
 |---|---|---|
-| `pointsEvents` | — | `[PointsEvent]` |
-| `pointsEvent` | `handle: String!` | `PointsEvent` |
+| `pointsRules` | — | `[PointsRule]` |
+| `pointsRule` | `handle: String!` | `PointsRule` |
 | `pointsLevels` | — | `[PointsLevel]` |
 | `pointsLevelForUser` | `userId: Int!` | `PointsLevel` |
-| `pointsAwards` | `userId, eventId, limit, offset` | `[PointsAward]` |
+| `pointsAwards` | `userId, ruleId, limit, offset` | `[PointsAward]` |
 | `pointsSumForUser` | `userId: Int!` | `Int` |
 | `pointsCountForUser` | `userId: Int!` | `Int` |
 | `pointsLeaderboard` | `limit, offset` | `[PointsLeaderboardRow]` |
@@ -230,10 +230,10 @@ From the CP — **Points → Awards → New award** — or via Twig:
 
 ```twig
 {# Award points to the current logged-in user #}
-{{ craft.points.addAward({ eventHandle: 'signedUp' }) }}
+{{ craft.points.addAward({ ruleHandle: 'signedUp' }) }}
 
 {# Award to a specific user #}
-{{ craft.points.addAward({ userId: 5, eventHandle: 'signedUp' }) }}
+{{ craft.points.addAward({ userId: 5, ruleHandle: 'signedUp' }) }}
 ```
 
 If the event has **Allow multiple** off and the user already has an award for it, `addAward` is a silent no-op.
@@ -242,10 +242,10 @@ If the event has **Allow multiple** off and the user already has an award for it
 
 ```twig
 {# Remove the oldest matching award for the current user #}
-{{ craft.points.removeAward({ eventHandle: 'signedUp' }) }}
+{{ craft.points.removeAward({ ruleHandle: 'signedUp' }) }}
 
 {# Or for a specific user #}
-{{ craft.points.removeAward({ userId: 5, eventHandle: 'signedUp' }) }}
+{{ craft.points.removeAward({ userId: 5, ruleHandle: 'signedUp' }) }}
 ```
 
 `removeAward` removes a single award. To clear all of a user's awards for an event, call it in a loop.
@@ -313,7 +313,7 @@ Two widgets ship with the plugin (Dashboard → + New widget):
 
 ```twig
 {% for award in craft.points.awardsByUser() %}
-    {{ award.event.name }} — {{ award.pointsSnapshot }} pts ({{ award.dateCreated|datetime }})
+    {{ award.rule.name }} — {{ award.pointsSnapshot }} pts ({{ award.dateCreated|datetime }})
 {% endfor %}
 ```
 
@@ -322,13 +322,12 @@ Two widgets ship with the plugin (Dashboard → + New widget):
 | Call | Returns |
 |---|---|
 | `craft.points.awards` | `PointAward[]` — all awards, newest first |
-| `craft.points.events` | `Event[]` |
 | `craft.points.levels` | `Level[]` — ordered by threshold ascending |
 | `craft.points.user(id)` | `User\|null` |
-| `craft.points.event(handle)` | `Event\|null` |
-| `craft.points.eventById(id)` | `Event\|null` |
-| `craft.points.eventByHandle(handle)` | `Event\|null` |
-| `craft.points.eventOptions` | `array` — for select fields |
+| `craft.points.rules` | `Rule[]` |
+| `craft.points.rule(handle)` | `Rule\|null` |
+| `craft.points.ruleById(id)` | `Rule\|null` |
+| `craft.points.ruleByHandle(handle)` | `Rule\|null` |
 | `craft.points.awardById(id)` | `PointAward\|null` |
 | `craft.points.awardsByUser(id?)` | `PointAward[]` — defaults to current user |
 | `craft.points.addAward(options)` | `PointAward\|null` |

@@ -10,6 +10,7 @@ class OrderCompletedTrigger extends BaseTrigger
     public static function handle(): string { return 'commerce.orderCompleted'; }
     public static function label(): string { return 'Order completed'; }
     public static function group(): string { return 'Commerce'; }
+    public static function subject(): string { return 'order'; }
     public static function eventClass(): string { return Order::class; }
     public static function eventName(): string { return Order::EVENT_AFTER_COMPLETE_ORDER; }
 

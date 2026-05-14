@@ -3,7 +3,7 @@
 namespace bymayo\points\elements;
 
 use bymayo\points\elements\db\PointAwardQuery;
-use bymayo\points\models\Event;
+use bymayo\points\models\Rule;
 use bymayo\points\Points;
 use bymayo\points\records\PointAwardRecord;
 use Craft;
@@ -16,11 +16,11 @@ use craft\helpers\UrlHelper;
 
 class PointAward extends Element
 {
-    public ?int $eventId = null;
+    public ?int $ruleId = null;
     public ?int $userId = null;
     public int $pointsSnapshot = 0;
 
-    private ?Event $_event = null;
+    private ?Rule $_rule = null;
     private ?User $_user = null;
 
     public static function displayName(): string
@@ -89,15 +89,15 @@ class PointAward extends Element
             ],
         ];
 
-        $events = Points::getInstance()->events->getAllEvents();
+        $rules = Points::getInstance()->rules->getAllRules();
 
-        if (!empty($events)) {
-            $sources[] = ['heading' => Craft::t('points', 'Events')];
-            foreach ($events as $event) {
+        if (!empty($rules)) {
+            $sources[] = ['heading' => Craft::t('points', 'Rules')];
+            foreach ($rules as $rule) {
                 $sources[] = [
-                    'key' => 'event:' . $event->id,
-                    'label' => $event->name,
-                    'criteria' => ['eventId' => $event->id],
+                    'key' => 'rule:' . $rule->id,
+                    'label' => $rule->name,
+                    'criteria' => ['ruleId' => $rule->id],
                     'defaultSort' => ['dateCreated', 'desc'],
                 ];
             }
@@ -110,7 +110,7 @@ class PointAward extends Element
     {
         return [
             'user' => ['label' => Craft::t('points', 'User')],
-            'event' => ['label' => Craft::t('points', 'Event')],
+            'rule' => ['label' => Craft::t('points', 'Rule')],
             'pointsSnapshot' => ['label' => Craft::t('points', 'Points')],
             'dateCreated' => ['label' => Craft::t('app', 'Date Created')],
         ];
@@ -118,7 +118,7 @@ class PointAward extends Element
 
     protected static function defineDefaultTableAttributes(string $source): array
     {
-        return ['user', 'event', 'pointsSnapshot', 'dateCreated'];
+        return ['user', 'rule', 'pointsSnapshot', 'dateCreated'];
     }
 
     protected static function defineSortOptions(): array
@@ -134,15 +134,15 @@ class PointAward extends Element
 
     protected static function defineSearchableAttributes(): array
     {
-        return ['userId', 'eventId'];
+        return ['userId', 'ruleId'];
     }
 
-    public function getEvent(): ?Event
+    public function getRule(): ?Rule
     {
-        if ($this->_event === null && $this->eventId) {
-            $this->_event = Points::getInstance()->events->getEventById($this->eventId);
+        if ($this->_rule === null && $this->ruleId) {
+            $this->_rule = Points::getInstance()->rules->getRuleById($this->ruleId);
         }
-        return $this->_event;
+        return $this->_rule;
     }
 
     public function getUser(): ?User
@@ -179,12 +179,12 @@ class PointAward extends Element
             case 'user':
                 $user = $this->getUser();
                 return $user ? Cp::elementChipHtml($user) : '';
-            case 'event':
-                $event = $this->getEvent();
-                if (!$event) {
+            case 'rule':
+                $rule = $this->getRule();
+                if (!$rule) {
                     return '';
                 }
-                return Html::a(Html::encode($event->name), $event->getCpEditUrl());
+                return Html::a(Html::encode($rule->name), $rule->getCpEditUrl());
             case 'pointsSnapshot':
                 return (string)$this->pointsSnapshot;
         }
@@ -195,8 +195,8 @@ class PointAward extends Element
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
-        $rules[] = [['eventId', 'userId'], 'required'];
-        $rules[] = [['eventId', 'userId', 'pointsSnapshot'], 'integer'];
+        $rules[] = [['ruleId', 'userId'], 'required'];
+        $rules[] = [['ruleId', 'userId', 'pointsSnapshot'], 'integer'];
         return $rules;
     }
 
@@ -204,7 +204,7 @@ class PointAward extends Element
     {
         if (!$this->propagating) {
             $data = [
-                'eventId' => $this->eventId,
+                'ruleId' => $this->ruleId,
                 'userId' => $this->userId,
                 'pointsSnapshot' => $this->pointsSnapshot,
             ];

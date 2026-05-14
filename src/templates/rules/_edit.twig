@@ -1,0 +1,649 @@
+{% extends '_layouts/cp' %}
+
+{% import '_includes/forms.twig' as forms %}
+
+{% set selectedSubnavItem = 'rules' %}
+{% set fullPageForm = true %}
+
+{% set crumbs = [
+    { label: craft.points.currencyPlural, url: url('points') },
+    { label: 'Rules'|t('points'), url: url('points/rules') },
+] %}
+
+{% set operatorOptions = [
+    { label: 'is ≥', value: '>=' },
+    { label: 'is >', value: '>' },
+    { label: 'is ≤', value: '<=' },
+    { label: 'is <', value: '<' },
+    { label: 'is ='|t('points'), value: '=' },
+    { label: 'is ≠', value: '!=' },
+] %}
+
+{% set periodOptions = [
+    { label: 'hour'|t('points'), value: 'hour' },
+    { label: 'day'|t('points'), value: 'day' },
+    { label: 'week'|t('points'), value: 'week' },
+    { label: 'month'|t('points'), value: 'month' },
+    { label: 'year'|t('points'), value: 'year' },
+] %}
+
+
+{% macro conditionConfig(index, condition, ctx) %}
+    {% import '_includes/forms.twig' as forms %}
+    {% set prefix = 'conditions[' ~ index ~ ']' %}
+
+    <div class="cnd-variant" data-variant="section" {% if condition.type != 'section' %}hidden{% endif %}>
+        {{ forms.multiselect({ name: prefix ~ '[ids]', options: ctx.sectionOptions, values: condition.type == 'section' ? (condition.ids ?? []) : [] }) }}
+    </div>
+    <div class="cnd-variant" data-variant="userGroup" {% if condition.type != 'userGroup' %}hidden{% endif %}>
+        {{ forms.multiselect({ name: prefix ~ '[groupIds]', options: ctx.userGroupOptions, values: condition.type == 'userGroup' ? (condition.groupIds ?? []) : [] }) }}
+    </div>
+    <div class="cnd-variant" data-variant="userLevel" {% if condition.type != 'userLevel' %}hidden{% endif %}>
+        {{ forms.multiselect({ name: prefix ~ '[levelHandles]', options: ctx.levelOptions, values: condition.type == 'userLevel' ? (condition.levelHandles ?? []) : [] }) }}
+    </div>
+    <div class="cnd-variant cnd-inline" data-variant="commerce.orderTotal" {% if condition.type != 'commerce.orderTotal' %}hidden{% endif %}>
+        {{ forms.select({ name: prefix ~ '[operator]', options: ctx.operatorOptions, value: condition.type == 'commerce.orderTotal' ? (condition.operator ?? '>=') : '>=' }) }}
+        {{ forms.text({ name: prefix ~ '[value]', type: 'number', placeholder: 'Amount'|t('points'), value: condition.type == 'commerce.orderTotal' ? (condition.value ?? '') : '' }) }}
+    </div>
+    <div class="cnd-variant cnd-inline" data-variant="commerce.orderItemCount" {% if condition.type != 'commerce.orderItemCount' %}hidden{% endif %}>
+        {{ forms.select({ name: prefix ~ '[operator]', options: ctx.operatorOptions, value: condition.type == 'commerce.orderItemCount' ? (condition.operator ?? '>=') : '>=' }) }}
+        {{ forms.text({ name: prefix ~ '[value]', type: 'number', placeholder: 'Items'|t('points'), value: condition.type == 'commerce.orderItemCount' ? (condition.value ?? '') : '' }) }}
+    </div>
+    <div class="cnd-variant cnd-inline" data-variant="commerce.hasCoupon" {% if condition.type != 'commerce.hasCoupon' %}hidden{% endif %}>
+        {{ forms.select({
+            name: prefix ~ '[hasCoupon]',
+            options: [
+                { label: 'has a coupon code'|t('points'), value: '1' },
+                { label: 'has no coupon code'|t('points'), value: '0' },
+            ],
+            value: condition.type == 'commerce.hasCoupon' ? ((condition.hasCoupon ?? true) ? '1' : '0') : '1',
+        }) }}
+    </div>
+    <div class="cnd-variant" data-variant="commerce.containsProduct" {% if condition.type != 'commerce.containsProduct' %}hidden{% endif %}>
+        {% set selectedProducts = condition.type == 'commerce.containsProduct' ? (ctx.productLookup[index] ?? []) : [] %}
+        {{ forms.elementSelect({
+            name: prefix ~ '[productIds]',
+            elementType: 'craft\\commerce\\elements\\Product',
+            elements: selectedProducts,
+            limit: null,
+            selectionLabel: 'Add products'|t('points'),
+        }) }}
+    </div>
+{% endmacro %}
+
+{% macro limitConfig(index, limit, ctx) %}
+    {% import '_includes/forms.twig' as forms %}
+    {% set prefix = 'limits[' ~ index ~ ']' %}
+
+    <div class="cnd-variant" data-variant="oncePerUser" {% if limit.type != 'oncePerUser' %}hidden{% endif %}>
+        <span class="cnd-suffix cnd-note">{{ 'at most once per user, ever'|t('points') }}</span>
+    </div>
+    <div class="cnd-variant cnd-inline" data-variant="maxPerUser" {% if limit.type != 'maxPerUser' %}hidden{% endif %}>
+        {{ forms.text({ name: prefix ~ '[max]', type: 'number', placeholder: 'N'|t('points'), value: limit.type == 'maxPerUser' ? (limit.max ?? '') : '' }) }}
+        <span class="cnd-suffix">{{ 'times per user, ever'|t('points') }}</span>
+    </div>
+    <div class="cnd-variant cnd-inline" data-variant="perPeriod" {% if limit.type != 'perPeriod' %}hidden{% endif %}>
+        {{ forms.text({ name: prefix ~ '[max]', type: 'number', placeholder: 'N'|t('points'), value: limit.type == 'perPeriod' ? (limit.max ?? '') : '' }) }}
+        <span class="cnd-suffix">{{ 'per'|t('points') }}</span>
+        {{ forms.select({ name: prefix ~ '[period]', options: ctx.periodOptions, value: limit.type == 'perPeriod' ? (limit.period ?? 'day') : 'day' }) }}
+    </div>
+    <div class="cnd-variant cnd-inline" data-variant="cooldown" {% if limit.type != 'cooldown' %}hidden{% endif %}>
+        {{ forms.text({ name: prefix ~ '[seconds]', type: 'number', placeholder: 'Seconds'|t('points'), value: limit.type == 'cooldown' ? (limit.seconds ?? '') : '' }) }}
+        <span class="cnd-suffix">{{ 'seconds between awards'|t('points') }}</span>
+    </div>
+{% endmacro %}
+
+{% from _self import conditionConfig, limitConfig %}
+
+{% set macroCtx = {
+    sectionOptions: sectionOptions,
+    userGroupOptions: userGroupOptions,
+    levelOptions: levelOptions,
+    operatorOptions: operatorOptions,
+    periodOptions: periodOptions,
+    productLookup: conditionProductLookup,
+} %}
+
+{# Macro that renders a condition-type <select> with data-subjects on each option. #}
+{% macro conditionTypeSelect(index, currentType, types) %}
+    <div class="select cnd-type-wrap">
+        <select name="conditions[{{ index }}][type]" class="cnd-type">
+            <option value="">{{ 'Choose…'|t('points') }}</option>
+            {% for opt in types %}
+                <option value="{{ opt.value }}" data-subjects="{{ opt.subjects }}" {% if opt.value == currentType %}selected{% endif %}>{{ opt.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+{% endmacro %}
+
+{% from _self import conditionTypeSelect %}
+
+{% block content %}
+    {{ actionInput('points/rules/save') }}
+    {{ redirectInput('points/rules') }}
+    {% if rule.id %}
+        <input type="hidden" name="ruleId" value="{{ rule.id }}">
+    {% endif %}
+
+    {{ forms.textField({
+        first: true,
+        label: 'Name'|t('points'),
+        id: 'name',
+        name: 'name',
+        value: rule.name,
+        autofocus: true,
+        required: true,
+        errors: rule.getErrors('name'),
+    }) }}
+
+    {{ forms.textField({
+        label: 'Handle'|t('points'),
+        id: 'handle',
+        name: 'handle',
+        class: 'code',
+        value: rule.handle,
+        required: true,
+        errors: rule.getErrors('handle'),
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: 'Enabled'|t('points'),
+        id: 'enabled',
+        name: 'enabled',
+        on: rule.enabled,
+    }) }}
+
+    <hr>
+
+    <div class="field">
+        <div class="heading">
+            <label>{{ 'Rule'|t('points') }}</label>
+        </div>
+        <div class="input">
+            <div class="points-builder">
+
+                {# ----- When ----- #}
+                <div class="builder-section">
+                    <div class="section-heading">{{ 'When'|t('points') }}</div>
+                    <div class="section-rows">
+                        <div class="points-row">
+                            {{ forms.select({
+                                id: 'trigger',
+                                name: 'trigger',
+                                options: triggerOptions,
+                                value: rule.trigger ?? '',
+                                class: 'cnd-type',
+                            }) }}
+                        </div>
+                    </div>
+                </div>
+
+                {# ----- If ----- #}
+                <div class="builder-section" id="conditions-section" {% if not rule.trigger or not hasApplicableConditions %}hidden{% endif %}>
+                    <div class="section-heading">{{ 'If'|t('points') }} <span class="cnd-suffix">{{ '(all conditions must be true — leave empty for any trigger)'|t('points') }}</span></div>
+                    <div class="section-rows" id="conditions-list">
+                        {% for condition in rule.conditions %}
+                            {% include 'points/rules/_row' with {
+                                section: 'conditions',
+                                index: loop.index0,
+                                condition: condition,
+                                conditionTypes: conditionTypes,
+                                sectionOptions: sectionOptions,
+                                userGroupOptions: userGroupOptions,
+                                levelOptions: levelOptions,
+                                productLookup: conditionProductLookup,
+                            } only %}
+                        {% endfor %}
+                        <button type="button" id="add-condition" class="add-cnd">{{ '+ Add a condition'|t('points') }}</button>
+                    </div>
+                </div>
+
+                {# ----- Then ----- #}
+                <div class="builder-section points-reward">
+                    <div class="section-heading">{{ 'Then'|t('points') }}</div>
+                    <div class="section-rows">
+                        <div class="points-row">
+                            {{ forms.select({
+                                name: 'reward[type]',
+                                id: 'reward-type',
+                                options: rewardTypes,
+                                value: rule.reward.type ?? 'flat',
+                                class: 'cnd-type',
+                            }) }}
+                            <div class="cnd-value">
+                                <div class="cnd-variant cnd-inline" data-variant="flat" {% if (rule.reward.type ?? 'flat') != 'flat' %}hidden{% endif %}>
+                                    {{ forms.text({ name: 'reward[points]', type: 'number', value: rule.reward.type == 'flat' ? (rule.reward.points ?? 0) : 0 }) }}
+                                    <span class="cnd-suffix">{{ craft.points.currencyPlural|lower }}</span>
+                                </div>
+                                <div class="cnd-variant cnd-inline" data-variant="percent" {% if (rule.reward.type ?? '') != 'percent' %}hidden{% endif %}>
+                                    {{ forms.text({ name: 'reward[percent]', type: 'number', value: rule.reward.type == 'percent' ? (rule.reward.percent ?? 0) : 0 }) }}
+                                    <span class="cnd-suffix cnd-symbol">%</span>
+                                </div>
+                                <div class="cnd-variant cnd-inline" data-variant="deduct" {% if (rule.reward.type ?? '') != 'deduct' %}hidden{% endif %}>
+                                    {{ forms.text({ name: 'reward[points]', type: 'number', value: rule.reward.type == 'deduct' ? (rule.reward.points ?? 0) : 0 }) }}
+                                    <span class="cnd-suffix">{{ craft.points.currencyPlural|lower }}</span>
+                                </div>
+                            </div>
+                            <span class="cnd-example" data-for-variant="percent" {% if (rule.reward.type ?? '') != 'percent' %}hidden{% endif %}>
+                                {{ 'e.g. 10% awards 10 {currency} on a {sym}100 order'|t('points', { currency: craft.points.currencyPlural|lower, sym: craft.points.symbol }) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    {# ----- Limits ----- #}
+    {% set firstLimit = rule.limits|length ? rule.limits[0] : { type: '' } %}
+    {% set limitTypeOptions = [{ value: '', label: 'No limit'|t('points') }] %}
+    {% for opt in limitTypes %}
+        {% set limitTypeOptions = limitTypeOptions|merge([opt]) %}
+    {% endfor %}
+
+    {{ forms.selectField({
+        label: 'Limit'|t('points'),
+        id: 'limit-type',
+        name: 'limits[0][type]',
+        options: limitTypeOptions,
+        value: firstLimit.type,
+    }) }}
+
+    <div id="limit-maxPerUser" {% if firstLimit.type != 'maxPerUser' %}hidden{% endif %}>
+        {{ forms.textField({
+            label: 'Max'|t('points'),
+            id: 'limit-maxPerUser-max',
+            name: 'limits[0][max]',
+            type: 'number',
+            value: firstLimit.type == 'maxPerUser' ? (firstLimit.max ?? '') : '',
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Reset every'|t('points'),
+            id: 'limit-maxPerUser-period',
+            name: 'limits[0][period]',
+            options: [
+                { label: 'Never'|t('points'), value: 'ever' },
+                { label: 'Hour'|t('points'), value: 'hour' },
+                { label: 'Day'|t('points'), value: 'day' },
+                { label: 'Week'|t('points'), value: 'week' },
+                { label: 'Month'|t('points'), value: 'month' },
+                { label: 'Year'|t('points'), value: 'year' },
+            ],
+            value: firstLimit.type == 'maxPerUser' ? (firstLimit.period ?? 'ever') : 'ever',
+        }) }}
+    </div>
+
+    <hr>
+
+    {# ----- Active ----- #}
+    {{ forms.dateTimeField({
+        label: 'Active from'|t('points'),
+        id: 'activeFrom',
+        name: 'activeFrom',
+        value: activeFromDt,
+    }) }}
+
+    {{ forms.dateTimeField({
+        label: 'Active to'|t('points'),
+        id: 'activeTo',
+        name: 'activeTo',
+        value: activeToDt,
+    }) }}
+
+    {% css %}
+        .points-builder {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border: 1px dashed var(--hairline-color, rgba(96,125,159,.3));
+            border-radius: 6px;
+            padding: 16px;
+        }
+        .points-builder .builder-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .points-builder .section-heading {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--medium-text-color, #596779);
+        }
+        .points-builder .section-heading .cnd-suffix {
+            text-transform: none;
+            font-weight: 400;
+            letter-spacing: 0;
+            margin-left: 4px;
+        }
+        .points-builder .section-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .points-builder .points-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: var(--gray-050, #f3f5fa);
+            border-radius: 5px;
+            padding: 6px;
+        }
+        .points-builder .cnd-value {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+        .points-builder .cnd-variant {
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+        }
+        .points-builder .cnd-variant:not([hidden]) {
+            display: flex;
+        }
+        .points-builder .cnd-variant[hidden] {
+            display: none !important;
+        }
+        .points-builder .cnd-variant input,
+        .points-builder .cnd-variant select,
+        .points-builder .cnd-variant .select,
+        .points-builder .cnd-variant .multiselect {
+            margin: 0;
+        }
+        .points-builder .cnd-variant input[type="number"] {
+            max-width: 110px;
+        }
+        .points-builder .cnd-variant .multiselect select {
+            min-height: 64px;
+        }
+        .points-builder .cnd-suffix {
+            color: var(--medium-text-color, #596779);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .points-builder .cnd-note {
+            font-style: italic;
+            opacity: 0.7;
+        }
+        .points-builder .cnd-symbol {
+            font-weight: 600;
+            color: var(--text-color, #3f4d5c);
+            margin-left: -4px;
+        }
+        .points-builder .cnd-example {
+            flex-basis: 100%;
+            margin-top: 2px;
+            font-size: 12px;
+            color: var(--medium-text-color, #596779);
+            font-style: italic;
+            opacity: 0.75;
+            white-space: normal;
+        }
+        .points-builder .cnd-remove {
+            flex: 0 0 auto;
+            background: transparent;
+            border: 0;
+            color: rgba(0,0,0,.4);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-left: auto;
+        }
+        .points-builder .cnd-remove:hover {
+            color: var(--error-color, #cf1124);
+            background: rgba(0,0,0,.05);
+        }
+        .points-builder .add-cnd {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            background: transparent;
+            border: 1px dashed var(--hairline-color, rgba(96,125,159,.3));
+            color: var(--medium-text-color, #596779);
+            font-size: 13px;
+            padding: 5px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 2px;
+        }
+        .points-builder .add-cnd:hover {
+            color: var(--text-color, #3f4d5c);
+            border-color: var(--medium-text-color, #596779);
+            background: var(--gray-050, #f3f5fa);
+        }
+    {% endcss %}
+
+    {% js %}
+        new Craft.HandleGenerator('#name', '#handle');
+
+        (function () {
+            var conditionMeta = {{ conditionMeta|json_encode|raw }};
+            var triggerSubjects = {{ triggerSubjects|json_encode|raw }};
+
+            function getTriggerSubject() {
+                var sel = document.getElementById('trigger');
+                if (!sel) return '';
+                // forms.select wraps in <div class="select"><select>
+                if (sel.tagName !== 'SELECT') {
+                    sel = sel.querySelector('select');
+                }
+                return sel ? (triggerSubjects[sel.value] || '') : '';
+            }
+
+            function syncConditionTypeOptions(select) {
+                var subject = getTriggerSubject();
+                var current = select.value;
+                Array.from(select.options).forEach(function (opt) {
+                    if (!opt.value) {
+                        opt.hidden = false;
+                        return;
+                    }
+                    var subjects = (opt.dataset.subjects || '').split(',').filter(Boolean);
+                    // Strict match: option must explicitly include the current trigger's subject.
+                    var matches = subject && subjects.indexOf(subject) !== -1;
+                    opt.hidden = !matches;
+                    if (!matches && opt.value === current) {
+                        select.value = '';
+                    }
+                });
+            }
+
+            function refreshAllConditionTypes() {
+                document.querySelectorAll('select.cnd-type').forEach(function (sel) {
+                    if (sel.name && sel.name.indexOf('conditions[') === 0) {
+                        syncConditionTypeOptions(sel);
+                        // If the value changed due to filtering, sync the variant display.
+                        var row = sel.closest('.points-row');
+                        if (row) syncVariants(row);
+                    }
+                });
+            }
+
+            function syncVariants(row) {
+                var typeSel = row.querySelector('select.cnd-type')
+                    || (row.querySelector('.cnd-type, .select.cnd-type')?.querySelector('select'));
+                if (!typeSel) return;
+                var active = typeSel.value;
+                row.querySelectorAll('.cnd-variant').forEach(function (v) {
+                    var match = v.dataset.variant === active;
+                    v.hidden = !match;
+                    v.querySelectorAll('input, select, textarea').forEach(function (el) {
+                        el.disabled = !match;
+                    });
+                });
+                // Auxiliary elements scoped to a single variant (e.g. example text).
+                row.querySelectorAll('[data-for-variant]').forEach(function (el) {
+                    el.hidden = el.dataset.forVariant !== active;
+                });
+            }
+
+            function syncOperatorFields(opSel) {
+                var variant = opSel.closest('.cnd-variant');
+                if (!variant) return;
+                var showValue2 = opSel.value === 'between';
+                ['op-and', 'op-value2'].forEach(function (cls) {
+                    variant.querySelectorAll('.' + cls).forEach(function (el) {
+                        el.hidden = !showValue2;
+                        el.querySelectorAll('input, select').forEach(function (i) {
+                            i.disabled = !showValue2;
+                        });
+                    });
+                });
+            }
+
+            // Resolve the underlying <select> for a row's type picker. `forms.select`
+            // puts the `cnd-type` class on the wrapping <div>, so we have to descend.
+            function findTypeSelect(row) {
+                var sel = row.querySelector('select.cnd-type');
+                if (sel) return sel;
+                var wrap = row.querySelector('.cnd-type, .select.cnd-type');
+                return wrap ? wrap.querySelector('select') : null;
+            }
+
+            function wireRow(row) {
+                var typeSel = findTypeSelect(row);
+                if (typeSel) {
+                    typeSel.addEventListener('change', function () {
+                        syncVariants(row);
+                    });
+                }
+                var remove = row.querySelector('.cnd-remove');
+                if (remove) {
+                    remove.addEventListener('click', function () {
+                        row.remove();
+                    });
+                }
+                // For condition rows, filter options based on current subject.
+                if (typeSel && typeSel.name && typeSel.name.indexOf('conditions[') === 0) {
+                    syncConditionTypeOptions(typeSel);
+                }
+                // Wire operator selects (numeric conditions: hide/show value, value2, "and").
+                row.querySelectorAll('select').forEach(function (sel) {
+                    if (sel.name && /\[operator\]$/.test(sel.name)) {
+                        sel.addEventListener('change', function () {
+                            syncOperatorFields(sel);
+                        });
+                        syncOperatorFields(sel);
+                    }
+                });
+                syncVariants(row);
+            }
+
+            function addRow(section, listId) {
+                var list = document.getElementById(listId);
+                if (!list) return;
+                var nextIndex = list.querySelectorAll(':scope > .points-row').length;
+
+                Craft.sendActionRequest('POST', 'points/rules/add-row', {
+                    data: {
+                        section: section,
+                        index: nextIndex,
+                    },
+                }).then(function (response) {
+                    var data = response.data || {};
+                    if (!data.html) return;
+
+                    var wrap = document.createElement('div');
+                    wrap.innerHTML = data.html.trim();
+                    var row = wrap.firstChild;
+
+                    var addBtn = list.querySelector('.add-cnd');
+                    if (addBtn) {
+                        list.insertBefore(row, addBtn);
+                    } else {
+                        list.appendChild(row);
+                    }
+
+                    // Inject head/body HTML from the server so element-select init JS runs.
+                    if (data.headHtml && typeof Craft.appendHeadHtml === 'function') {
+                        Craft.appendHeadHtml(data.headHtml);
+                    }
+                    if (data.bodyHtml && typeof Craft.appendBodyHtml === 'function') {
+                        Craft.appendBodyHtml(data.bodyHtml);
+                    }
+
+                    wireRow(row);
+                });
+            }
+
+            // Wire trigger change → re-filter conditions and toggle the If section.
+            var triggerSel = document.getElementById('trigger');
+            if (triggerSel && triggerSel.tagName !== 'SELECT') {
+                triggerSel = triggerSel.querySelector('select');
+            }
+            function hasApplicableConditions(subject) {
+                if (!subject) return false;
+                for (var handle in conditionMeta) {
+                    var subjects = (conditionMeta[handle] && conditionMeta[handle].subjects) || [];
+                    if (subjects.indexOf(subject) !== -1) return true;
+                }
+                return false;
+            }
+
+            function syncConditionsSection() {
+                var sec = document.getElementById('conditions-section');
+                if (!sec || !triggerSel) return;
+                var subject = triggerSubjects[triggerSel.value] || '';
+                sec.hidden = !subject || !hasApplicableConditions(subject);
+            }
+            if (triggerSel) {
+                triggerSel.addEventListener('change', function () {
+                    // Clear all existing condition rows when the trigger changes —
+                    // previously-selected conditions almost always become invalid
+                    // for the new subject.
+                    var list = document.getElementById('conditions-list');
+                    if (list) {
+                        list.querySelectorAll(':scope > .points-row').forEach(function (r) {
+                            r.remove();
+                        });
+                    }
+                    syncConditionsSection();
+                    refreshAllConditionTypes();
+                });
+            }
+
+            document.querySelectorAll('#conditions-list > .points-row, #limits-list > .points-row, .points-reward .points-row')
+                .forEach(wireRow);
+
+            document.getElementById('add-condition')
+                ?.addEventListener('click', function () { addRow('conditions', 'conditions-list'); });
+
+            // Limit: single, non-repeatable. Show/hide config fields based on type select.
+            var limitTypeSel = document.getElementById('limit-type');
+            if (limitTypeSel && limitTypeSel.tagName !== 'SELECT') {
+                limitTypeSel = limitTypeSel.querySelector('select');
+            }
+            var limitVariantIds = ['limit-maxPerUser'];
+            function syncLimitVariants() {
+                if (!limitTypeSel) return;
+                var active = limitTypeSel.value;
+                limitVariantIds.forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (!el) return;
+                    var match = el.id === 'limit-' + active;
+                    el.hidden = !match;
+                    el.querySelectorAll('input, select, textarea').forEach(function (i) {
+                        i.disabled = !match;
+                    });
+                });
+            }
+            if (limitTypeSel) {
+                limitTypeSel.addEventListener('change', syncLimitVariants);
+                syncLimitVariants();
+            }
+
+            // Initial sync.
+            syncConditionsSection();
+            refreshAllConditionTypes();
+        })();
+    {% endjs %}
+{% endblock %}

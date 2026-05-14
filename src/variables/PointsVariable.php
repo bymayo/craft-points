@@ -3,8 +3,8 @@
 namespace bymayo\points\variables;
 
 use bymayo\points\elements\PointAward;
-use bymayo\points\models\Event;
 use bymayo\points\models\Level;
+use bymayo\points\models\Rule;
 use bymayo\points\Points;
 use Craft;
 use craft\elements\User;
@@ -25,11 +25,11 @@ class PointsVariable
     }
 
     /**
-     * @return Event[]
+     * @return Rule[]
      */
-    public function events(): array
+    public function rules(): array
     {
-        return Points::getInstance()->events->getAllEvents();
+        return Points::getInstance()->rules->getAllRules();
     }
 
     public function user(int $userId): ?User
@@ -37,31 +37,19 @@ class PointsVariable
         return Craft::$app->getUsers()->getUserById($userId);
     }
 
-    /**
-     * Returns an options array suitable for a select field, keyed by event handle.
-     */
-    public function eventOptions(): array
+    public function rule(string $handle): ?Rule
     {
-        $options = [['label' => '----', 'value' => '']];
-        foreach ($this->events() as $event) {
-            $options[] = ['label' => $event->name, 'value' => $event->handle];
-        }
-        return $options;
+        return Points::getInstance()->rules->getRuleByHandle($handle);
     }
 
-    public function event(string $handle): ?Event
+    public function ruleById(int $id): ?Rule
     {
-        return Points::getInstance()->events->getEventByHandle($handle);
+        return Points::getInstance()->rules->getRuleById($id);
     }
 
-    public function eventById(int $id): ?Event
+    public function ruleByHandle(string $handle): ?Rule
     {
-        return Points::getInstance()->events->getEventById($id);
-    }
-
-    public function eventByHandle(string $handle): ?Event
-    {
-        return Points::getInstance()->events->getEventByHandle($handle);
+        return Points::getInstance()->rules->getRuleByHandle($handle);
     }
 
     public function awardById(int $id): ?PointAward
@@ -84,34 +72,34 @@ class PointsVariable
      * Award points to a user.
      *
      * Usage:
-     *   {{ craft.points.addAward({ eventHandle: 'signedUp' }) }}             — current user
-     *   {{ craft.points.addAward({ userId: 5, eventHandle: 'signedUp' }) }}  — specific user
+     *   {{ craft.points.addAward({ ruleHandle: 'signedUp' }) }}             — current user
+     *   {{ craft.points.addAward({ userId: 5, ruleHandle: 'signedUp' }) }}  — specific user
      */
     public function addAward(array $options): ?PointAward
     {
         $userId = $options['userId'] ?? $this->currentUserId();
-        $eventHandle = $options['eventHandle'] ?? null;
+        $ruleHandle = $options['ruleHandle'] ?? null;
 
-        if (!$userId || !$eventHandle) {
+        if (!$userId || !$ruleHandle) {
             return null;
         }
 
-        return Points::getInstance()->awards->addAward((int)$userId, $eventHandle);
+        return Points::getInstance()->awards->addAward((int)$userId, $ruleHandle);
     }
 
     /**
-     * Remove the oldest award for this user + event. Only removes one instance.
+     * Remove the oldest award for this user + rule. Only removes one instance.
      */
     public function removeAward(array $options): bool
     {
         $userId = $options['userId'] ?? $this->currentUserId();
-        $eventHandle = $options['eventHandle'] ?? null;
+        $ruleHandle = $options['ruleHandle'] ?? null;
 
-        if (!$userId || !$eventHandle) {
+        if (!$userId || !$ruleHandle) {
             return false;
         }
 
-        return Points::getInstance()->awards->removeAward((int)$userId, $eventHandle);
+        return Points::getInstance()->awards->removeAward((int)$userId, $ruleHandle);
     }
 
     /** Total points for a user (defaults to current user). */
@@ -183,10 +171,38 @@ class PointsVariable
         return Points::getInstance()->getSettings()->currencyNamePlural;
     }
 
+    /** Currency symbol from plugin settings (e.g. "£", "$"). */
+    public function symbol(): string
+    {
+        return Points::getInstance()->getSettings()->currencySymbol;
+    }
+
     /** True if the plugin is running on Pro edition. */
     public function isPro(): bool
     {
         return Points::getInstance()->is(Points::EDITION_PRO);
+    }
+
+    /**
+     * Convert a point balance into its monetary value.
+     *
+     * Uses the `pointsPerCurrencyUnit` setting. With the default of 100, 250 points → 2.50.
+     */
+    public function toMoney(?int $points = null): float
+    {
+        $points = $points ?? $this->sumForUser();
+        $rate = max(1, Points::getInstance()->getSettings()->pointsPerCurrencyUnit);
+        return $points / $rate;
+    }
+
+    /**
+     * Same as toMoney() but pre-formatted with the configured currency symbol
+     * and two decimal places. e.g. "£2.50".
+     */
+    public function formatMoney(?int $points = null): string
+    {
+        $symbol = Points::getInstance()->getSettings()->currencySymbol;
+        return $symbol . number_format($this->toMoney($points), 2);
     }
 
     private function currentUserId(): ?int

@@ -38,6 +38,8 @@
         errors: level.getErrors('handle'),
     }) }}
 
+    {% js %}new Craft.HandleGenerator('#name', '#handle');{% endjs %}
+
     {{ forms.textField({
         label: 'Threshold'|t('points'),
         instructions: 'Minimum number of points a user needs to reach this level.'|t('points'),
