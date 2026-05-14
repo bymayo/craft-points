@@ -39,4 +39,9 @@ abstract class BaseTrigger implements TriggerInterface
     {
         return null;
     }
+
+    public static function isAvailable(): bool
+    {
+        return true;
+    }
 }

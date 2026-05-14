@@ -44,4 +44,13 @@ interface TriggerInterface
      * amount context (most non-Commerce ones) should return null.
      */
     public static function getAmountForEvent($event): ?float;
+
+    /**
+     * Return false to hide this trigger from the rule builder picker.
+     *
+     * For triggers that depend on optional configuration (e.g. the user
+     * birthday trigger needing a configured field handle that exists on
+     * the user field layout), return false until the dependency is met.
+     */
+    public static function isAvailable(): bool;
 }

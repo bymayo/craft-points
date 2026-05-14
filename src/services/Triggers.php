@@ -61,6 +61,12 @@ class Triggers extends Component
 
         $byGroup = [];
         foreach ($this->_triggers as $class) {
+            // Skip triggers that aren't ready to fire (e.g. UserBirthdayTrigger
+            // without a configured field handle). They'd never be reachable
+            // anyway — hiding them keeps the picker honest.
+            if (!$class::isAvailable()) {
+                continue;
+            }
             $byGroup[$class::group()][] = $class;
         }
 

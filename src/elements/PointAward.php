@@ -111,7 +111,7 @@ class PointAward extends Element
         return [
             'user' => ['label' => Craft::t('points', 'User')],
             'rule' => ['label' => Craft::t('points', 'Rule')],
-            'pointsSnapshot' => ['label' => Craft::t('points', 'Points')],
+            'pointsSnapshot' => ['label' => Points::getInstance()->getSettings()->currencyNamePlural],
             'dateCreated' => ['label' => Craft::t('app', 'Date Created')],
         ];
     }
@@ -128,7 +128,7 @@ class PointAward extends Element
         return [
             'dateCreated' => Craft::t('app', 'Date Created'),
             'pointsSnapshot' => [
-                'label' => Craft::t('points', 'Points'),
+                'label' => Points::getInstance()->getSettings()->currencyNamePlural,
                 'orderBy' => 'points_awards.pointsSnapshot',
             ],
         ];

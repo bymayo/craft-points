@@ -3,6 +3,8 @@
 namespace bymayo\points\triggers;
 
 use bymayo\points\Points;
+use Craft;
+use craft\elements\User as UserElement;
 use craft\web\User;
 use DateTime;
 
@@ -44,5 +46,21 @@ class UserBirthdayTrigger extends BaseTrigger
     public static function getUserIdFromEvent($event): ?int
     {
         return $event->identity?->getId();
+    }
+
+    /**
+     * Only show in the rule builder if the admin has configured a
+     * `birthdayFieldHandle` AND a matching Date field actually exists on the
+     * User field layout. If either is missing the trigger can never fire, so
+     * there's no point letting anyone select it.
+     */
+    public static function isAvailable(): bool
+    {
+        $handle = trim((string) Points::getInstance()->getSettings()->birthdayFieldHandle);
+        if ($handle === '') {
+            return false;
+        }
+        $layout = Craft::$app->getFields()->getLayoutByType(UserElement::class);
+        return $layout->getFieldByHandle($handle) !== null;
     }
 }

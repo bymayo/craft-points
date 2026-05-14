@@ -20,9 +20,10 @@ class Settings extends Model
 
     /**
      * Handle of the custom user field that stores each user's birthday.
-     * Required for the "User birthday" trigger to fire. Must be a Date field on the user layout.
+     * Must be a Date field on the user layout. Leave blank to disable the
+     * "User birthday" trigger (it won't even appear in the rule picker).
      */
-    public string $birthdayFieldHandle = 'birthday';
+    public string $birthdayFieldHandle = '';
 
     /**
      * How many points equal one unit of real currency. Used by `craft.points.toMoney()`.

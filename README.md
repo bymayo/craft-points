@@ -4,6 +4,37 @@
 
 Award points to users for actions they perform, build leaderboards, and unlock tiered loyalty programmes — all from inside Craft.
 
+## Contents
+
+- [Editions](#editions)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Concepts](#concepts)
+  - [Settings storage (admin vs developer)](#settings-storage-admin-vs-developer)
+  - [Permissions](#permissions)
+- [Usage](#usage)
+  - [Building a rule](#building-a-rule)
+  - [Triggers shipped](#triggers-shipped)
+  - [Firing Manual rules](#firing-manual-rules)
+  - [Awarding from PHP](#awarding-from-php-modules-controllers-console-commands)
+  - [Using with Vue / React / SPAs](#using-with-vue--react--spas)
+  - [Reading points](#reading-points)
+  - [Levels](#levels)
+  - [Leaderboard](#leaderboard)
+  - [Awards for a user](#awards-for-a-user)
+  - [Spending points at checkout (Pro + Commerce)](#spending-points-at-checkout-pro--commerce)
+  - [Dashboard widgets](#dashboard-widgets)
+  - [Users element index columns](#users-element-index-columns)
+- [Examples](#examples)
+- [Plugin events](#plugin-events)
+  - [Registering custom triggers / conditions / limits / rewards](#registering-custom-triggers--conditions--limits--rewards)
+- [GraphQL](#graphql)
+- [Twig reference](#twig-reference)
+- [Element queries](#element-queries)
+- [Security note](#security-note)
+- [License](#license)
+
 ## Editions
 
 | | Lite (free) | Pro |

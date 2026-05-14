@@ -2,7 +2,12 @@
 
 ## Unreleased
 
+### Changed
+- **Awards element index `Points` column now uses the configured currency label.** Sort options and table attribute labels read `Settings::$currencyNamePlural` instead of the hardcoded "Points" — rename to "Coins" in settings and the column header follows.
+- **Birthday field handle setting now defaults to blank** (was `'birthday'`). The User birthday trigger is hidden from the rule builder picker until the admin sets the handle AND a matching Date field exists on the user field layout — checking via a new `TriggerInterface::isAvailable()` static method (defaults to `true` in `BaseTrigger`). Stops the trigger appearing in places where it can never fire.
+
 ### Added
+- **README has a Contents/TOC** at the top so the document is navigable on GitHub.
 - **Plugin settings are no longer routed through Project Config.** Everything in the Settings model (plugin name, currency labels & symbol, points-per-currency-unit, birthday field handle, redemption min/max/refund) now persists to a new `{{%points_settings}}` table. This means admins can rename "Points" to "Credits" on production without it being clobbered by the next staging-to-prod deploy, and the settings aren't versioned into `project.yaml`. Devs who want per-environment values can still override via `config/points.php` — values there take precedence over the DB row.
 - New migration: `m260514_120000_create_points_settings_table`. Schema version bumped to `1.9.0`.
 - **Settings link added to the Points CP sidebar.** Same target as Craft's gear-menu route (`settings/plugins/points`), but discoverable inside the plugin's own nav. Gated on the new `points-manageSettings` permission.
