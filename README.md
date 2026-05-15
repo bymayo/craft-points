@@ -2,7 +2,7 @@
 
 # Points for Craft CMS
 
-A points-and-rewards engine for Craft. Give users points when they sign up, log in, buy something, share a page - anything you like. Build leaderboards. Tier them into Bronze / Silver / Gold. Let customers spend their points at checkout. All from inside the CP.
+A loyalty, rewards, and gamification system for Craft. Award points for any action - signups, shares, comments, purchases - tier users into levels, and build leaderboards. Add Craft Commerce and customers can redeem their points as store credit at checkout.
 
 <img src="https://raw.githubusercontent.com/bymayo/craft-points/craft-5/resources/screenshot.png" width="850">
 
@@ -10,12 +10,13 @@ A points-and-rewards engine for Craft. Give users points when they sign up, log 
 
 - **Visual rule builder**: *E.g. When X happens, if Y is true, then award Z, max once per day*
 - **Automatic triggers**: Entries, Users, Assets - plus Commerce Orders & Subscriptions on Pro
-- **Conditions**: Order total, contains product, Entry in section, and more - keep rules precise
+- **Conditions**: Entry in section, user group, order total, contains product, and more - keep rules precise
 - **Limits**: Once per user, Max N per period, cooldowns
-- **Levels**: Tier users with custom names, colours, and badge icons
+- **Levels**: Tier users into Bronze / Silver / Gold (or your own names) with colours and badges
 - **Leaderboard**: CP page with avatars and live filtering
 - **Dashboard widgets**: Leaderboard and Latest Awards out of the box, with more on the way
-- **Order redemptions**: Customers spend points at checkout (Pro + Commerce, any payment gateway)
+- **Order redemptions**: Customers redeem points as store credit at checkout - any payment gateway (Pro + Commerce)
+- **Integrations**: Auto-works with Formie, Freeform, and Craft Commerce when installed
 - **Renameable**: rebrand the plugin and its currency - e.g. "VIP Club" earning "Stars", or "Rewards" earning "Credits"
 - **Developer APIs**: Twig, GraphQL queries, and a GraphQL mutation for headless apps
 - **Cache-safe JS helper**: Fire Manual rules from inside Blitz and `{% cache %}` blocks
@@ -49,12 +50,13 @@ A points-and-rewards engine for Craft. Give users points when they sign up, log 
 | Rules, Awards, Levels, Leaderboard | ✅ | ✅ |
 | Dashboard widgets | ✅ | ✅ |
 | Triggers for Entries, Users, Assets | ✅ | ✅ |
+| **Formie & Freeform integrations** | ✅ | ✅ |
 | Twig + GraphQL APIs | ✅ | ✅ |
 | Renameable plugin & currency labels | ✅ | ✅ |
 | **Commerce triggers** (orders, subscriptions) | - | ✅ |
 | **Percentage-of-order** rewards | - | ✅ |
 | **Commerce conditions** (order total, contains product, …) | - | ✅ |
-| **Customers spend points at checkout** | - | ✅ |
+| **Redeem points as store credit at checkout** | - | ✅ |
 
 ## Install
 
