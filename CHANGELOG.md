@@ -3,14 +3,12 @@
 ## 5.0.2 - 2026-05-15
 
 ### Added
-- **Formie integration (Lite)** - new `Form submitted` trigger that fires on Formie's `Submissions::EVENT_AFTER_SUBMISSION` event for successful, logged-in, non-spam submissions. Pair with the new `Form is` condition to reward specific forms (e.g. award 50 points for newsletter signup but 200 for a long survey). Both register automatically when Formie is installed - hidden otherwise.
-- **Freeform integration (Lite)** - same shape as Formie: new `Form submitted` trigger listening to Freeform's `SubmissionsService::EVENT_AFTER_SUBMIT`, plus a `Form is` condition to scope to specific forms. Registers automatically when Freeform is installed.
-- **Subject scoping for form integrations** - Formie and Freeform triggers expose distinct subjects (`formieForm` / `freeformForm`) so each plugin's "Form is" condition only appears when its own trigger is selected. No cross-plugin overlap in the condition dropdown.
-- Rules index **Trigger column now suffixes integration triggers with their group** ("Form submitted (Formie)", "Form submitted (Freeform)", "Order paid (Commerce)") so triggers that share labels across plugins stay distinguishable. Native triggers (Entry created, User registered, etc.) keep their unsuffixed labels.
+- **Formie integration (Lite)** - `Form submitted` trigger and `Form is` condition. Auto-registers when Formie is installed.
+- **Freeform integration (Lite)** - `Form submitted` trigger and `Form is` condition. Auto-registers when Freeform is installed.
+- **Integrations panel** in Settings → General, showing which integrations are Installed, Installed but disabled, or Not installed.
+- Rules index trigger column now suffixes integrations - e.g. `Form submitted (Formie)`, `Order paid (Commerce)` - so shared labels stay distinguishable.
+- `Integrations` section in the README listing every supported plugin.
 - Composer `suggest` entries for `verbb/formie` and `solspace/craft-freeform`.
-- **Integrations panel** on the Settings → General page - replaces the previous "Craft Commerce installed" + "Commerce features" rows with a dedicated integrations table covering every supported plugin (Craft Commerce, Formie, Freeform). Each row shows installation status and edition gating where relevant. Easy to extend as more integrations land.
-- The integrations panel now distinguishes **"Installed but disabled"** from **"Not installed"** - if you've added the plugin via Composer but turned it off in Craft, the panel makes that clear so you don't waste time troubleshooting missing triggers.
-- New top-level `Integrations` section in the README documenting which Craft plugins Points hooks into and what each adds.
 
 ## 5.0.1 - 2026-05-15
 
