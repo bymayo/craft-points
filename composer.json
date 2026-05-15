@@ -1,6 +1,6 @@
 {
   "name": "bymayo/craft-points",
-  "description": "Build customer loyalty with points, levels, and leaderboards in Craft and Commerce.",
+  "description": "A loyalty rewards system - points, levels, leaderboards, Commerce redemptions for Craft CMS",
   "version": "5.0.2",
   "type": "craft-plugin",
   "license": "proprietary",
