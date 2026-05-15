@@ -7,6 +7,8 @@ use bymayo\points\conditions\rules\commerce\OrderContainsProductConditionRule;
 use bymayo\points\conditions\rules\commerce\OrderHasCouponConditionRule;
 use bymayo\points\conditions\rules\commerce\OrderItemCountConditionRule;
 use bymayo\points\conditions\rules\commerce\OrderTotalConditionRule;
+use bymayo\points\conditions\rules\formie\FormieFormConditionRule;
+use bymayo\points\conditions\rules\freeform\FreeformFormConditionRule;
 use bymayo\points\conditions\rules\SectionConditionRule;
 use bymayo\points\conditions\rules\UserGroupConditionRule;
 use bymayo\points\conditions\RuleEvaluationContext;
@@ -82,6 +84,16 @@ class Conditions extends Component
             SectionConditionRule::class,
             UserGroupConditionRule::class,
         ];
+
+        // Formie - require Formie installed.
+        if (\Craft::$app->getPlugins()->isPluginEnabled('formie')) {
+            $defaults[] = FormieFormConditionRule::class;
+        }
+
+        // Freeform - require Freeform installed.
+        if (\Craft::$app->getPlugins()->isPluginEnabled('freeform')) {
+            $defaults[] = FreeformFormConditionRule::class;
+        }
 
         // Pro-only: Commerce conditions.
         $isPro = Points::getInstance()->is(Points::EDITION_PRO);

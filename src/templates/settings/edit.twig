@@ -14,6 +14,14 @@
 ] %}
 
 {% set hasCommerce = plugin.hasCommerce() %}
+{% set hasFormie = craft.app.plugins.isPluginEnabled('formie') %}
+{% set hasFreeform = craft.app.plugins.isPluginEnabled('freeform') %}
+{# Disabled state = installed in the DB but not currently enabled, so the
+   integration's classes exist but its events won't fire. Different from
+   "not installed at all" (composer doesn't even know about the plugin). #}
+{% set commerceDisabled = craft.app.plugins.isPluginInstalled('commerce') and not hasCommerce %}
+{% set formieDisabled = craft.app.plugins.isPluginInstalled('formie') and not hasFormie %}
+{% set freeformDisabled = craft.app.plugins.isPluginInstalled('freeform') and not hasFreeform %}
 {% set isPro = plugin.is('pro') %}
 {% set storeCode = plugin.getStoreCurrencyCode() %}
 {% set storeSymbol = plugin.getStoreCurrencySymbol() %}
@@ -72,37 +80,71 @@
                         <th>{{ 'Edition'|t('points') }}</th>
                         <td><strong>{{ plugin.edition|capitalize }}</strong></td>
                     </tr>
-                    <tr>
-                        <th>{{ 'Craft Commerce installed'|t('points') }}</th>
-                        <td>
-                            {% if hasCommerce %}
-                                <span class="status green"></span> {{ 'Yes'|t('points') }}
-                            {% else %}
-                                <span class="status off"></span> {{ 'No'|t('points') }}
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>{{ 'Commerce features'|t('points') }}</th>
-                        <td>
-                            {% if isPro and hasCommerce %}
-                                <span class="status green"></span> {{ 'Yes'|t('points') }}
-                            {% elseif not isPro and hasCommerce %}
-                                <span class="status orange"></span>
-                                <a href="{{ cpUrl('plugin-store/points') }}">{{ 'Upgrade to Pro'|t('points') }}</a>
-                            {% elseif isPro and not hasCommerce %}
-                                <span class="status orange"></span> {{ 'Install Craft Commerce'|t('points') }}
-                            {% else %}
-                                <span class="status off"></span> {{ 'Requires Pro + Craft Commerce'|t('points') }}
-                            {% endif %}
-                        </td>
-                    </tr>
                     {% if hasCommerce %}
                         <tr>
                             <th>{{ 'Currency'|t('points') }}</th>
                             <td>{{ storeSymbol }}{{ storeCode }}</td>
                         </tr>
                     {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2 style="margin-top: 24px;">{{ 'Integrations'|t('points') }}</h2>
+        <p>{{ 'Install any of these plugins to unlock the matching features.'|t('points') }}</p>
+
+        <div class="pane hairline points-edition-table" style="max-width: 480px;">
+            <table class="data fullwidth">
+                <tbody>
+                    <tr>
+                        <th>{{ 'Craft Commerce'|t('points') }}</th>
+                        <td>
+                            {% if hasCommerce and isPro %}
+                                <span class="status green"></span>
+                                {{ 'Installed - Pro only'|t('points') }}
+                            {% elseif hasCommerce and not isPro %}
+                                <span class="status orange"></span>
+                                {{ 'Installed -'|t('points') }}
+                                <a href="{{ cpUrl('plugin-store/points') }}">{{ 'upgrade to Pro to use'|t('points') }}</a>
+                            {% elseif commerceDisabled %}
+                                <span class="status orange"></span>
+                                {{ 'Installed but disabled'|t('points') }}
+                            {% else %}
+                                <span class="status off"></span>
+                                {{ 'Not installed'|t('points') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Formie'|t('points') }}</th>
+                        <td>
+                            {% if hasFormie %}
+                                <span class="status green"></span>
+                                {{ 'Installed'|t('points') }}
+                            {% elseif formieDisabled %}
+                                <span class="status orange"></span>
+                                {{ 'Installed but disabled'|t('points') }}
+                            {% else %}
+                                <span class="status off"></span>
+                                {{ 'Not installed'|t('points') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>{{ 'Freeform'|t('points') }}</th>
+                        <td>
+                            {% if hasFreeform %}
+                                <span class="status green"></span>
+                                {{ 'Installed'|t('points') }}
+                            {% elseif freeformDisabled %}
+                                <span class="status orange"></span>
+                                {{ 'Installed but disabled'|t('points') }}
+                            {% else %}
+                                <span class="status off"></span>
+                                {{ 'Not installed'|t('points') }}
+                            {% endif %}
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>

@@ -103,6 +103,8 @@ class RulesController extends Controller
             'userGroupOptions' => $this->elementOptions(
                 Craft::$app->getUserGroups()->getAllGroups()
             ),
+            'formieFormOptions' => $this->formieFormOptions(),
+            'freeformFormOptions' => $this->freeformFormOptions(),
             'levelOptions' => array_map(
                 fn($l) => ['label' => $l->name, 'value' => $l->handle],
                 $points->levels->getAllLevels()
@@ -192,6 +194,8 @@ class RulesController extends Controller
             'limitTypes' => $this->buildTypeOptions($points->limits->getAll()),
             'sectionOptions' => $this->elementOptions(Craft::$app->getEntries()->getAllSections()),
             'userGroupOptions' => $this->elementOptions(Craft::$app->getUserGroups()->getAllGroups()),
+            'formieFormOptions' => $this->formieFormOptions(),
+            'freeformFormOptions' => $this->freeformFormOptions(),
             'levelOptions' => array_map(
                 fn($l) => ['label' => $l->name, 'value' => $l->handle],
                 $points->levels->getAllLevels()
@@ -246,6 +250,60 @@ class RulesController extends Controller
      * @param iterable<object> $items
      * @return array<int, array{label: string, value: string}>
      */
+    /**
+     * Build a `forms.checkboxSelect` options array for every Formie form, or
+     * an empty array if Formie isn't installed. Used by the
+     * `formie.form` condition's variant in the rule editor.
+     *
+     * @return array<int, array{label: string, value: string}>
+     */
+    private function formieFormOptions(): array
+    {
+        if (!Craft::$app->getPlugins()->isPluginEnabled('formie')) {
+            return [];
+        }
+        if (!class_exists('verbb\\formie\\elements\\Form')) {
+            return [];
+        }
+        /** @var iterable<object> $forms */
+        $forms = \verbb\formie\elements\Form::find()->all();
+        $options = [];
+        foreach ($forms as $form) {
+            $options[] = ['label' => (string) $form->title, 'value' => (string) $form->id];
+        }
+        return $options;
+    }
+
+    /**
+     * Same as {@see formieFormOptions} but for Freeform's forms.
+     *
+     * @return array<int, array{label: string, value: string}>
+     */
+    private function freeformFormOptions(): array
+    {
+        if (!Craft::$app->getPlugins()->isPluginEnabled('freeform')) {
+            return [];
+        }
+        // Freeform forms are managed via its FormsService rather than as
+        // first-class Craft elements, so we look them up through the API.
+        if (!class_exists('Solspace\\Freeform\\Freeform')) {
+            return [];
+        }
+        try {
+            $forms = \Solspace\Freeform\Freeform::getInstance()->forms->getAllForms();
+        } catch (\Throwable) {
+            return [];
+        }
+        $options = [];
+        foreach ($forms as $form) {
+            $options[] = [
+                'label' => (string) $form->getName(),
+                'value' => (string) $form->getId(),
+            ];
+        }
+        return $options;
+    }
+
     private function elementOptions(iterable $items): array
     {
         $options = [];

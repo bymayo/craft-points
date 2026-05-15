@@ -27,6 +27,7 @@ A points-and-rewards engine for Craft. Give users points when they sign up, log 
 - [Editions](#editions)
 - [Install](#install)
 - [Requirements](#requirements)
+- [Integrations](#integrations)
 - [How it works](#how-it-works)
 - [Building your first rule](#building-your-first-rule)
 - [Firing a rule from your site](#firing-a-rule-from-your-site)
@@ -68,6 +69,18 @@ You can also install the plugin via the Plugin Store in the Craft Admin CP by se
 - PHP 8.2+
 - Craft Commerce 5.x (only for Pro Commerce features - orders, subscriptions, redemptions)
 
+## Integrations
+
+Points hooks into other Craft plugins to unlock extra triggers, conditions, and rewards. Integrations activate automatically when the matching plugin is detected - nothing to configure.
+
+| Plugin | What it adds | Edition |
+|---|---|---|
+| **Craft Commerce** | Order triggers (paid · completed · refunded · first ever), Subscription triggers (created · renewed · cancelled · plan changed), Commerce conditions (order total · item count · contains product · has coupon), percentage-of-order rewards, customer redemptions at checkout, money columns on the Users index and Leaderboard | Pro |
+| **Formie** | "Form submitted" trigger and the "Form is" condition to scope to specific forms | Lite |
+| **Freeform** | "Form submitted" trigger and the "Form is" condition to scope to specific forms | Lite |
+
+Your **Points → Settings → General** page shows which integrations are detected on your site, so you can see at a glance what features are available. Third-party developers can plug their own triggers / conditions / limits / rewards into the rule builder via Craft events - see [Extending the plugin](#extending-the-plugin).
+
 ## How it works
 
 Three concepts cover everything:
@@ -99,6 +112,8 @@ Go to **Points → Rules → New rule**.
 | Entry | Created · Updated | Lite |
 | Asset | Created | Lite |
 | User | Registered · Logged in · Birthday · Anniversary | Lite |
+| Formie | Form submitted | Lite |
+| Freeform | Form submitted | Lite |
 | Order | Paid · Completed · Refunded · First ever | Pro |
 | Subscription | Created · Renewed · Cancelled · Plan changed | Pro |
 

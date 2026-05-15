@@ -38,6 +38,12 @@
     <div class="cnd-variant" data-variant="userGroup" {% if condition.type != 'userGroup' %}hidden{% endif %}>
         {{ forms.multiselect({ name: prefix ~ '[groupIds]', options: ctx.userGroupOptions, values: condition.type == 'userGroup' ? (condition.groupIds ?? []) : [] }) }}
     </div>
+    <div class="cnd-variant" data-variant="formie.form" {% if condition.type != 'formie.form' %}hidden{% endif %}>
+        {{ forms.multiselect({ name: prefix ~ '[ids]', options: ctx.formieFormOptions ?? [], values: condition.type == 'formie.form' ? (condition.ids ?? []) : [] }) }}
+    </div>
+    <div class="cnd-variant" data-variant="freeform.form" {% if condition.type != 'freeform.form' %}hidden{% endif %}>
+        {{ forms.multiselect({ name: prefix ~ '[ids]', options: ctx.freeformFormOptions ?? [], values: condition.type == 'freeform.form' ? (condition.ids ?? []) : [] }) }}
+    </div>
     <div class="cnd-variant" data-variant="userLevel" {% if condition.type != 'userLevel' %}hidden{% endif %}>
         {{ forms.multiselect({ name: prefix ~ '[levelHandles]', options: ctx.levelOptions, values: condition.type == 'userLevel' ? (condition.levelHandles ?? []) : [] }) }}
     </div>
@@ -98,6 +104,8 @@
 {% set macroCtx = {
     sectionOptions: sectionOptions,
     userGroupOptions: userGroupOptions,
+    formieFormOptions: formieFormOptions,
+    freeformFormOptions: freeformFormOptions,
     levelOptions: levelOptions,
     operatorOptions: operatorOptions,
     periodOptions: periodOptions,
@@ -190,6 +198,8 @@
                                 conditionTypes: conditionTypes,
                                 sectionOptions: sectionOptions,
                                 userGroupOptions: userGroupOptions,
+                                formieFormOptions: formieFormOptions,
+                                freeformFormOptions: freeformFormOptions,
                                 levelOptions: levelOptions,
                                 productLookup: conditionProductLookup,
                             } only %}

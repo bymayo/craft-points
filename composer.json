@@ -1,7 +1,7 @@
 {
   "name": "bymayo/craft-points",
   "description": "Build customer loyalty with points, levels, and leaderboards in Craft and Commerce.",
-  "version": "5.0.1",
+  "version": "5.0.2",
   "type": "craft-plugin",
   "license": "proprietary",
   "support": {
@@ -16,7 +16,9 @@
     "craftcms/cms": "^5.6.0"
   },
   "suggest": {
-    "craftcms/commerce": "Adds Commerce triggers — award points when an order completes or a subscription is created."
+    "craftcms/commerce": "Adds Commerce triggers — award points when an order completes or a subscription is created.",
+    "verbb/formie": "Adds a 'Form submitted' trigger — award points when a Formie form is submitted.",
+    "solspace/craft-freeform": "Adds a 'Form submitted' trigger — award points when a Freeform form is submitted."
   },
   "require-dev": {
     "craftcms/phpstan": "dev-main"

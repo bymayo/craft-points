@@ -70,10 +70,16 @@ class Rule extends Model
     }
 
     /**
-     * Human-readable trigger label, e.g. "Order completed" — for table display.
-     * Falls back to "Manual" when no trigger is set, or the raw handle if the
-     * trigger class can't be resolved (e.g. it was registered by a 3rd-party
-     * plugin that's since been uninstalled).
+     * Human-readable trigger label for table display.
+     *
+     * - "Manual" when no trigger is set.
+     * - Plain label for native triggers (e.g. "Entry created").
+     * - Label with group suffix for integration triggers (e.g. "Form
+     *   submitted (Formie)", "Order paid (Commerce)") so labels that
+     *   integrations share - notably Formie and Freeform's "Form
+     *   submitted" - stay distinguishable in the Rules index.
+     * - Raw handle if the trigger class can't be resolved (e.g. registered
+     *   by a 3rd-party plugin that's since been uninstalled).
      */
     public function getTriggerLabel(): string
     {
@@ -81,7 +87,21 @@ class Rule extends Model
             return 'Manual';
         }
         $class = \bymayo\points\Points::getInstance()->triggers->getTriggerClassByHandle($this->trigger);
-        return $class ? $class::label() : $this->trigger;
+        if (!$class) {
+            return $this->trigger;
+        }
+
+        // Integration triggers live in a sub-namespace under
+        // bymayo\points\triggers\<integration>\, OR are registered by a
+        // 3rd-party plugin from its own namespace. Either way: prefix with
+        // the group label. Native triggers sit directly in
+        // bymayo\points\triggers\ and don't need a prefix.
+        $isNative = str_starts_with($class, 'bymayo\\points\\triggers\\')
+            && !str_contains(substr($class, strlen('bymayo\\points\\triggers\\')), '\\');
+
+        return $isNative
+            ? $class::label()
+            : $class::label() . ' (' . $class::group() . ')';
     }
 
     /** Compact summary of the rule's limit config, e.g. "Once per user", "Max 5 / day". */

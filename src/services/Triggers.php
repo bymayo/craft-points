@@ -16,6 +16,8 @@ use bymayo\points\triggers\commerce\SubscriptionPlanChangedTrigger;
 use bymayo\points\triggers\commerce\SubscriptionRenewedTrigger;
 use bymayo\points\triggers\EntryCreatedTrigger;
 use bymayo\points\triggers\EntryUpdatedTrigger;
+use bymayo\points\triggers\formie\FormSubmittedTrigger as FormieFormSubmittedTrigger;
+use bymayo\points\triggers\freeform\FormSubmittedTrigger as FreeformFormSubmittedTrigger;
 use bymayo\points\triggers\TriggerInterface;
 use bymayo\points\triggers\UserAnniversaryTrigger;
 use bymayo\points\triggers\UserBirthdayTrigger;
@@ -94,6 +96,15 @@ class Triggers extends Component
             UserBirthdayTrigger::class,
             UserAnniversaryTrigger::class,
         ];
+
+        // Form-plugin triggers — Lite, only register when the underlying plugin
+        // is installed (we reference their event classes).
+        if (Craft::$app->getPlugins()->isPluginEnabled('formie')) {
+            $defaults[] = FormieFormSubmittedTrigger::class;
+        }
+        if (Craft::$app->getPlugins()->isPluginEnabled('freeform')) {
+            $defaults[] = FreeformFormSubmittedTrigger::class;
+        }
 
         // Commerce triggers are Pro-only and require Commerce to be installed.
         $isPro = Points::getInstance()->is(Points::EDITION_PRO);

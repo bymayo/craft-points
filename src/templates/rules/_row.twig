@@ -45,6 +45,12 @@
             <div class="cnd-variant" data-variant="userGroup" {% if condition.type != 'userGroup' %}hidden{% endif %}>
                 {{ forms.checkboxSelect({ name: prefix ~ '[groupIds]', options: userGroupOptions, values: condition.type == 'userGroup' ? (condition.groupIds ?? []) : [], showAllOption: false }) }}
             </div>
+            <div class="cnd-variant" data-variant="formie.form" {% if condition.type != 'formie.form' %}hidden{% endif %}>
+                {{ forms.checkboxSelect({ name: prefix ~ '[ids]', options: formieFormOptions ?? [], values: condition.type == 'formie.form' ? (condition.ids ?? []) : [], showAllOption: false }) }}
+            </div>
+            <div class="cnd-variant" data-variant="freeform.form" {% if condition.type != 'freeform.form' %}hidden{% endif %}>
+                {{ forms.checkboxSelect({ name: prefix ~ '[ids]', options: freeformFormOptions ?? [], values: condition.type == 'freeform.form' ? (condition.ids ?? []) : [], showAllOption: false }) }}
+            </div>
             <div class="cnd-variant cnd-inline" data-variant="commerce.orderTotal" {% if condition.type != 'commerce.orderTotal' %}hidden{% endif %}>
                 {{ forms.select({ name: prefix ~ '[operator]', options: operatorOptions, value: condition.type == 'commerce.orderTotal' ? (condition.operator ?? '>=') : '>=', class: 'op-select' }) }}
                 <span class="op-value">{{ forms.text({ name: prefix ~ '[value]', type: 'number', value: condition.type == 'commerce.orderTotal' ? (condition.value ?? '') : '' }) }}</span>
