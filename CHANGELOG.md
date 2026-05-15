@@ -1,5 +1,22 @@
 # Release Notes for Points
 
+## 5.0.1 - 2026-05-15
+
+### Added
+- **`PercentReward` ("% of order total") is now filtered by trigger subject** in the rule builder - it only shows up when an Order trigger is selected. Manual / Entry / User triggers don't expose it (without an `amount` on the trigger the calculation would always be 0). Implemented via a new `RewardInterface::appliesToSubjects()` static method (default `null` in `BaseReward` = applies to all subjects), matching the pattern already used by Conditions.
+
+### Changed
+- **Twig helper `formatMoney()` renamed to `spendForUser($id?)`** for consistency with `sumForUser` / `countForUser` / `levelForUser` and the Users index "Available Spend" column. `toMoney(points)` stays as the lower-level float helper.
+- README rewritten to be more concise and friendlier - examples consolidated, jargon trimmed, full settings table added, Twig reference split out per-method, Vue/React section folded into the main "Firing a rule" flow.
+- Awards element index "Point Award" title column header now reads "Rule" (matches the row content). Implemented via a `displayName()` override.
+- Awards element index Points and Date Created columns are now click-to-sort.
+- Latest Awards / Leaderboard dashboard widgets now use Craft's native `tableview` styling with avatars, configurable column headers that follow the plugin / currency name settings, and a "View all" footer button gated on the matching view permission.
+- LICENSE.md copyright line updated to `Jason Mayo (ByMayo)` to match other ByMayo paid plugins.
+
+### Fixed
+- `craft.points.appliedToOrder($orderId)` and `orderRedemption($orderId)` now accept `null` instead of `TypeError`-ing. Fixes the case where a logged-out visitor lands on a page that passes `cart.id` (which can be null) into these helpers.
+- All single-element Twig lookups (`user`, `rule`, `ruleById`, `ruleByHandle`, `awardById`, `levelForPoints`, `levelById`, `levelByHandle`) are now defensively nullable - return null when given null instead of throwing.
+
 ## 5.0.0 - 2026-05-14
 
 First Craft 5 release - complete rewrite from the Craft 2 line (last released at 1.0.3 in 2016). Version jumped to align with Craft 5 itself, the way Craft Commerce and other ecosystem plugins do.
@@ -10,9 +27,9 @@ First Craft 5 release - complete rewrite from the Craft 2 line (last released at
 - **Conditions / Limits / Rewards engine** - pluggable subsystems, each with a register event so other plugins can ship their own classes.
   - Conditions ship: Section, CategoryGroup, Volume, UserGroup, UserLevel, DayOfWeek. Pro adds: OrderTotal, OrderItemCount, OrderHasCoupon, OrderContainsProduct.
   - Limits ship: OncePerUser, MaxPerUser (with optional cooldown field).
-  - Rewards ship: Flat, Deduct. Pro adds: Percent (% of trigger amount).
+  - Rewards ship: Flat, Deduct. Pro adds: Percent (% of trigger amount). Reward types can declare which trigger subjects they apply to via `appliesToSubjects()` - Percent is scoped to `order` so it only appears in the rule builder when an Order trigger is selected.
 - **Triggers** - Entry created/updated, Asset created, User registered/logged in/birthday/anniversary on Lite; Order paid/completed/refunded/first-ever and Subscription created/renewed/cancelled/plan-changed on Pro.
-- **`PointAward` element type** - awards are first-class elements with a full index, search, sort, source filters, and bulk actions. Row title is the rule name, points snapshotted at award time so editing a rule later doesn't rewrite history.
+- **`PointAward` element type** - awards are first-class elements with a full index, search, source filters, and bulk actions. Row title is the rule name; title column header reads "Rule" (via `displayName()` override) so it matches the content. Points and Date Created columns are click-to-sort. Points snapshotted at award time so editing a rule later doesn't rewrite history.
 - **Levels** - tiered loyalty thresholds with optional colour and badge icon (Bronze/Silver/Gold style).
 - **Leaderboard** - CP page (paginated) and dashboard widget showing top users by total balance.
 - **Latest Awards** dashboard widget - the N most recent awards across all users, with user avatars.
@@ -38,7 +55,7 @@ First Craft 5 release - complete rewrite from the Craft 2 line (last released at
   - `Levels::EVENT_LEVEL_CHANGED`
 - **Pluggable subsystem events**: `Triggers::EVENT_REGISTER_TRIGGERS`, `Conditions::EVENT_REGISTER_CONDITION_RULES`, `Limits::EVENT_REGISTER_LIMITS`, `Rewards::EVENT_REGISTER_REWARDS`.
 - **GraphQL** - queries `pointsRules`, `pointsRule`, `pointsLevels`, `pointsLevelForUser`, `pointsAwards`, `pointsSumForUser`, `pointsCountForUser`, `pointsLeaderboard`. Mutation `pointsAddAward`. Types: `PointsRule`, `PointsLevel`, `PointsAward`, `PointsLeaderboardRow`, `PointsAddAwardResult`.
-- **Twig API** - `craft.points.*` with helpers for rules, awards, levels, leaderboard, money conversion, and the cache-safe `script()` helper. Plus `currency`, `currencyPlural`, `symbol`, `currencyCode`, `pluginName`, `isPro`.
+- **Twig API** - `craft.points.*` with helpers for rules, awards, levels, leaderboard, money conversion, and the cache-safe `script()` helper. Plus `currency`, `currencyPlural`, `symbol`, `currencyCode`, `pluginName`, `isPro`. Per-user money helper renamed `formatMoney()` → `spendForUser($id?)` for consistency with `sumForUser` / `countForUser` / `levelForUser` (and the Users index "Available Spend" column). All single-element lookups (`user`, `rule`, `ruleById`, `ruleByHandle`, `awardById`, `levelForPoints`, `levelById`, `levelByHandle`, `orderRedemption`, `appliedToOrder`, `spendForUser`) accept null and return null / 0 / '' gracefully, so templates can pass `currentUser.id`, `cart.id`, `award.ruleId` etc. without guarding against logged-out or cartless visitors.
 - **Plugin / service helpers**: `Points::hasCommerce()`, `getStoreCurrencyCode()`, `getStoreCurrencySymbol()`, `formatStoreMoney()`, static `pointsToMoney()`. `Awards::getRedeemedPointsForUser()`. `OrderRedemptions` service (`apply`, `remove`, `getForOrder`, `processPaidOrder`, `processRefund`).
 - **Trigger API**: `TriggerInterface::isAvailable()` (hide triggers from the picker until their dependencies are met - e.g. `UserBirthdayTrigger` waits until a Date field handle is set on the user layout) and `TriggerInterface::getOrderIdFromEvent()` (lets order triggers stamp their award with the source order ID).
 
@@ -46,7 +63,7 @@ First Craft 5 release - complete rewrite from the Craft 2 line (last released at
 - **"Event" renamed to "Rule" throughout** - the word "event" was overloaded with Craft's PHP `Event` concept. Affects DB tables, class names, service properties, Twig/GraphQL APIs, CP URLs, and permissions.
 - **"Entry" renamed to "Award" throughout** to avoid clashing with Craft's own Entry element. Affects DB tables, element class (`PointEntry` → `PointAward`), service (`Entries` → `Awards`), Twig/GraphQL APIs, plugin events, permissions, and CP URLs.
 - **Currency is no longer configured in the plugin** - tracks Craft Commerce's primary store automatically.
-- **Money helpers are Pro + Commerce only** - `craft.points.toMoney()`, `formatMoney()`, `symbol`, `currencyCode`, `orderRedemption`, `appliedToOrder`, the `Available Spend` / `Redeemed` columns, and the order-redemption flow all require Commerce installed.
+- **Money helpers are Pro + Commerce only** - `craft.points.toMoney()`, `spendForUser()`, `symbol`, `currencyCode`, `orderRedemption`, `appliedToOrder`, the `Available Spend` / `Redeemed` columns, and the order-redemption flow all require Commerce installed.
 - **Twig `craft.points.addAward()` / `removeAward()` removed** - they bypassed CSRF and accepted arbitrary `userId`s. Use the form / JS API / GraphQL mutation from public pages, or `Points::getInstance()->awards->addAward($userId, $handle)` from server-side PHP.
 - **Twig `craft.points.addEvent` removed** - rules are CMS-managed only now.
 - **Permissions overhauled** - the Craft 2 plugin's single `points-manageEvents` / `points-manageEntries` / `points-manageLevels` tier is replaced with View + Create + Edit + Delete per resource, plus `points-viewLeaderboard` and `points-manageSettings`.

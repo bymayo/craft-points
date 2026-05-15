@@ -203,13 +203,16 @@
                     <div class="section-heading">{{ 'Then'|t('points') }}</div>
                     <div class="section-rows">
                         <div class="points-row">
-                            {{ forms.select({
-                                name: 'reward[type]',
-                                id: 'reward-type',
-                                options: rewardTypes,
-                                value: rule.reward.type ?? 'flat',
-                                class: 'cnd-type',
-                            }) }}
+                            {# Raw select so each <option> can carry a data-subjects attribute
+                               for trigger-subject filtering (see syncRewardTypeOptions in the JS). #}
+                            {% set currentRewardType = rule.reward.type ?? 'flat' %}
+                            <div class="select cnd-type-wrap">
+                                <select name="reward[type]" id="reward-type" class="cnd-type">
+                                    {% for opt in rewardTypes %}
+                                        <option value="{{ opt.value }}" data-subjects="{{ opt.subjects }}" {% if opt.value == currentRewardType %}selected{% endif %}>{{ opt.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <div class="cnd-value">
                                 <div class="cnd-variant cnd-inline" data-variant="flat" {% if (rule.reward.type ?? 'flat') != 'flat' %}hidden{% endif %}>
                                     {{ forms.text({ name: 'reward[points]', type: 'number', value: rule.reward.type == 'flat' ? (rule.reward.points ?? 0) : 0 }) }}
@@ -618,6 +621,42 @@
                 var subject = triggerSubjects[triggerSel.value] || '';
                 sec.hidden = !subject || !hasApplicableConditions(subject);
             }
+
+            // Filter the reward type select based on the active trigger's subject.
+            // Options with no data-subjects (or empty) apply to all subjects;
+            // options with a list only show when the current subject matches.
+            function syncRewardTypeOptions() {
+                var sel = document.getElementById('reward-type');
+                if (sel && sel.tagName !== 'SELECT') sel = sel.querySelector('select');
+                if (!sel) return;
+
+                var subject = getTriggerSubject();
+                var current = sel.value;
+                Array.from(sel.options).forEach(function (opt) {
+                    var raw = (opt.dataset.subjects || '').trim();
+                    if (raw === '') {
+                        // No constraint → applies to every subject (including Manual).
+                        opt.hidden = false;
+                        return;
+                    }
+                    var subjects = raw.split(',').filter(Boolean);
+                    var matches = subject && subjects.indexOf(subject) !== -1;
+                    opt.hidden = !matches;
+                    if (!matches && opt.value === current) {
+                        // Current selection is no longer valid — fall back to the first
+                        // visible option (typically 'flat').
+                        for (var i = 0; i < sel.options.length; i++) {
+                            if (!sel.options[i].hidden) {
+                                sel.value = sel.options[i].value;
+                                break;
+                            }
+                        }
+                        var row = sel.closest('.points-row');
+                        if (row) syncVariants(row);
+                    }
+                });
+            }
+
             if (triggerSel) {
                 triggerSel.addEventListener('change', function () {
                     // Clear all existing condition rows when the trigger changes —
@@ -631,8 +670,12 @@
                     }
                     syncConditionsSection();
                     refreshAllConditionTypes();
+                    syncRewardTypeOptions();
                 });
             }
+
+            // Initial sync on page load (in case we're editing an existing rule).
+            syncRewardTypeOptions();
 
             document.querySelectorAll('#conditions-list > .points-row, #limits-list > .points-row, .points-reward .points-row')
                 .forEach(wireRow);

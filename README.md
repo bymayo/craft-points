@@ -2,32 +2,32 @@
 
 # Points for Craft CMS
 
-A friendly points-and-rewards engine for Craft. Give users points when they sign up, log in, buy something, share a page - anything you like. Build leaderboards. Tier them into Bronze / Silver / Gold. Let customers spend their points at checkout. All from inside the CP.
+A points-and-rewards engine for Craft. Give users points when they sign up, log in, buy something, share a page - anything you like. Build leaderboards. Tier them into Bronze / Silver / Gold. Let customers spend their points at checkout. All from inside the CP.
 
 <img src="https://raw.githubusercontent.com/bymayo/craft-points/craft-5/resources/screenshot.png" width="850">
 
 ## Features
 
-- Visual rule builder: *When X happens, if Y is true, then award Z, max once per day*
-- Automatic triggers for Entries, Users, Assets - plus Commerce Orders & Subscriptions on Pro
-- Conditions (Order total, Order contains product, Entry in section, etc.) to keep rules precise
-- Per-rule limits (Once per user, Max N per period, cooldowns)
-- Tiered Levels with custom names, colours, and badge icons
-- Leaderboard CP page + dashboard widget, with avatars and live filtering
-- "Latest awards" dashboard widget
-- Customers can spend points at checkout (Pro + Commerce, any payment gateway)
-- Fully renameable: plugin name, currency labels, all from settings
-- Twig API, GraphQL queries, and a GraphQL mutation for headless apps
-- Cache-safe JS helper for Manual rules - works inside Blitz and `{% cache %}`
-- Granular permissions (view / create / edit / delete per resource)
-- Extension events for triggers, conditions, limits, and rewards
+- **Visual rule builder**: *E.g. When X happens, if Y is true, then award Z, max once per day*
+- **Automatic triggers**: Entries, Users, Assets - plus Commerce Orders & Subscriptions on Pro
+- **Conditions**: Order total, contains product, Entry in section, and more - keep rules precise
+- **Limits**: Once per user, Max N per period, cooldowns
+- **Levels**: Tier users with custom names, colours, and badge icons
+- **Leaderboard**: CP page with avatars and live filtering
+- **Dashboard widgets**: Leaderboard and Latest Awards out of the box, with more on the way
+- **Order redemptions**: Customers spend points at checkout (Pro + Commerce, any payment gateway)
+- **Renameable**: rebrand the plugin and its currency - e.g. "VIP Club" earning "Stars", or "Rewards" earning "Credits"
+- **Developer APIs**: Twig, GraphQL queries, and a GraphQL mutation for headless apps
+- **Cache-safe JS helper**: Fire Manual rules from inside Blitz and `{% cache %}` blocks
+- **Granular permissions**: view / create / edit / delete per resource
+- **Extension events**: Plug in your own triggers, conditions, limits, and rewards
 
 ## Contents
 
 - [Editions](#editions)
 - [Install](#install)
 - [Requirements](#requirements)
-- [How it works (3 minutes)](#how-it-works)
+- [How it works](#how-it-works)
 - [Building your first rule](#building-your-first-rule)
 - [Firing a rule from your site](#firing-a-rule-from-your-site)
 - [Reading points in Twig](#reading-points-in-twig)
@@ -43,7 +43,7 @@ A friendly points-and-rewards engine for Craft. Give users points when they sign
 
 ## Editions
 
-| | Lite (free) | Pro |
+| | Lite | Pro |
 |---|---|---|
 | Rules, Awards, Levels, Leaderboard | ✅ | ✅ |
 | Dashboard widgets | ✅ | ✅ |
@@ -80,7 +80,7 @@ Defaults call everything "Points" - but you can rename. The plugin can show up i
 
 ## Building your first rule
 
-Go to **Points → Rules → New rule**. Five sections, each optional except the first two:
+Go to **Points → Rules → New rule**.
 
 | Section | What it is |
 |---|---|
@@ -112,19 +112,22 @@ For "Manual" rules (no trigger), pick whichever fits your setup:
 
 ### 1. A regular form - server-rendered pages
 
-The simplest path. Drop a form into your template, post to the plugin:
+Best for *claim-style* actions where the click itself is the qualifying event - a daily-bonus button, "mark profile complete", "activate promo", etc. Pair with a `Once per user` or `Max 1 / day` limit on the rule so the button stays safe to click.
 
 ```twig
+{# "Claim today's bonus" button, gated to once per day by the rule's limit #}
 <form method="post">
     {{ csrfInput() }}
     {{ actionInput('points/awards/add') }}
-    {{ redirectInput('account/thanks') }}
-    <input type="hidden" name="ruleHandle" value="signedUpForNewsletter">
-    <button>Subscribe</button>
+    {{ redirectInput('account/dashboard') }}
+    <input type="hidden" name="ruleHandle" value="dailyBonus">
+    <button>Claim today's bonus</button>
 </form>
 ```
 
-To reverse an award (e.g. an "unshare" button), post to `points/awards/remove` with the same shape.
+To reverse an award, post to `points/awards/remove` with the same shape.
+
+> For actions that require *something else* to happen first (a real signup, a real share), don't use the form pattern directly - the user could click it without doing the underlying action. Either fire the rule from your own controller's PHP after the real action completes, or call `Points.addAward()` from the JS confirmation page.
 
 > Forms don't play nicely inside Blitz / `{% cache %}` blocks - the embedded CSRF token gets stale. Use the JS helper on cached pages.
 
@@ -136,20 +139,35 @@ Drop this once in your layout:
 {{ craft.points.script() }}
 ```
 
-Now you have `window.Points.addAward(handle)` and `window.Points.removeAward(handle)` everywhere. Cache-safe - works inside Blitz, `{% cache %}`, anything:
+Now you have `window.Points` everywhere. Cache-safe - works inside Blitz, `{% cache %}`, anything:
 
 ```html
 <button onclick="Points.addAward('shared')">Share</button>
 ```
 
-It returns a Promise:
+Both methods return a Promise:
 
 ```js
-const res = await Points.addAward('signedUpForNewsletter');
+const res = await Points.addAward('shared');
 if (res.success) {
     alert(`You earned ${res.points} ${res.currency}!`);
 }
 ```
+
+| Method | Args |
+|---|---|
+| `Points.addAward(handle)` | rule handle (string) |
+| `Points.removeAward(handle)` | rule handle (string) |
+
+Both resolve to an object with these fields:
+
+| Field | Type | When |
+|---|---|---|
+| `success` | bool | Always - `true` on success, `false` on failure |
+| `points` | int | `addAward` success - number of points awarded |
+| `currency` | string | `addAward` success - the configured plural reward-unit label (e.g. `Points`, `Coins`) |
+| `awardId` | int | `addAward` success - id of the new `PointAward` element |
+| `error` | string | On failure - a human-readable reason (rule disabled, limit reached, not logged in, etc.) |
 
 Works with React, Vue, Alpine, Stimulus, htmx - anything that can call a global function.
 
@@ -181,7 +199,13 @@ From a module, controller, or console command:
 use bymayo\points\Points;
 
 Points::getInstance()->awards->addAward($userId, 'profileCompleted');
+Points::getInstance()->awards->removeAward($userId, 'profileCompleted');
 ```
+
+| Call | Returns |
+|---|---|
+| `Points::getInstance()->awards->addAward($userId, $handle)` | `PointAward` on success, `null` if the rule isn't found or a limit blocked the award |
+| `Points::getInstance()->awards->removeAward($userId, $handle)` | `true` if an award was removed, `false` if there was nothing to remove |
 
 This is the only API that can target a user other than the one currently logged in.
 
@@ -192,7 +216,7 @@ This is the only API that can target a user other than the one currently logged 
 {{ craft.points.sumForUser(5) }}        {# total for user 5 #}
 {{ craft.points.countForUser() }}       {# how many awards they have #}
 
-{{ craft.points.formatMoney() }}        {# their balance as money - needs Commerce #}
+{{ craft.points.spendForUser() }}        {# their balance as money - needs Commerce #}
 ```
 
 Loop through someone's awards:
@@ -236,7 +260,7 @@ Available on **Pro + Craft Commerce**. Customers apply points against an order -
 {% set applied = craft.points.appliedToOrder(cart.id) %}
 
 <p>You have {{ balance }} {{ craft.points.currencyPlural|lower }}
-   ({{ craft.points.formatMoney() }}).</p>
+   ({{ craft.points.spendForUser() }}).</p>
 
 {% if applied %}
     <p>{{ applied }} applied to this order.</p>
@@ -278,7 +302,7 @@ Each widget respects your renames - column headers follow whatever you set in Se
 
 ## Examples
 
-A small grab-bag to get the wheels turning.
+A few real-world rule setups to get you started.
 
 ### General
 
@@ -320,25 +344,45 @@ A small grab-bag to get the wheels turning.
 
 ## Settings
 
-Renamable bits all live in **Points → Settings**:
+Settings can be edited at **Points → Settings**:
 
-- **General** - plugin name (sidebar label), reward unit singular/plural, edition info.
-- **Commerce** (Pro) - conversion rate (e.g. 100 points = 1 unit of store currency), minimum redemption, max % of order, refund behaviour.
-- **Triggers** - birthday field handle.
+| Key | Tab | Default | What it does |
+|---|---|---|---|
+| `pluginName` | General | `Points` | Label shown in the CP sidebar and breadcrumbs |
+| `currencyName` | General | `Point` | Reward unit, singular - e.g. `Coin`, `Star` |
+| `currencyNamePlural` | General | `Points` | Reward unit, plural - e.g. `Coins`, `Stars` |
+| `conversionPointsCount` | Commerce (Pro) | `100` | The points side of the X:Y conversion ratio |
+| `conversionCurrencyUnits` | Commerce (Pro) | `1` | The currency side - so by default 100 points = 1 unit of store currency |
+| `redemptionMinPoints` | Commerce (Pro) | `1` | Fewest points a customer can apply in one redemption |
+| `redemptionMaxOrderPercent` | Commerce (Pro) | `100` | Most of an order's total a customer can pay with points (1-100) |
+| `redemptionRefundBehaviour` | Commerce (Pro) | `restoreProportional` | What to do with redeemed points on refund: `restoreProportional`, `restoreFullOnly`, or `none` |
+| `birthdayFieldHandle` | Triggers | (empty) | Handle of a Date field on the user layout used by the User Birthday trigger |
 
-Settings save to the plugin's own DB table - not Project Config. That means admins can rename things on production without a deploy from staging clobbering them. Developers can still pin per-environment values in `config/points.php`:
+Settings save to the plugin's own DB table - not Project Config. That means admins can rename things on production without the next deploy from staging overwriting their changes. Developers can still pin per-environment values in `config/points.php` - anything there takes precedence over the DB row:
 
 ```php
 return [
     '*' => [
+        // Any of the settings keys above can go here
+        'pluginName' => 'Points',
+        'currencyName' => 'Point',
+        'currencyNamePlural' => 'Points',
+        'birthdayFieldHandle' => '',
         'conversionPointsCount' => 100,
         'conversionCurrencyUnits' => 1,
-        'redemptionMaxOrderPercent' => 50,
+        'redemptionMinPoints' => 1,
+        'redemptionMaxOrderPercent' => 100,
+        'redemptionRefundBehaviour' => 'restoreProportional',
+    ],
+
+    // Per-environment overrides work the same as any Craft config file
+    'staging' => [
+        'redemptionMaxOrderPercent' => 100,
     ],
 ];
 ```
 
-The store currency itself isn't a setting - it tracks your Craft Commerce primary store automatically. Money helpers (`toMoney`, `formatMoney`, the Available Spend / Redeemed columns) only work when Commerce is installed.
+The store currency itself isn't a setting - it tracks your Craft Commerce primary store automatically. Money helpers (`toMoney`, `spendForUser`, the Available Spend / Redeemed columns) only work when Commerce is installed.
 
 ## Permissions
 
@@ -352,8 +396,6 @@ Points
   ☐ View leaderboard
   ☐ Manage settings
 ```
-
-A child permission can only be granted once its parent is granted (standard Craft pattern). The Points sidebar and sub-pages are hidden entirely if the user has none.
 
 A few role recipes:
 
@@ -404,13 +446,25 @@ Mutation for firing Manual rules from a headless app:
 | `craft.points.levelForPoints(n)` | `Level` or null |
 | `craft.points.leaderboard(limit?, offset?)` | rows of `{ user, points, level }` |
 | `craft.points.toMoney(points?)` | `float` - needs Commerce |
-| `craft.points.formatMoney(points?)` | `string` - e.g. "£2.50" - needs Commerce |
+| `craft.points.spendForUser(id?)` | `string` - their balance as money, e.g. "£2.50" - needs Commerce |
 | `craft.points.appliedToOrder(orderId)` | `int` - points currently applied to that order |
 | `craft.points.script()` | inline `<script>` defining `window.Points.addAward()` |
-| `craft.points.pluginName` / `currency` / `currencyPlural` / `symbol` | configured labels |
-| `craft.points.rules` / `levels` / `awards` | full lists |
-| `craft.points.rule(handle)` / `ruleById(id)` / `awardById(id)` / `levelById(id)` / `levelByHandle(h)` | single lookups |
-| `craft.points.isPro` | true on Pro |
+| `craft.points.pluginName` | `string` - configured plugin name (e.g. "VIP Club") |
+| `craft.points.currency` | `string` - configured reward unit, singular (e.g. "Coin") |
+| `craft.points.currencyPlural` | `string` - configured reward unit, plural (e.g. "Coins") |
+| `craft.points.symbol` | `string` - store currency symbol from Commerce (e.g. "£", "$") - empty outside Pro+Commerce |
+| `craft.points.currencyCode` | `string` or null - 3-letter ISO code from Commerce (e.g. "GBP") |
+| `craft.points.rules` | `Rule[]` - every rule, in CP-defined order |
+| `craft.points.levels` | `Level[]` - every level, ordered by threshold |
+| `craft.points.awards` | `PointAward[]` - every award (use sparingly on large sites) |
+| `craft.points.rule(handle)` | `Rule` or null - look up a rule by its handle |
+| `craft.points.ruleById(id)` | `Rule` or null - look up a rule by id |
+| `craft.points.awardById(id)` | `PointAward` or null - look up a single award |
+| `craft.points.levelById(id)` | `Level` or null - look up a level by id |
+| `craft.points.levelByHandle(handle)` | `Level` or null - look up a level by handle |
+| `craft.points.user(id)` | `User` or null - look up the user behind an award |
+| `craft.points.orderRedemption(orderId)` | `OrderRedemption` or null - the pending/applied redemption on an order |
+| `craft.points.isPro` | `bool` - true on Pro |
 
 Awards are a first-class element, so you can use element queries too:
 
@@ -453,15 +507,6 @@ Events available:
 | `Awards::EVENT_BEFORE_REMOVE_AWARD` | Before deletion (cancellable) |
 | `Awards::EVENT_AFTER_REMOVE_AWARD` | After deletion |
 | `Levels::EVENT_LEVEL_CHANGED` | When a user crosses a level threshold |
-
-Each subsystem can be extended with your own classes:
-
-```php
-Event::on(Triggers::class, Triggers::EVENT_REGISTER_TRIGGERS,
-    fn($e) => $e->triggers[] = MyTrigger::class);
-```
-
-Same pattern for `Conditions`, `Limits`, and `Rewards`. Extend the matching base class (`BaseTrigger`, etc.).
 
 ## Support
 

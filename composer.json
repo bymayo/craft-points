@@ -1,7 +1,7 @@
 {
   "name": "bymayo/craft-points",
   "description": "Build customer loyalty with points, levels, and leaderboards in Craft and Commerce.",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "type": "craft-plugin",
   "license": "proprietary",
   "support": {

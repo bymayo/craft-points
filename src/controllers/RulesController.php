@@ -96,7 +96,7 @@ class RulesController extends Controller
             'conditionMeta' => $conditionMeta,
             'hasApplicableConditions' => $hasApplicableConditions,
             'limitTypes' => $this->buildTypeOptions($points->limits->getAll()),
-            'rewardTypes' => $this->buildTypeOptions($points->rewards->getAll()),
+            'rewardTypes' => $this->buildRewardTypeOptions($points->rewards->getAll()),
             'sectionOptions' => $this->elementOptions(
                 Craft::$app->getEntries()->getAllSections()
             ),
@@ -327,6 +327,29 @@ class RulesController extends Controller
      * @return array<int, array{label: string, value: string, subjects: string}>
      */
     private function buildConditionTypeOptions(array $byHandle): array
+    {
+        $options = [];
+        foreach ($byHandle as $handle => $class) {
+            $subjects = $class::appliesToSubjects();
+            $options[] = [
+                'label' => $class::label(),
+                'value' => $handle,
+                'subjects' => is_array($subjects) ? implode(',', $subjects) : '',
+            ];
+        }
+        return $options;
+    }
+
+    /**
+     * Reward options with subject metadata. Same shape as
+     * {@see buildConditionTypeOptions} so the template can filter rewards by
+     * the active trigger's subject (e.g. only show "% of order total" on
+     * Order triggers).
+     *
+     * @param array<string, string> $byHandle
+     * @return array<int, array{label: string, value: string, subjects: string}>
+     */
+    private function buildRewardTypeOptions(array $byHandle): array
     {
         $options = [];
         foreach ($byHandle as $handle => $class) {

@@ -32,28 +32,38 @@ class PointsVariable
         return Points::getInstance()->rules->getAllRules();
     }
 
-    public function user(int $userId): ?User
+    // All single-element lookups accept nullable arguments and return null
+    // when given an empty value. That way templates can pass values that
+    // *might* be null (e.g. `currentUser.id` on a logged-out page, or
+    // `award.ruleId` when an award lookup misses) without guarding.
+
+    public function user(?int $userId): ?User
     {
+        if (!$userId) return null;
         return Craft::$app->getUsers()->getUserById($userId);
     }
 
-    public function rule(string $handle): ?Rule
+    public function rule(?string $handle): ?Rule
     {
+        if (!$handle) return null;
         return Points::getInstance()->rules->getRuleByHandle($handle);
     }
 
-    public function ruleById(int $id): ?Rule
+    public function ruleById(?int $id): ?Rule
     {
+        if (!$id) return null;
         return Points::getInstance()->rules->getRuleById($id);
     }
 
-    public function ruleByHandle(string $handle): ?Rule
+    public function ruleByHandle(?string $handle): ?Rule
     {
+        if (!$handle) return null;
         return Points::getInstance()->rules->getRuleByHandle($handle);
     }
 
-    public function awardById(int $id): ?PointAward
+    public function awardById(?int $id): ?PointAward
     {
+        if (!$id) return null;
         return Points::getInstance()->awards->getAwardById($id);
     }
 
@@ -102,18 +112,21 @@ class PointsVariable
             : null;
     }
 
-    public function levelForPoints(int $points): ?Level
+    public function levelForPoints(?int $points): ?Level
     {
+        if ($points === null) return null;
         return Points::getInstance()->levels->levelForPoints($points);
     }
 
-    public function levelById(int $id): ?Level
+    public function levelById(?int $id): ?Level
     {
+        if (!$id) return null;
         return Points::getInstance()->levels->getLevelById($id);
     }
 
-    public function levelByHandle(string $handle): ?Level
+    public function levelByHandle(?string $handle): ?Level
     {
+        if (!$handle) return null;
         return Points::getInstance()->levels->getLevelByHandle($handle);
     }
 
@@ -170,18 +183,24 @@ class PointsVariable
     /**
      * Currently-applied points redemption for an order, or null. Pro+Commerce only.
      *
+     * `$orderId` is nullable so templates can pass `cart.id` directly without
+     * guarding against a logged-out / cartless visitor (when there's no cart).
+     *
      * @return \bymayo\points\models\OrderRedemption|null
      */
-    public function orderRedemption(int $orderId)
+    public function orderRedemption(?int $orderId)
     {
-        if (!$this->isProCommerce()) return null;
+        if (!$orderId || !$this->isProCommerce()) return null;
         return Points::getInstance()->orderRedemptions->getForOrder($orderId);
     }
 
-    /** Number of points currently applied to the order. 0 outside Pro+Commerce. */
-    public function appliedToOrder(int $orderId): int
+    /**
+     * Number of points currently applied to the order. 0 outside Pro+Commerce,
+     * or when `$orderId` is null (e.g. logged-out visitor with no cart).
+     */
+    public function appliedToOrder(?int $orderId): int
     {
-        if (!$this->isProCommerce()) return 0;
+        if (!$orderId || !$this->isProCommerce()) return 0;
         $r = Points::getInstance()->orderRedemptions->getForOrder($orderId);
         return $r ? $r->points : 0;
     }
@@ -277,11 +296,16 @@ JS;
     }
 
     /**
-     * Same as toMoney() but locale-formatted using the Commerce primary store's
-     * currency (e.g. "£2.50", "$2.50", "2,50 €"). Empty string outside Pro+Commerce.
+     * Formatted monetary value of a user's points balance, in the Commerce
+     * primary store's currency (e.g. "£2.50", "$2.50", "2,50 €"). Defaults to
+     * the current user. Empty string outside Pro+Commerce.
+     *
+     * Mirrors `sumForUser()` (raw points) and the "Available Spend" column on
+     * the Users element index.
      */
-    public function formatMoney(?int $points = null): string
+    public function spendForUser(?int $userId = null): string
     {
+        $points = $this->sumForUser($userId);
         $value = $this->toMoney($points);
         if ($value === null) {
             return '';

@@ -27,7 +27,12 @@ class PointAward extends Element
 
     public static function displayName(): string
     {
-        return Points::getInstance()->getSettings()->currencyName . ' Award';
+        // "Rule" is used by Craft's element-source service as the title column
+        // label (it's hardcoded to displayName(), with no override hook). The
+        // row content is the rule name (see getUiLabel) so labelling the column
+        // "Rule" is what users expect. Plural / lower variants still use the
+        // configured currency name ("{Coin} Awards", etc.) for page titles.
+        return Craft::t('points', 'Rule');
     }
 
     public static function lowerDisplayName(): string
@@ -110,11 +115,9 @@ class PointAward extends Element
 
     protected static function defineTableAttributes(): array
     {
-        // 'title' is the element's primary column. By default Craft labels it
-        // with the element's displayName ("Point Award") — we override it
-        // because the row content is the rule name (see getUiLabel).
+        // 'title' label comes from displayName() (we override that to "Rule").
+        // The remaining columns are declared here.
         $attrs = [
-            'title' => ['label' => Craft::t('points', 'Rule')],
             'user' => ['label' => Craft::t('points', 'User')],
             'pointsSnapshot' => ['label' => Points::getInstance()->getSettings()->currencyNamePlural],
             'dateCreated' => ['label' => Craft::t('app', 'Date Created')],
@@ -136,10 +139,15 @@ class PointAward extends Element
     protected static function defineSortOptions(): array
     {
         return [
-            'dateCreated' => Craft::t('app', 'Date Created'),
+            'dateCreated' => [
+                'label' => Craft::t('app', 'Date Created'),
+                'orderBy' => 'elements.dateCreated',
+                'attribute' => 'dateCreated',
+            ],
             'pointsSnapshot' => [
                 'label' => Points::getInstance()->getSettings()->currencyNamePlural,
                 'orderBy' => 'points_awards.pointsSnapshot',
+                'attribute' => 'pointsSnapshot',
             ],
         ];
     }

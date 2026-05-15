@@ -22,4 +22,14 @@ class PercentReward extends BaseReward
         $percent = (float)($config['percent'] ?? 0);
         return max(0, (int)floor($ctx->amount * $percent / 100));
     }
+
+    /**
+     * Only show on Order triggers — percent-of-order-total needs an order
+     * context to compute against. Manual / Entry / User triggers don't have
+     * an amount, so the calculation would always return 0.
+     */
+    public static function appliesToSubjects(): ?array
+    {
+        return ['order'];
+    }
 }
