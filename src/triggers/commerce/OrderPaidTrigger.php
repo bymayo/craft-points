@@ -3,36 +3,35 @@
 namespace bymayo\points\triggers\commerce;
 
 use bymayo\points\triggers\BaseTrigger;
+use bymayo\points\triggers\TriggerContext;
 use craft\commerce\elements\Order;
+use yii\base\Event;
 
 class OrderPaidTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'commerce.orderPaid'; }
-    public static function label(): string { return 'Order paid'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function subject(): string { return 'order'; }
-    public static function actionLabel(): string { return 'Paid'; }
-    public static function eventClass(): string { return Order::class; }
-    public static function eventName(): string { return Order::EVENT_AFTER_ORDER_PAID; }
+    public function handle(): string { return 'commerce.orderPaid'; }
+    public function label(): string { return 'Order paid'; }
+    public function group(): string { return 'Commerce'; }
+    public function subject(): string { return 'order'; }
+    public function actionLabel(): string { return 'Paid'; }
 
-    public static function getUserIdFromEvent($event): ?int
+    public function events(): array
     {
-        /** @var Order $order */
-        $order = $event->sender;
-        return $order->customerId ?: null;
+        return [[Order::class, Order::EVENT_AFTER_ORDER_PAID]];
     }
 
-    public static function getAmountForEvent($event): ?float
+    public function handleEvent(Event $event): ?TriggerContext
     {
         /** @var Order $order */
         $order = $event->sender;
-        return (float) $order->getTotalPrice();
-    }
-
-    public static function getOrderIdFromEvent($event): ?int
-    {
-        /** @var Order $order */
-        $order = $event->sender;
-        return $order->id ?: null;
+        $userId = $order->customerId ?: null;
+        if (!$userId) {
+            return null;
+        }
+        return new TriggerContext(
+            userId: (int) $userId,
+            amount: (float) $order->getTotalPrice(),
+            orderId: $order->id ?: null,
+        );
     }
 }

@@ -2,50 +2,56 @@
 
 namespace bymayo\points\triggers;
 
+use yii\base\Event;
+
+/**
+ * Default implementations for the boilerplate metadata so a custom trigger
+ * only has to define handle(), label(), group(), events(), and handleEvent().
+ */
 abstract class BaseTrigger implements TriggerInterface
 {
-    public static function group(): string
+    public function group(): string
     {
         return 'General';
     }
 
-    public static function subject(): string
+    public function subject(): string
     {
-        $parts = explode('.', static::handle(), 2);
+        $parts = explode('.', $this->handle(), 2);
         return $parts[0];
     }
 
-    public static function subjectLabel(): string
+    public function subjectLabel(): string
     {
-        return ucfirst(static::subject());
+        return ucfirst($this->subject());
     }
 
-    public static function actionLabel(): string
+    public function actionLabel(): string
     {
-        $label = static::label();
-        $subjectLabel = static::subjectLabel();
+        $label = $this->label();
+        $subjectLabel = $this->subjectLabel();
         if (str_starts_with($label, $subjectLabel . ' ')) {
             return ucfirst(substr($label, strlen($subjectLabel) + 1));
         }
         return $label;
     }
 
-    public static function appliesToEvent($event): bool
+    public function isAvailable(): bool
     {
         return true;
     }
 
-    public static function getAmountForEvent($event): ?float
+    public function conditions(): array
     {
-        return null;
+        return [];
     }
 
-    public static function isAvailable(): bool
-    {
-        return true;
-    }
-
-    public static function getOrderIdFromEvent($event): ?int
+    /**
+     * Default no-op. Override to return a TriggerContext (or null to skip).
+     * Returning null here means a misconfigured subclass won't accidentally
+     * award points — it'll silently no-op until it's overridden.
+     */
+    public function handleEvent(Event $event): ?TriggerContext
     {
         return null;
     }

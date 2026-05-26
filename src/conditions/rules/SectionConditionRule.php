@@ -7,12 +7,12 @@ use bymayo\points\conditions\RuleEvaluationContext;
 
 class SectionConditionRule extends BaseConditionRule
 {
-    public static function handle(): string { return 'section'; }
-    public static function label(): string { return 'Is in section'; }
-    public static function group(): string { return 'Element'; }
-    public static function appliesToSubjects(): ?array { return ['entry']; }
+    public function handle(): string { return 'section'; }
+    public function label(): string { return 'Is in section'; }
+    public function group(): string { return 'Element'; }
+    public function appliesToSubjects(): ?array { return ['entry']; }
 
-    public static function evaluate(array $config, RuleEvaluationContext $ctx): bool
+    public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
         $ids = array_map('intval', $config['ids'] ?? []);
         if (empty($ids)) {

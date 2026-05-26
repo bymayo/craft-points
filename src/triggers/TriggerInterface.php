@@ -2,48 +2,59 @@
 
 namespace bymayo\points\triggers;
 
+use bymayo\points\conditions\ConditionRuleInterface;
+use yii\base\Event;
+
+/**
+ * A trigger is a self-contained, single-file integration point: it
+ * advertises identity (handle/label/group), declares which Yii events
+ * it wants to listen on, and converts each fired event into a
+ * TriggerContext (or null to skip).
+ *
+ * Third-party plugins implement this interface and register an instance
+ * via Points::getInstance()->triggers->register(new MyTrigger()), or
+ * by appending to RegisterTriggersEvent::$triggers.
+ */
 interface TriggerInterface
 {
-    /** Unique trigger handle stored on the Event record, e.g. 'entry.created'. */
-    public static function handle(): string;
+    /** Unique trigger handle stored on the Rule record, e.g. 'entry.created'. */
+    public function handle(): string;
 
     /** Human-readable label for the trigger select. */
-    public static function label(): string;
+    public function label(): string;
 
-    /** Group label for optgroup'ing the trigger select (e.g. 'Entries', 'Users'). */
-    public static function group(): string;
+    /** Group label used to optgroup the trigger select (e.g. 'Entries', 'Users'). */
+    public function group(): string;
 
-    /** The element/subject this trigger fires on, e.g. 'entry', 'user', 'order'. */
-    public static function subject(): string;
+    /** Subject this trigger fires on, e.g. 'entry', 'user', 'order'. */
+    public function subject(): string;
 
     /** Human-readable subject label, e.g. 'Entry', 'User', 'Order'. */
-    public static function subjectLabel(): string;
+    public function subjectLabel(): string;
 
     /** Action verb for the trigger, e.g. 'Created', 'Updated', 'Logged in'. */
-    public static function actionLabel(): string;
-
-    /** The Yii/Craft event source class to listen on. */
-    public static function eventClass(): string;
-
-    /** The event name constant to listen for. */
-    public static function eventName(): string;
+    public function actionLabel(): string;
 
     /**
-     * Return true if the underlying event matches this trigger's intent
-     * (e.g. an Entry save event with $isNew === true for an "Entry created" trigger).
-     */
-    public static function appliesToEvent($event): bool;
-
-    /** Resolve the user ID that should receive points for this event. */
-    public static function getUserIdFromEvent($event): ?int;
-
-    /**
-     * Return the monetary amount for this event (e.g. order total), if applicable.
+     * Yii events this trigger subscribes to.
      *
-     * Used by percentage-of-amount point awards. Triggers that don't have an
-     * amount context (most non-Commerce ones) should return null.
+     * Return one or more `[ClassName, EVENT_CONST]` pairs. The Triggers
+     * service attaches a single listener per (class, event) pair and
+     * routes the event to every trigger that declared it.
+     *
+     * @return array<int, array{0: class-string, 1: string}>
      */
-    public static function getAmountForEvent($event): ?float;
+    public function events(): array;
+
+    /**
+     * Decide whether this event should award points and, if so, who to.
+     *
+     * Return a TriggerContext to dispatch through the rule pipeline, or
+     * null to skip (validation failed, not a logged-in user, wrong sub-type
+     * of event, etc.). This is the single per-trigger contract — everything
+     * the dispatcher needs to know lives on the returned context.
+     */
+    public function handleEvent(Event $event): ?TriggerContext;
 
     /**
      * Return false to hide this trigger from the rule builder picker.
@@ -52,12 +63,20 @@ interface TriggerInterface
      * birthday trigger needing a configured field handle that exists on
      * the user field layout), return false until the dependency is met.
      */
-    public static function isAvailable(): bool;
+    public function isAvailable(): bool;
 
     /**
-     * Return the Commerce order ID this event was about, if applicable.
-     * Used to stamp the resulting award with a back-reference to the order
-     * so the Awards index can link back. Non-Commerce triggers return null.
+     * Companion conditions that ship with this trigger.
+     *
+     * Use this to keep your trigger and its purpose-built "IF" conditions
+     * in the same file: return one or more ConditionRuleInterface instances
+     * and they'll be auto-registered with the Conditions service when the
+     * trigger is registered.
+     *
+     * The conditions still need to declare their own `appliesToSubjects()`
+     * so the rule builder UI filters them correctly.
+     *
+     * @return ConditionRuleInterface[]
      */
-    public static function getOrderIdFromEvent($event): ?int;
+    public function conditions(): array;
 }

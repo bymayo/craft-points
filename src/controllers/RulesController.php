@@ -365,14 +365,14 @@ class RulesController extends Controller
      * Map of trigger handle → subject, used by JS to derive the current subject
      * for condition filtering when the user changes the trigger select.
      *
-     * @param string[] $triggerClasses
+     * @param \bymayo\points\triggers\TriggerInterface[] $triggers
      * @return array<string, string>
      */
-    private function buildTriggerSubjects(array $triggerClasses): array
+    private function buildTriggerSubjects(array $triggers): array
     {
         $map = [];
-        foreach ($triggerClasses as $class) {
-            $map[$class::handle()] = $class::subject();
+        foreach ($triggers as $trigger) {
+            $map[$trigger->handle()] = $trigger->subject();
         }
         return $map;
     }
@@ -381,16 +381,16 @@ class RulesController extends Controller
      * Condition options with subject metadata baked in for the template to render
      * as data-subjects attributes.
      *
-     * @param array<string, string> $byHandle
+     * @param array<string, \bymayo\points\conditions\ConditionRuleInterface> $byHandle
      * @return array<int, array{label: string, value: string, subjects: string}>
      */
     private function buildConditionTypeOptions(array $byHandle): array
     {
         $options = [];
-        foreach ($byHandle as $handle => $class) {
-            $subjects = $class::appliesToSubjects();
+        foreach ($byHandle as $handle => $condition) {
+            $subjects = $condition->appliesToSubjects();
             $options[] = [
-                'label' => $class::label(),
+                'label' => $condition->label(),
                 'value' => $handle,
                 'subjects' => is_array($subjects) ? implode(',', $subjects) : '',
             ];

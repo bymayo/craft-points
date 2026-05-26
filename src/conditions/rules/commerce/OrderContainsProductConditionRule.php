@@ -15,12 +15,12 @@ use bymayo\points\conditions\RuleEvaluationContext;
  */
 class OrderContainsProductConditionRule extends BaseConditionRule
 {
-    public static function handle(): string { return 'commerce.containsProduct'; }
-    public static function label(): string { return 'Contains product(s)'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function appliesToSubjects(): ?array { return ['order']; }
+    public function handle(): string { return 'commerce.containsProduct'; }
+    public function label(): string { return 'Contains product(s)'; }
+    public function group(): string { return 'Commerce'; }
+    public function appliesToSubjects(): ?array { return ['order']; }
 
-    public static function evaluate(array $config, RuleEvaluationContext $ctx): bool
+    public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
         $raw = $config['productIds'] ?? [];
         $wanted = is_array($raw)

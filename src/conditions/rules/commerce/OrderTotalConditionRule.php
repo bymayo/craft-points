@@ -7,12 +7,12 @@ use bymayo\points\conditions\RuleEvaluationContext;
 
 class OrderTotalConditionRule extends BaseConditionRule
 {
-    public static function handle(): string { return 'commerce.orderTotal'; }
-    public static function label(): string { return 'Total'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function appliesToSubjects(): ?array { return ['order']; }
+    public function handle(): string { return 'commerce.orderTotal'; }
+    public function label(): string { return 'Total'; }
+    public function group(): string { return 'Commerce'; }
+    public function appliesToSubjects(): ?array { return ['order']; }
 
-    public static function evaluate(array $config, RuleEvaluationContext $ctx): bool
+    public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
         if ($ctx->amount === null) {
             return false;

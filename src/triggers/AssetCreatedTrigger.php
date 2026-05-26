@@ -5,26 +5,32 @@ namespace bymayo\points\triggers;
 use craft\base\Element;
 use craft\elements\Asset;
 use craft\events\ModelEvent;
+use yii\base\Event;
 
 class AssetCreatedTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'asset.created'; }
-    public static function label(): string { return 'Asset created'; }
-    public static function group(): string { return 'Assets'; }
-    public static function actionLabel(): string { return 'Created'; }
-    public static function eventClass(): string { return Asset::class; }
-    public static function eventName(): string { return Element::EVENT_AFTER_SAVE; }
+    public function handle(): string { return 'asset.created'; }
+    public function label(): string { return 'Asset created'; }
+    public function group(): string { return 'Assets'; }
+    public function actionLabel(): string { return 'Created'; }
 
-    public static function appliesToEvent($event): bool
+    public function events(): array
     {
-        /** @var ModelEvent $event */
-        return (bool) ($event->isNew ?? false);
+        return [[Asset::class, Element::EVENT_AFTER_SAVE]];
     }
 
-    public static function getUserIdFromEvent($event): ?int
+    public function handleEvent(Event $event): ?TriggerContext
     {
+        /** @var ModelEvent $event */
+        if (!($event->isNew ?? false)) {
+            return null;
+        }
         /** @var Asset $asset */
         $asset = $event->sender;
-        return $asset->uploaderId ?: null;
+        $userId = $asset->uploaderId ?: null;
+        if (!$userId) {
+            return null;
+        }
+        return new TriggerContext(userId: $userId);
     }
 }

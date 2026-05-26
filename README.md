@@ -495,7 +495,111 @@ Awards are a first-class element, so you can use element queries too:
 
 ## Extending the plugin
 
-Need to react to things, or add your own trigger / condition / limit / reward type?
+### Custom triggers (and their conditions)
+
+Need points to fire on something Points doesn't ship with - a comment, a forum post, a download, anything? Write one PHP class that wraps the Yii event you care about, return a `TriggerContext` describing who earned what, and you're in. The trigger then shows up in the rule builder alongside the built-ins.
+
+If your trigger has its own purpose-built conditions (e.g. *"only award when the comment is longer than 100 characters"*), declare them on the trigger and they're auto-registered. **WHEN + IF lives in one file.**
+
+Here's a complete example - a "Comment posted" trigger with a "Comment length" condition. Drop it anywhere in your plugin, module, or site code:
+
+```php
+<?php
+namespace mysite\points;
+
+use bymayo\points\conditions\BaseConditionRule;
+use bymayo\points\conditions\RuleEvaluationContext;
+use bymayo\points\triggers\BaseTrigger;
+use bymayo\points\triggers\TriggerContext;
+use craft\base\Element;
+use craft\events\ModelEvent;
+use yii\base\Event;
+use yourvendor\comments\elements\Comment; // wherever your Comment element lives
+
+class CommentPostedTrigger extends BaseTrigger
+{
+    public function handle(): string  { return 'mysite.commentPosted'; }
+    public function label(): string   { return 'Comment posted'; }
+    public function group(): string   { return 'Comments'; }
+    public function subject(): string { return 'comment'; }
+
+    // One or more [Class, EVENT_CONST] pairs to subscribe to.
+    public function events(): array
+    {
+        return [[Comment::class, Element::EVENT_AFTER_SAVE]];
+    }
+
+    // Companion conditions, auto-registered when this trigger registers.
+    public function conditions(): array
+    {
+        return [new CommentLengthCondition()];
+    }
+
+    // Return a TriggerContext to award points, or null to skip this event.
+    public function handleEvent(Event $event): ?TriggerContext
+    {
+        /** @var ModelEvent $event */
+        if (!($event->isNew ?? false)) {
+            return null; // edits don't earn points, only new comments
+        }
+
+        /** @var Comment $comment */
+        $comment = $event->sender;
+        if (!$comment->authorId) {
+            return null; // anonymous comments can't earn points
+        }
+
+        return new TriggerContext(userId: (int) $comment->authorId);
+    }
+}
+
+class CommentLengthCondition extends BaseConditionRule
+{
+    public function handle(): string { return 'mysite.commentLength'; }
+    public function label(): string  { return 'Comment length'; }
+    public function group(): string  { return 'Comments'; }
+
+    // Only show this condition when the rule's trigger has subject 'comment'.
+    public function appliesToSubjects(): ?array { return ['comment']; }
+
+    public function evaluate(array $config, RuleEvaluationContext $ctx): bool
+    {
+        $min = (int) ($config['min'] ?? 0);
+        $comment = $ctx->triggerEvent?->sender ?? null;
+        $length = $comment ? mb_strlen((string) $comment->body) : 0;
+        return $length >= $min;
+    }
+}
+```
+
+Register it in one line from your plugin or module's `init()`:
+
+```php
+use bymayo\points\Points;
+use mysite\points\CommentPostedTrigger;
+
+public function init(): void
+{
+    parent::init();
+    Points::getInstance()->triggers->register(new CommentPostedTrigger());
+    // CommentLengthCondition is pulled in via conditions() — no extra call needed.
+}
+```
+
+That's everything. The trigger appears in the rule builder under "Comments", the condition shows when an admin picks it, the Yii listener is attached automatically, and matching events flow through the normal conditions → limits → reward pipeline.
+
+A few details worth knowing:
+
+- **`TriggerContext`** carries `userId` (required), plus optional `amount` (for percentage rewards - e.g. an order total) and `orderId` (so the resulting award links back to a Commerce order). Anything else rides along in `metadata`.
+- **One trigger, many events:** return multiple pairs from `events()` if the same conceptual trigger fires on more than one Yii event.
+- **`isAvailable()`** is your kill switch - return `false` to hide the trigger from the rule builder while a dependency is missing (e.g. a configured field handle that doesn't exist yet).
+- **Labels:** `subject()`, `subjectLabel()`, and `actionLabel()` are auto-inferred from `handle()` and `label()` - override them only if the inferred values read badly.
+- **Standalone conditions:** if you only want to add a condition (no trigger), call `Points::getInstance()->conditions->register(new MyCondition())` from your `init()`.
+- **Events too:** if you'd rather use Yii's event API directly, listen for `Triggers::EVENT_REGISTER_TRIGGERS` (and `Conditions::EVENT_REGISTER_CONDITION_RULES`) and append your instances to `$event->triggers` / `$event->conditionRules`.
+
+### Award lifecycle events
+
+Need to react to points being awarded, or block one entirely?
 
 ```php
 use bymayo\points\events\AwardEvent;

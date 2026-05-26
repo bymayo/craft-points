@@ -3,7 +3,9 @@
 namespace bymayo\points\triggers\commerce;
 
 use bymayo\points\triggers\BaseTrigger;
+use bymayo\points\triggers\TriggerContext;
 use craft\commerce\elements\Order;
+use yii\base\Event;
 
 /**
  * Fires when a customer's first-ever order is completed.
@@ -11,20 +13,23 @@ use craft\commerce\elements\Order;
  */
 class FirstOrderTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'commerce.firstOrder'; }
-    public static function label(): string { return 'First order ever'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function subject(): string { return 'order'; }
-    public static function actionLabel(): string { return 'First ever'; }
-    public static function eventClass(): string { return Order::class; }
-    public static function eventName(): string { return Order::EVENT_AFTER_COMPLETE_ORDER; }
+    public function handle(): string { return 'commerce.firstOrder'; }
+    public function label(): string { return 'First order ever'; }
+    public function group(): string { return 'Commerce'; }
+    public function subject(): string { return 'order'; }
+    public function actionLabel(): string { return 'First ever'; }
 
-    public static function appliesToEvent($event): bool
+    public function events(): array
+    {
+        return [[Order::class, Order::EVENT_AFTER_COMPLETE_ORDER]];
+    }
+
+    public function handleEvent(Event $event): ?TriggerContext
     {
         /** @var Order $order */
         $order = $event->sender;
         if (!$order->customerId) {
-            return false;
+            return null;
         }
 
         $count = (int) Order::find()
@@ -33,27 +38,14 @@ class FirstOrderTrigger extends BaseTrigger
             ->count();
 
         // The current order is already counted as completed.
-        return $count <= 1;
-    }
+        if ($count > 1) {
+            return null;
+        }
 
-    public static function getUserIdFromEvent($event): ?int
-    {
-        /** @var Order $order */
-        $order = $event->sender;
-        return $order->customerId ?: null;
-    }
-
-    public static function getAmountForEvent($event): ?float
-    {
-        /** @var Order $order */
-        $order = $event->sender;
-        return (float) $order->getTotalPrice();
-    }
-
-    public static function getOrderIdFromEvent($event): ?int
-    {
-        /** @var Order $order */
-        $order = $event->sender;
-        return $order->id ?: null;
+        return new TriggerContext(
+            userId: (int) $order->customerId,
+            amount: (float) $order->getTotalPrice(),
+            orderId: $order->id ?: null,
+        );
     }
 }

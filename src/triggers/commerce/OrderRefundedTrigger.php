@@ -3,56 +3,55 @@
 namespace bymayo\points\triggers\commerce;
 
 use bymayo\points\triggers\BaseTrigger;
+use bymayo\points\triggers\TriggerContext;
 use craft\commerce\services\Transactions;
+use yii\base\Event;
 
 /**
  * Fires when a successful refund transaction is saved.
  *
  * The transaction service fires for every transaction (purchase, authorize, capture, refund),
- * so we filter on type+status in appliesToEvent.
+ * so we filter on type+status before returning a context.
  *
- * `getAmountForEvent` returns the refunded amount (not the original order total),
+ * The TriggerContext's amount is the refunded amount (not the original order total),
  * so percent rewards calculate against what was actually refunded.
  *
  * Pair this with a "Deduct points" reward to subtract from the user's balance.
  */
 class OrderRefundedTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'commerce.orderRefunded'; }
-    public static function label(): string { return 'Order refunded'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function subject(): string { return 'order'; }
-    public static function actionLabel(): string { return 'Refunded'; }
-    public static function eventClass(): string { return Transactions::class; }
-    public static function eventName(): string { return Transactions::EVENT_AFTER_SAVE_TRANSACTION; }
+    public function handle(): string { return 'commerce.orderRefunded'; }
+    public function label(): string { return 'Order refunded'; }
+    public function group(): string { return 'Commerce'; }
+    public function subject(): string { return 'order'; }
+    public function actionLabel(): string { return 'Refunded'; }
 
-    public static function appliesToEvent($event): bool
+    public function events(): array
+    {
+        return [[Transactions::class, Transactions::EVENT_AFTER_SAVE_TRANSACTION]];
+    }
+
+    public function handleEvent(Event $event): ?TriggerContext
     {
         /** @var \craft\commerce\events\TransactionEvent $event */
         $tx = $event->transaction ?? null;
         if (!$tx) {
-            return false;
+            return null;
         }
-        return $tx->type === 'refund' && $tx->status === 'success';
-    }
+        if ($tx->type !== 'refund' || $tx->status !== 'success') {
+            return null;
+        }
 
-    public static function getUserIdFromEvent($event): ?int
-    {
-        $tx = $event->transaction ?? null;
-        $order = $tx?->order;
-        return $order?->customerId ?: null;
-    }
+        $order = $tx->order ?? null;
+        $userId = $order?->customerId ?: null;
+        if (!$userId) {
+            return null;
+        }
 
-    public static function getAmountForEvent($event): ?float
-    {
-        $tx = $event->transaction ?? null;
-        return $tx ? (float) $tx->amount : null;
-    }
-
-    public static function getOrderIdFromEvent($event): ?int
-    {
-        $tx = $event->transaction ?? null;
-        $order = $tx?->order;
-        return $order?->id ?: null;
+        return new TriggerContext(
+            userId: (int) $userId,
+            amount: (float) $tx->amount,
+            orderId: $order?->id ?: null,
+        );
     }
 }

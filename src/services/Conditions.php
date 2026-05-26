@@ -20,19 +20,48 @@ class Conditions extends Component
 {
     public const EVENT_REGISTER_CONDITION_RULES = 'registerConditionRules';
 
-    /** @var array<string, string> Map of handle → class. */
+    /** @var array<string, ConditionRuleInterface> Handle → condition. First registration wins. */
     private array $_byHandle = [];
+
+    /** @var ConditionRuleInterface[] Buffered registrations made before init() ran. */
+    private array $_pending = [];
+
+    private bool $_initialized = false;
 
     public function init(): void
     {
         parent::init();
         $this->registerRules();
+        $this->_initialized = true;
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, ConditionRuleInterface> */
     public function getAll(): array
     {
         return $this->_byHandle;
+    }
+
+    public function getByHandle(string $handle): ?ConditionRuleInterface
+    {
+        return $this->_byHandle[$handle] ?? null;
+    }
+
+    /**
+     * Sugar API for third-party plugins. Call from your plugin's init():
+     *
+     *     Points::getInstance()->conditions->register(new MyCondition());
+     *
+     * Custom triggers can also bundle their own conditions by returning
+     * them from TriggerInterface::conditions() — the Triggers service
+     * forwards those here automatically.
+     */
+    public function register(ConditionRuleInterface $condition): void
+    {
+        if (!$this->_initialized) {
+            $this->_pending[] = $condition;
+            return;
+        }
+        $this->addCondition($condition);
     }
 
     /**
@@ -44,17 +73,12 @@ class Conditions extends Component
     public function getMetaForJs(): array
     {
         $meta = [];
-        foreach ($this->_byHandle as $handle => $class) {
+        foreach ($this->_byHandle as $handle => $condition) {
             $meta[$handle] = [
-                'subjects' => $class::appliesToSubjects(),
+                'subjects' => $condition->appliesToSubjects(),
             ];
         }
         return $meta;
-    }
-
-    public function getByHandle(string $handle): ?string
-    {
-        return $this->_byHandle[$handle] ?? null;
     }
 
     /**
@@ -68,10 +92,9 @@ class Conditions extends Component
         foreach ($specs as $spec) {
             $type = $spec['type'] ?? null;
             if (!$type) continue;
-            $class = $this->_byHandle[$type] ?? null;
-            if (!$class) continue;
-            /** @var class-string<ConditionRuleInterface> $class */
-            if (!$class::evaluate($spec, $ctx)) {
+            $condition = $this->_byHandle[$type] ?? null;
+            if (!$condition) continue;
+            if (!$condition->evaluate($spec, $ctx)) {
                 return false;
             }
         }
@@ -81,37 +104,49 @@ class Conditions extends Component
     private function registerRules(): void
     {
         $defaults = [
-            SectionConditionRule::class,
-            UserGroupConditionRule::class,
+            new SectionConditionRule(),
+            new UserGroupConditionRule(),
         ];
 
         // Formie - require Formie installed.
         if (\Craft::$app->getPlugins()->isPluginEnabled('formie')) {
-            $defaults[] = FormieFormConditionRule::class;
+            $defaults[] = new FormieFormConditionRule();
         }
 
         // Freeform - require Freeform installed.
         if (\Craft::$app->getPlugins()->isPluginEnabled('freeform')) {
-            $defaults[] = FreeformFormConditionRule::class;
+            $defaults[] = new FreeformFormConditionRule();
         }
 
         // Pro-only: Commerce conditions.
         $isPro = Points::getInstance()->is(Points::EDITION_PRO);
         if ($isPro && \Craft::$app->getPlugins()->isPluginEnabled('commerce')) {
-            $defaults[] = OrderTotalConditionRule::class;
-            $defaults[] = OrderItemCountConditionRule::class;
-            $defaults[] = OrderHasCouponConditionRule::class;
-            $defaults[] = OrderContainsProductConditionRule::class;
+            $defaults[] = new OrderTotalConditionRule();
+            $defaults[] = new OrderItemCountConditionRule();
+            $defaults[] = new OrderHasCouponConditionRule();
+            $defaults[] = new OrderContainsProductConditionRule();
         }
 
         $event = new RegisterConditionRulesEvent(['conditionRules' => $defaults]);
         $this->trigger(self::EVENT_REGISTER_CONDITION_RULES, $event);
 
-        foreach ($event->conditionRules as $class) {
-            if (!is_subclass_of($class, ConditionRuleInterface::class)) {
-                continue;
+        foreach ($event->conditionRules as $condition) {
+            if ($condition instanceof ConditionRuleInterface) {
+                $this->addCondition($condition);
             }
-            $this->_byHandle[$class::handle()] = $class;
         }
+        foreach ($this->_pending as $condition) {
+            $this->addCondition($condition);
+        }
+        $this->_pending = [];
+    }
+
+    private function addCondition(ConditionRuleInterface $condition): void
+    {
+        $handle = $condition->handle();
+        if (isset($this->_byHandle[$handle])) {
+            return; // first registration wins
+        }
+        $this->_byHandle[$handle] = $condition;
     }
 }

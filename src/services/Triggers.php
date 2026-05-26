@@ -31,28 +31,62 @@ class Triggers extends Component
 {
     public const EVENT_REGISTER_TRIGGERS = 'registerTriggers';
 
-    /** @var string[] Trigger class names, after the register event has fired. */
+    /** @var TriggerInterface[] All registered trigger instances, post-init. */
     private array $_triggers = [];
 
-    /** @var array<string, string> Map of trigger handle → class. */
+    /** @var array<string, TriggerInterface> Handle → trigger. First registration wins. */
     private array $_byHandle = [];
+
+    /** @var array<string, TriggerInterface[]> 'Class::EVENT' → triggers listening for it. */
+    private array $_byEventKey = [];
+
+    /** @var array<string, true> 'Class::EVENT' keys we've already attached a Yii listener for. */
+    private array $_attached = [];
+
+    /** @var TriggerInterface[] Triggers registered via register() before init() ran. */
+    private array $_pending = [];
+
+    private bool $_initialized = false;
 
     public function init(): void
     {
         parent::init();
         $this->registerTriggers();
-        $this->attachListeners();
+        $this->_initialized = true;
+        $this->attachListenersFor($this->_triggers);
     }
 
-    /** @return string[] */
+    /** @return TriggerInterface[] */
     public function getAllTriggers(): array
     {
         return $this->_triggers;
     }
 
-    public function getTriggerClassByHandle(string $handle): ?string
+    public function getTriggerByHandle(string $handle): ?TriggerInterface
     {
         return $this->_byHandle[$handle] ?? null;
+    }
+
+    /**
+     * Sugar API for third-party plugins. Call from your plugin's init():
+     *
+     *     Points::getInstance()->triggers->register(new MyTrigger());
+     *
+     * Safe to call before this service initialises — registrations are
+     * buffered and merged with the built-ins during init(). After init,
+     * the trigger is added immediately and its Yii event listeners are
+     * attached on the spot.
+     */
+    public function register(TriggerInterface $trigger): void
+    {
+        if (!$this->_initialized) {
+            $this->_pending[] = $trigger;
+            return;
+        }
+
+        if ($this->addTrigger($trigger)) {
+            $this->attachListenersFor([$trigger]);
+        }
     }
 
     public function getSelectOptions(): array
@@ -62,22 +96,22 @@ class Triggers extends Component
         ];
 
         $byGroup = [];
-        foreach ($this->_triggers as $class) {
+        foreach ($this->_triggers as $trigger) {
             // Skip triggers that aren't ready to fire (e.g. UserBirthdayTrigger
             // without a configured field handle). They'd never be reachable
             // anyway — hiding them keeps the picker honest.
-            if (!$class::isAvailable()) {
+            if (!$trigger->isAvailable()) {
                 continue;
             }
-            $byGroup[$class::group()][] = $class;
+            $byGroup[$trigger->group()][] = $trigger;
         }
 
-        foreach ($byGroup as $group => $classes) {
+        foreach ($byGroup as $group => $triggers) {
             $options[] = ['optgroup' => $group];
-            foreach ($classes as $class) {
+            foreach ($triggers as $trigger) {
                 $options[] = [
-                    'label' => $class::label(),
-                    'value' => $class::handle(),
+                    'label' => $trigger->label(),
+                    'value' => $trigger->handle(),
                 ];
             }
         }
@@ -88,97 +122,118 @@ class Triggers extends Component
     private function registerTriggers(): void
     {
         $defaults = [
-            EntryCreatedTrigger::class,
-            EntryUpdatedTrigger::class,
-            AssetCreatedTrigger::class,
-            UserRegisteredTrigger::class,
-            UserLoggedInTrigger::class,
-            UserBirthdayTrigger::class,
-            UserAnniversaryTrigger::class,
+            new EntryCreatedTrigger(),
+            new EntryUpdatedTrigger(),
+            new AssetCreatedTrigger(),
+            new UserRegisteredTrigger(),
+            new UserLoggedInTrigger(),
+            new UserBirthdayTrigger(),
+            new UserAnniversaryTrigger(),
         ];
 
         // Form-plugin triggers — Lite, only register when the underlying plugin
         // is installed (we reference their event classes).
         if (Craft::$app->getPlugins()->isPluginEnabled('formie')) {
-            $defaults[] = FormieFormSubmittedTrigger::class;
+            $defaults[] = new FormieFormSubmittedTrigger();
         }
         if (Craft::$app->getPlugins()->isPluginEnabled('freeform')) {
-            $defaults[] = FreeformFormSubmittedTrigger::class;
+            $defaults[] = new FreeformFormSubmittedTrigger();
         }
 
         // Commerce triggers are Pro-only and require Commerce to be installed.
         $isPro = Points::getInstance()->is(Points::EDITION_PRO);
         if ($isPro && Craft::$app->getPlugins()->isPluginEnabled('commerce')) {
-            $defaults[] = OrderCompletedTrigger::class;
-            $defaults[] = OrderPaidTrigger::class;
-            $defaults[] = OrderRefundedTrigger::class;
-            $defaults[] = FirstOrderTrigger::class;
+            $defaults[] = new OrderCompletedTrigger();
+            $defaults[] = new OrderPaidTrigger();
+            $defaults[] = new OrderRefundedTrigger();
+            $defaults[] = new FirstOrderTrigger();
             if (class_exists('craft\\commerce\\elements\\Subscription')) {
-                $defaults[] = SubscriptionCreatedTrigger::class;
-                $defaults[] = SubscriptionRenewedTrigger::class;
-                $defaults[] = SubscriptionCancelledTrigger::class;
-                $defaults[] = SubscriptionPlanChangedTrigger::class;
+                $defaults[] = new SubscriptionCreatedTrigger();
+                $defaults[] = new SubscriptionRenewedTrigger();
+                $defaults[] = new SubscriptionCancelledTrigger();
+                $defaults[] = new SubscriptionPlanChangedTrigger();
             }
         }
 
         $event = new RegisterTriggersEvent(['triggers' => $defaults]);
         $this->trigger(self::EVENT_REGISTER_TRIGGERS, $event);
 
-        $this->_triggers = array_values(array_unique($event->triggers));
-
-        foreach ($this->_triggers as $class) {
-            if (!is_subclass_of($class, TriggerInterface::class)) {
-                continue;
+        foreach ($event->triggers as $trigger) {
+            if ($trigger instanceof TriggerInterface) {
+                $this->addTrigger($trigger);
             }
-            $this->_byHandle[$class::handle()] = $class;
         }
+        foreach ($this->_pending as $trigger) {
+            $this->addTrigger($trigger);
+        }
+        $this->_pending = [];
     }
 
-    private function attachListeners(): void
+    /** Returns true if newly added, false if a trigger with this handle was already registered. */
+    private function addTrigger(TriggerInterface $trigger): bool
     {
-        $grouped = [];
-        foreach ($this->_triggers as $class) {
-            $key = $class::eventClass() . '::' . $class::eventName();
-            $grouped[$key][] = $class;
+        $handle = $trigger->handle();
+        if (isset($this->_byHandle[$handle])) {
+            return false;
+        }
+        $this->_byHandle[$handle] = $trigger;
+        $this->_triggers[] = $trigger;
+        foreach ($trigger->events() as $pair) {
+            [$class, $eventName] = $pair;
+            $this->_byEventKey[$class . '::' . $eventName][] = $trigger;
         }
 
-        foreach ($grouped as $triggerClasses) {
-            $first = $triggerClasses[0];
-            Event::on(
-                $first::eventClass(),
-                $first::eventName(),
-                function($yiiEvent) use ($triggerClasses) {
-                    foreach ($triggerClasses as $triggerClass) {
-                        $this->dispatch($triggerClass, $yiiEvent);
-                    }
+        // Auto-register any companion conditions the trigger ships with.
+        // Lets a custom integration keep its WHEN and its IFs in one file.
+        foreach ($trigger->conditions() as $condition) {
+            Points::getInstance()->conditions->register($condition);
+        }
+
+        return true;
+    }
+
+    /**
+     * Attach one Yii listener per unique (class, event) pair across the given triggers.
+     * The closure consults the live $_byEventKey map, so triggers registered later
+     * for the same key are picked up without re-attaching anything.
+     *
+     * @param TriggerInterface[] $triggers
+     */
+    private function attachListenersFor(array $triggers): void
+    {
+        foreach ($triggers as $trigger) {
+            foreach ($trigger->events() as $pair) {
+                [$class, $eventName] = $pair;
+                $key = $class . '::' . $eventName;
+                if (isset($this->_attached[$key])) {
+                    continue;
                 }
-            );
+                $this->_attached[$key] = true;
+                Event::on($class, $eventName, function($yiiEvent) use ($key) {
+                    foreach ($this->_byEventKey[$key] ?? [] as $listener) {
+                        $this->dispatch($listener, $yiiEvent);
+                    }
+                });
+            }
         }
     }
 
     /**
      * Evaluate every rule wired to this trigger.
      *
-     * Pipeline: trigger filters → enabled/active dates → conditions → limits → reward → addAward.
+     * Pipeline: trigger.handleEvent → enabled/active dates → conditions → limits → reward → addAward.
      */
-    private function dispatch(string $triggerClass, $yiiEvent): void
+    private function dispatch(TriggerInterface $trigger, $yiiEvent): void
     {
-        if (!$triggerClass::appliesToEvent($yiiEvent)) {
+        $context = $trigger->handleEvent($yiiEvent);
+        if ($context === null) {
             return;
         }
 
-        $rules = Points::getInstance()->rules->getRulesByTrigger($triggerClass::handle());
+        $rules = Points::getInstance()->rules->getRulesByTrigger($trigger->handle());
         if (empty($rules)) {
             return;
         }
-
-        $userId = $triggerClass::getUserIdFromEvent($yiiEvent);
-        if (!$userId) {
-            return;
-        }
-
-        $amount = $triggerClass::getAmountForEvent($yiiEvent);
-        $orderId = $triggerClass::getOrderIdFromEvent($yiiEvent);
 
         $points = Points::getInstance();
         $now = (new \DateTime())->format('Y-m-d H:i:s');
@@ -190,11 +245,11 @@ class Triggers extends Component
             if ($rule->activeTo && $now > $rule->activeTo) continue;
 
             $ctx = new RuleEvaluationContext([
-                'userId' => $userId,
+                'userId' => $context->userId,
                 'rule' => $rule,
-                'triggerHandle' => $triggerClass::handle(),
+                'triggerHandle' => $trigger->handle(),
                 'triggerEvent' => $yiiEvent,
-                'amount' => $amount,
+                'amount' => $context->amount,
             ]);
 
             // Conditions
@@ -213,7 +268,7 @@ class Triggers extends Component
                 continue;
             }
 
-            $points->awards->addAward($userId, $rule->handle, $awardPoints, $orderId);
+            $points->awards->addAward($context->userId, $rule->handle, $awardPoints, $context->orderId);
         }
     }
 }

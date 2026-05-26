@@ -3,35 +3,34 @@
 namespace bymayo\points\triggers\commerce;
 
 use bymayo\points\triggers\BaseTrigger;
+use bymayo\points\triggers\TriggerContext;
 use craft\commerce\elements\Order;
+use yii\base\Event;
 
 class OrderCompletedTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'commerce.orderCompleted'; }
-    public static function label(): string { return 'Order completed'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function subject(): string { return 'order'; }
-    public static function eventClass(): string { return Order::class; }
-    public static function eventName(): string { return Order::EVENT_AFTER_COMPLETE_ORDER; }
+    public function handle(): string { return 'commerce.orderCompleted'; }
+    public function label(): string { return 'Order completed'; }
+    public function group(): string { return 'Commerce'; }
+    public function subject(): string { return 'order'; }
 
-    public static function getUserIdFromEvent($event): ?int
+    public function events(): array
     {
-        /** @var Order $order */
-        $order = $event->sender;
-        return $order->customerId ?: null;
+        return [[Order::class, Order::EVENT_AFTER_COMPLETE_ORDER]];
     }
 
-    public static function getAmountForEvent($event): ?float
+    public function handleEvent(Event $event): ?TriggerContext
     {
         /** @var Order $order */
         $order = $event->sender;
-        return (float)$order->getTotalPrice();
-    }
-
-    public static function getOrderIdFromEvent($event): ?int
-    {
-        /** @var Order $order */
-        $order = $event->sender;
-        return $order->id ?: null;
+        $userId = $order->customerId ?: null;
+        if (!$userId) {
+            return null;
+        }
+        return new TriggerContext(
+            userId: (int) $userId,
+            amount: (float) $order->getTotalPrice(),
+            orderId: $order->id ?: null,
+        );
     }
 }

@@ -14,12 +14,12 @@ use bymayo\points\conditions\RuleEvaluationContext;
  */
 class FormieFormConditionRule extends BaseConditionRule
 {
-    public static function handle(): string { return 'formie.form'; }
-    public static function label(): string { return 'Form is'; }
-    public static function group(): string { return 'Formie'; }
-    public static function appliesToSubjects(): ?array { return ['formieForm']; }
+    public function handle(): string { return 'formie.form'; }
+    public function label(): string { return 'Form is'; }
+    public function group(): string { return 'Formie'; }
+    public function appliesToSubjects(): ?array { return ['formieForm']; }
 
-    public static function evaluate(array $config, RuleEvaluationContext $ctx): bool
+    public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
         $ids = array_map('intval', $config['ids'] ?? []);
         if (empty($ids)) {

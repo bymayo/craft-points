@@ -3,18 +3,26 @@
 namespace bymayo\points\triggers;
 
 use craft\web\User;
+use yii\base\Event;
 
 class UserLoggedInTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'user.loggedIn'; }
-    public static function label(): string { return 'User logged in'; }
-    public static function group(): string { return 'Users'; }
-    public static function eventClass(): string { return User::class; }
-    public static function eventName(): string { return User::EVENT_AFTER_LOGIN; }
+    public function handle(): string { return 'user.loggedIn'; }
+    public function label(): string { return 'User logged in'; }
+    public function group(): string { return 'Users'; }
 
-    public static function getUserIdFromEvent($event): ?int
+    public function events(): array
+    {
+        return [[User::class, User::EVENT_AFTER_LOGIN]];
+    }
+
+    public function handleEvent(Event $event): ?TriggerContext
     {
         /** @var \yii\web\UserEvent $event */
-        return $event->identity?->getId();
+        $userId = $event->identity?->getId();
+        if (!$userId) {
+            return null;
+        }
+        return new TriggerContext(userId: (int) $userId);
     }
 }

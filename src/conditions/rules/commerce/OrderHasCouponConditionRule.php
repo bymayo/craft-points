@@ -13,12 +13,12 @@ use bymayo\points\conditions\RuleEvaluationContext;
  */
 class OrderHasCouponConditionRule extends BaseConditionRule
 {
-    public static function handle(): string { return 'commerce.hasCoupon'; }
-    public static function label(): string { return 'Coupon'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function appliesToSubjects(): ?array { return ['order']; }
+    public function handle(): string { return 'commerce.hasCoupon'; }
+    public function label(): string { return 'Coupon'; }
+    public function group(): string { return 'Commerce'; }
+    public function appliesToSubjects(): ?array { return ['order']; }
 
-    public static function evaluate(array $config, RuleEvaluationContext $ctx): bool
+    public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
         // Pull the order from the trigger context. Transaction-based triggers
         // (refunds) have $event->transaction->order; order triggers have $event->sender.

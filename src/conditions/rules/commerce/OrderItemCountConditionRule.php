@@ -7,12 +7,12 @@ use bymayo\points\conditions\RuleEvaluationContext;
 
 class OrderItemCountConditionRule extends BaseConditionRule
 {
-    public static function handle(): string { return 'commerce.orderItemCount'; }
-    public static function label(): string { return 'Item count'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function appliesToSubjects(): ?array { return ['order']; }
+    public function handle(): string { return 'commerce.orderItemCount'; }
+    public function label(): string { return 'Item count'; }
+    public function group(): string { return 'Commerce'; }
+    public function appliesToSubjects(): ?array { return ['order']; }
 
-    public static function evaluate(array $config, RuleEvaluationContext $ctx): bool
+    public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
         $order = $ctx->triggerEvent?->sender ?? null;
         if (!$order || !method_exists($order, 'getLineItems')) {

@@ -3,7 +3,9 @@
 namespace bymayo\points\triggers\commerce;
 
 use bymayo\points\triggers\BaseTrigger;
+use bymayo\points\triggers\TriggerContext;
 use craft\commerce\services\Subscriptions;
+use yii\base\Event;
 
 /**
  * Fires whenever the subscription's plan changes (upgrade or downgrade).
@@ -11,18 +13,25 @@ use craft\commerce\services\Subscriptions;
  */
 class SubscriptionPlanChangedTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'commerce.subscriptionPlanChanged'; }
-    public static function label(): string { return 'Subscription plan changed'; }
-    public static function group(): string { return 'Commerce'; }
-    public static function subject(): string { return 'subscription'; }
-    public static function actionLabel(): string { return 'Plan changed'; }
-    public static function eventClass(): string { return Subscriptions::class; }
-    public static function eventName(): string { return Subscriptions::EVENT_AFTER_SWITCH_SUBSCRIPTION_PLAN; }
+    public function handle(): string { return 'commerce.subscriptionPlanChanged'; }
+    public function label(): string { return 'Subscription plan changed'; }
+    public function group(): string { return 'Commerce'; }
+    public function subject(): string { return 'subscription'; }
+    public function actionLabel(): string { return 'Plan changed'; }
 
-    public static function getUserIdFromEvent($event): ?int
+    public function events(): array
+    {
+        return [[Subscriptions::class, Subscriptions::EVENT_AFTER_SWITCH_SUBSCRIPTION_PLAN]];
+    }
+
+    public function handleEvent(Event $event): ?TriggerContext
     {
         /** @var \craft\commerce\events\SubscriptionSwitchPlansEvent $event */
         $subscription = $event->subscription ?? null;
-        return $subscription?->userId ?: null;
+        $userId = $subscription?->userId ?: null;
+        if (!$userId) {
+            return null;
+        }
+        return new TriggerContext(userId: (int) $userId);
     }
 }

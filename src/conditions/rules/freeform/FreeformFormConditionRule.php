@@ -14,12 +14,12 @@ use bymayo\points\conditions\RuleEvaluationContext;
  */
 class FreeformFormConditionRule extends BaseConditionRule
 {
-    public static function handle(): string { return 'freeform.form'; }
-    public static function label(): string { return 'Form is'; }
-    public static function group(): string { return 'Freeform'; }
-    public static function appliesToSubjects(): ?array { return ['freeformForm']; }
+    public function handle(): string { return 'freeform.form'; }
+    public function label(): string { return 'Form is'; }
+    public function group(): string { return 'Freeform'; }
+    public function appliesToSubjects(): ?array { return ['freeformForm']; }
 
-    public static function evaluate(array $config, RuleEvaluationContext $ctx): bool
+    public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
         $ids = array_map('intval', $config['ids'] ?? []);
         if (empty($ids)) {

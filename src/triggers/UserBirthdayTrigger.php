@@ -7,6 +7,7 @@ use Craft;
 use craft\elements\User as UserElement;
 use craft\web\User;
 use DateTime;
+use yii\base\Event;
 
 /**
  * Fires on a user's next login when today matches the date stored in the
@@ -15,37 +16,43 @@ use DateTime;
  */
 class UserBirthdayTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'user.birthday'; }
-    public static function label(): string { return 'User birthday'; }
-    public static function group(): string { return 'Users'; }
-    public static function actionLabel(): string { return 'Birthday'; }
-    public static function eventClass(): string { return User::class; }
-    public static function eventName(): string { return User::EVENT_AFTER_LOGIN; }
+    public function handle(): string { return 'user.birthday'; }
+    public function label(): string { return 'User birthday'; }
+    public function group(): string { return 'Users'; }
+    public function actionLabel(): string { return 'Birthday'; }
 
-    public static function appliesToEvent($event): bool
+    public function events(): array
+    {
+        return [[User::class, User::EVENT_AFTER_LOGIN]];
+    }
+
+    public function handleEvent(Event $event): ?TriggerContext
     {
         /** @var \yii\web\UserEvent $event */
         $identity = $event->identity ?? null;
         if (!$identity) {
-            return false;
+            return null;
         }
 
         $fieldHandle = Points::getInstance()->getSettings()->birthdayFieldHandle;
         if (!$fieldHandle) {
-            return false;
+            return null;
         }
 
         $birthday = $identity->{$fieldHandle} ?? null;
         if (!$birthday instanceof DateTime) {
-            return false;
+            return null;
         }
 
-        return (new DateTime())->format('m-d') === $birthday->format('m-d');
-    }
+        if ((new DateTime())->format('m-d') !== $birthday->format('m-d')) {
+            return null;
+        }
 
-    public static function getUserIdFromEvent($event): ?int
-    {
-        return $event->identity?->getId();
+        $userId = $identity->getId();
+        if (!$userId) {
+            return null;
+        }
+        return new TriggerContext(userId: (int) $userId);
     }
 
     /**
@@ -54,7 +61,7 @@ class UserBirthdayTrigger extends BaseTrigger
      * User field layout. If either is missing the trigger can never fire, so
      * there's no point letting anyone select it.
      */
-    public static function isAvailable(): bool
+    public function isAvailable(): bool
     {
         $handle = trim((string) Points::getInstance()->getSettings()->birthdayFieldHandle);
         if ($handle === '') {

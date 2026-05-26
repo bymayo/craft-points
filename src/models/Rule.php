@@ -86,8 +86,8 @@ class Rule extends Model
         if (!$this->trigger) {
             return 'Manual';
         }
-        $class = \bymayo\points\Points::getInstance()->triggers->getTriggerClassByHandle($this->trigger);
-        if (!$class) {
+        $trigger = \bymayo\points\Points::getInstance()->triggers->getTriggerByHandle($this->trigger);
+        if (!$trigger) {
             return $this->trigger;
         }
 
@@ -96,12 +96,13 @@ class Rule extends Model
         // 3rd-party plugin from its own namespace. Either way: prefix with
         // the group label. Native triggers sit directly in
         // bymayo\points\triggers\ and don't need a prefix.
+        $class = $trigger::class;
         $isNative = str_starts_with($class, 'bymayo\\points\\triggers\\')
             && !str_contains(substr($class, strlen('bymayo\\points\\triggers\\')), '\\');
 
         return $isNative
-            ? $class::label()
-            : $class::label() . ' (' . $class::group() . ')';
+            ? $trigger->label()
+            : $trigger->label() . ' (' . $trigger->group() . ')';
     }
 
     /** Compact summary of the rule's limit config, e.g. "Once per user", "Max 5 / day". */

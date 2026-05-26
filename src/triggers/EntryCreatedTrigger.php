@@ -5,34 +5,36 @@ namespace bymayo\points\triggers;
 use craft\base\Element;
 use craft\elements\Entry;
 use craft\events\ModelEvent;
+use yii\base\Event;
 
 class EntryCreatedTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'entry.created'; }
-    public static function label(): string { return 'Entry created'; }
-    public static function group(): string { return 'Entries'; }
-    public static function eventClass(): string { return Entry::class; }
-    public static function eventName(): string { return Element::EVENT_AFTER_SAVE; }
+    public function handle(): string { return 'entry.created'; }
+    public function label(): string { return 'Entry created'; }
+    public function group(): string { return 'Entries'; }
 
-    public static function appliesToEvent($event): bool
+    public function events(): array
+    {
+        return [[Entry::class, Element::EVENT_AFTER_SAVE]];
+    }
+
+    public function handleEvent(Event $event): ?TriggerContext
     {
         /** @var ModelEvent $event */
         if (!($event->isNew ?? false)) {
-            return false;
+            return null;
         }
         /** @var Entry $entry */
         $entry = $event->sender;
         // Ignore drafts, revisions, and the propagating saves that fire after the canonical save.
         if ($entry->getIsDraft() || $entry->getIsRevision() || $entry->propagating) {
-            return false;
+            return null;
         }
-        return true;
-    }
 
-    public static function getUserIdFromEvent($event): ?int
-    {
-        /** @var Entry $entry */
-        $entry = $event->sender;
-        return $entry->getAuthorId();
+        $userId = $entry->getAuthorId();
+        if (!$userId) {
+            return null;
+        }
+        return new TriggerContext(userId: $userId);
     }
 }

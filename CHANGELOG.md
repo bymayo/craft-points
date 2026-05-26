@@ -1,5 +1,19 @@
 # Release Notes for Points
 
+## 5.0.3 - 2026-05-26
+
+### Added
+- **Standardised way to add custom triggers** — third-party plugins can now ship a trigger and its companion conditions in a single PHP file, registered with one line: `Points::getInstance()->triggers->register(new MyTrigger())`. See "Custom triggers (and their conditions)" in the README.
+- `TriggerInterface::conditions(): array` — return companion conditions; auto-registered with the trigger.
+- `TriggerContext` value object — single payload returned by `handleEvent()` carrying `userId`, optional `amount`/`orderId`, and a `metadata` bag.
+- `Triggers::register()` and `Conditions::register()` sugar APIs.
+
+### Changed
+- **Breaking:** `TriggerInterface` and `ConditionRuleInterface` are now instance-based (no more static methods). All built-ins ported.
+- **Breaking:** Trigger dispatch collapses from four static methods to one `handleEvent(Event): ?TriggerContext`; triggers declare Yii subscriptions via `events(): array` and can listen to multiple events.
+- **Breaking:** `RegisterTriggersEvent::$triggers` and `RegisterConditionRulesEvent::$conditionRules` now hold instances, not class-strings.
+- `Triggers::getTriggerClassByHandle()` → `Triggers::getTriggerByHandle()` (returns instance).
+
 ## 5.0.2 - 2026-05-15
 
 ### Added

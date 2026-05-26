@@ -3,7 +3,9 @@
 namespace bymayo\points\triggers\freeform;
 
 use bymayo\points\triggers\BaseTrigger;
+use bymayo\points\triggers\TriggerContext;
 use Solspace\Freeform\Services\SubmissionsService;
+use yii\base\Event;
 
 /**
  * Fires when a Freeform form is submitted successfully by a
@@ -17,32 +19,32 @@ use Solspace\Freeform\Services\SubmissionsService;
  */
 class FormSubmittedTrigger extends BaseTrigger
 {
-    public static function handle(): string { return 'freeform.formSubmitted'; }
-    public static function label(): string { return 'Form submitted'; }
-    public static function group(): string { return 'Freeform'; }
-    public static function subject(): string { return 'freeformForm'; }
-    public static function actionLabel(): string { return 'Submitted'; }
+    public function handle(): string { return 'freeform.formSubmitted'; }
+    public function label(): string { return 'Form submitted'; }
+    public function group(): string { return 'Freeform'; }
+    public function subject(): string { return 'freeformForm'; }
+    public function actionLabel(): string { return 'Submitted'; }
 
-    public static function eventClass(): string { return SubmissionsService::class; }
-    public static function eventName(): string { return SubmissionsService::EVENT_AFTER_SUBMIT; }
+    public function events(): array
+    {
+        return [[SubmissionsService::class, SubmissionsService::EVENT_AFTER_SUBMIT]];
+    }
 
-    public static function appliesToEvent($event): bool
+    public function handleEvent(Event $event): ?TriggerContext
     {
         $submission = $event->submission ?? null;
         if (!$submission) {
-            return false;
+            return null;
         }
 
         if (property_exists($submission, 'isSpam') && $submission->isSpam) {
-            return false;
+            return null;
         }
 
-        return true;
-    }
-
-    public static function getUserIdFromEvent($event): ?int
-    {
-        $submission = $event->submission ?? null;
-        return $submission?->userId ?: null;
+        $userId = $submission->userId ?: null;
+        if (!$userId) {
+            return null;
+        }
+        return new TriggerContext(userId: (int) $userId);
     }
 }
