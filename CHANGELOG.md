@@ -2,7 +2,14 @@
 
 ## 5.0.4 - 2026-05-27
 
+### Added
+- `ConditionRuleInterface::renderConfigUi(int $index, array $config): string` — third-party conditions can now ship their own value-picker UI in the rule builder. `BaseConditionRule` defaults to returning `''` (no further config).
+- `ConditionRuleInterface::isInline(): bool` — toggles single-line layout for the variant. Defaults to `false`.
+
 ### Changed
+- **Breaking:** `ConditionRuleInterface` gained two methods (`renderConfigUi`, `isInline`). Conditions extending `BaseConditionRule` are unaffected. Conditions implementing the raw interface need both methods added.
+- Rule builder no longer hardcodes a `<div class="cnd-variant">` block per known condition handle. Each registered condition renders its own variant via `renderConfigUi()`, so picker UI for a new third-party condition shows up automatically.
+- `RulesController` no longer fetches `sectionOptions` / `userGroupOptions` / Formie + Freeform form lists / Commerce product lookups for the rule editor — each condition class fetches its own data when rendering.
 - README now flags the trigger/condition register events as load-order-sensitive — use `Points::getInstance()->triggers->register(...)` instead.
 
 ## 5.0.3 - 2026-05-26

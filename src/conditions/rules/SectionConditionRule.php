@@ -4,6 +4,7 @@ namespace bymayo\points\conditions\rules;
 
 use bymayo\points\conditions\BaseConditionRule;
 use bymayo\points\conditions\RuleEvaluationContext;
+use Craft;
 
 class SectionConditionRule extends BaseConditionRule
 {
@@ -22,5 +23,20 @@ class SectionConditionRule extends BaseConditionRule
         $entry = $ctx->triggerEvent?->sender ?? null;
         $sectionId = $entry?->sectionId ?? null;
         return $sectionId !== null && in_array((int)$sectionId, $ids, true);
+    }
+
+    public function renderConfigUi(int $index, array $config): string
+    {
+        $options = [];
+        foreach (Craft::$app->getEntries()->getAllSections() as $section) {
+            $options[] = ['label' => $section->name, 'value' => (string) $section->id];
+        }
+
+        return $this->renderFormTemplate('_includes/forms/checkboxSelect.twig', [
+            'name' => "conditions[{$index}][ids]",
+            'options' => $options,
+            'values' => $config['ids'] ?? [],
+            'showAllOption' => false,
+        ]);
     }
 }

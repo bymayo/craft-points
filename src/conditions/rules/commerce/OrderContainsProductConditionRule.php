@@ -4,6 +4,8 @@ namespace bymayo\points\conditions\rules\commerce;
 
 use bymayo\points\conditions\BaseConditionRule;
 use bymayo\points\conditions\RuleEvaluationContext;
+use Craft;
+use craft\helpers\Cp;
 
 /**
  * Passes if any of the order's line items references one of the configured product IDs.
@@ -54,5 +56,42 @@ class OrderContainsProductConditionRule extends BaseConditionRule
             }
         }
         return false;
+    }
+
+    public function renderConfigUi(int $index, array $config): string
+    {
+        return Cp::elementSelectHtml([
+            'name' => "conditions[{$index}][productIds]",
+            'elementType' => 'craft\\commerce\\elements\\Product',
+            'elements' => $this->lookupSelected($config['productIds'] ?? []),
+            'limit' => null,
+            'selectionLabel' => Craft::t('points', 'Add products'),
+        ]);
+    }
+
+    /**
+     * Resolve saved product IDs (array or comma-separated string) into the
+     * element objects `Cp::elementSelectHtml` needs to render the initial
+     * selection.
+     *
+     * @param mixed $raw
+     * @return list<\craft\base\ElementInterface>
+     */
+    private function lookupSelected(mixed $raw): array
+    {
+        if (!class_exists('craft\\commerce\\elements\\Product')) {
+            return [];
+        }
+        $ids = is_array($raw)
+            ? array_map('intval', $raw)
+            : array_filter(array_map(
+                fn($s) => (int) trim($s),
+                explode(',', (string) $raw),
+            ));
+        $ids = array_values(array_filter($ids));
+        if (!$ids) {
+            return [];
+        }
+        return \craft\commerce\elements\Product::find()->id($ids)->all();
     }
 }

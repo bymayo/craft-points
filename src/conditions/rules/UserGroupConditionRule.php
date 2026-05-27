@@ -32,4 +32,19 @@ class UserGroupConditionRule extends BaseConditionRule
         }
         return false;
     }
+
+    public function renderConfigUi(int $index, array $config): string
+    {
+        $options = [];
+        foreach (Craft::$app->getUserGroups()->getAllGroups() as $group) {
+            $options[] = ['label' => $group->name, 'value' => (string) $group->id];
+        }
+
+        return $this->renderFormTemplate('_includes/forms/checkboxSelect.twig', [
+            'name' => "conditions[{$index}][groupIds]",
+            'options' => $options,
+            'values' => $config['groupIds'] ?? [],
+            'showAllOption' => false,
+        ]);
+    }
 }

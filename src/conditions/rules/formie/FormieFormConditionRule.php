@@ -4,6 +4,7 @@ namespace bymayo\points\conditions\rules\formie;
 
 use bymayo\points\conditions\BaseConditionRule;
 use bymayo\points\conditions\RuleEvaluationContext;
+use Craft;
 
 /**
  * Restricts a Form-submitted trigger to one or more specific Formie forms.
@@ -29,5 +30,33 @@ class FormieFormConditionRule extends BaseConditionRule
         $submission = $ctx->triggerEvent->submission ?? null;
         $formId = $submission?->formId ?? null;
         return $formId !== null && in_array((int) $formId, $ids, true);
+    }
+
+    public function renderConfigUi(int $index, array $config): string
+    {
+        return $this->renderFormTemplate('_includes/forms/checkboxSelect.twig', [
+            'name' => "conditions[{$index}][ids]",
+            'options' => $this->formOptions(),
+            'values' => $config['ids'] ?? [],
+            'showAllOption' => false,
+        ]);
+    }
+
+    /**
+     * @return array<int, array{label: string, value: string}>
+     */
+    private function formOptions(): array
+    {
+        if (
+            !Craft::$app->getPlugins()->isPluginEnabled('formie')
+            || !class_exists('verbb\\formie\\elements\\Form')
+        ) {
+            return [];
+        }
+        $options = [];
+        foreach (\verbb\formie\elements\Form::find()->all() as $form) {
+            $options[] = ['label' => (string) $form->title, 'value' => (string) $form->id];
+        }
+        return $options;
     }
 }

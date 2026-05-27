@@ -562,6 +562,19 @@ class CommentLengthCondition extends BaseConditionRule
     // Only show this condition when the rule's trigger has subject 'comment'.
     public function appliesToSubjects(): ?array { return ['comment']; }
 
+    // Render the "is at least N characters" input in the rule builder.
+    // Points wraps the result in <div class="cnd-variant" data-variant="…" hidden>.
+    public function isInline(): bool { return true; }
+
+    public function renderConfigUi(int $index, array $config): string
+    {
+        return \craft\helpers\Cp::textHtml([
+            'name' => "conditions[{$index}][min]",
+            'type' => 'number',
+            'value' => (string) ($config['min'] ?? ''),
+        ]) . ' <span class="cnd-suffix">characters or more</span>';
+    }
+
     public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
         $min = (int) ($config['min'] ?? 0);
@@ -588,6 +601,8 @@ public function init(): void
 
 That's everything. The trigger appears in the rule builder under "Comments", the condition shows when an admin picks it, the Yii listener is attached automatically, and matching events flow through the normal conditions → limits → reward pipeline.
 
+> Both classes above are also bundled as a single copy-paste file at [`examples/CustomTrigger.php`](examples/CustomTrigger.php) - grab it, swap the namespace + `Comment` element reference, and you're off.
+
 A few details worth knowing:
 
 - **`TriggerContext`** carries `userId` (required), plus optional `amount` (for percentage rewards - e.g. an order total) and `orderId` (so the resulting award links back to a Commerce order). Anything else rides along in `metadata`.
@@ -595,6 +610,7 @@ A few details worth knowing:
 - **`isAvailable()`** is your kill switch - return `false` to hide the trigger from the rule builder while a dependency is missing (e.g. a configured field handle that doesn't exist yet).
 - **Labels:** `subject()`, `subjectLabel()`, and `actionLabel()` are auto-inferred from `handle()` and `label()` - override them only if the inferred values read badly.
 - **Standalone conditions:** if you only want to add a condition (no trigger), call `Points::getInstance()->conditions->register(new MyCondition())` from your `init()`.
+- **Condition UI:** `renderConfigUi($index, $config)` returns the picker's inner HTML. `$config` is the saved values when active, `[]` otherwise — use it for `value=""` defaults. Return `''` (the default) if the condition takes no config. Build markup with `craft\helpers\Cp::selectHtml/textHtml/elementSelectHtml`, or `$this->renderFormTemplate('_includes/forms/checkboxSelect.twig', [...])` for templates without a PHP helper. `isInline()` switches block layout to a single line.
 - **Use `register()`, not the event API:** Points also fires `Triggers::EVENT_REGISTER_TRIGGERS` and `Conditions::EVENT_REGISTER_CONDITION_RULES`, but those fire during Points' own `init()` - if your plugin loads alphabetically after `points`, your listener will be attached too late and your trigger/condition will silently never appear. Always use `Points::getInstance()->triggers->register(...)` and `->conditions->register(...)` from your `init()` - they work regardless of load order.
 
 ### Award lifecycle events

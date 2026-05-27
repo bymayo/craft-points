@@ -4,16 +4,6 @@
 
 {% import '_includes/forms.twig' as forms %}
 
-{% set operatorOptions = [
-    { label: 'equals'|t('points'), value: '=' },
-    { label: 'does not equal'|t('points'), value: '!=' },
-    { label: 'is less than'|t('points'), value: '<' },
-    { label: 'is less than or equals'|t('points'), value: '<=' },
-    { label: 'is greater than'|t('points'), value: '>' },
-    { label: 'is greater than or equals'|t('points'), value: '>=' },
-    { label: 'is between…'|t('points'), value: 'between' },
-] %}
-
 {% set periodOptions = [
     { label: 'hour'|t('points'), value: 'hour' },
     { label: 'day'|t('points'), value: 'day' },
@@ -24,7 +14,6 @@
 
 {% set condition = condition ?? { type: '' } %}
 {% set limit = limit ?? { type: '' } %}
-{% set productLookup = productLookup ?? {} %}
 
 {% if section == 'conditions' %}
     {% set prefix = 'conditions[' ~ index ~ ']' %}
@@ -39,50 +28,15 @@
         </div>
 
         <div class="cnd-value">
-            <div class="cnd-variant" data-variant="section" {% if condition.type != 'section' %}hidden{% endif %}>
-                {{ forms.checkboxSelect({ name: prefix ~ '[ids]', options: sectionOptions, values: condition.type == 'section' ? (condition.ids ?? []) : [], showAllOption: false }) }}
-            </div>
-            <div class="cnd-variant" data-variant="userGroup" {% if condition.type != 'userGroup' %}hidden{% endif %}>
-                {{ forms.checkboxSelect({ name: prefix ~ '[groupIds]', options: userGroupOptions, values: condition.type == 'userGroup' ? (condition.groupIds ?? []) : [], showAllOption: false }) }}
-            </div>
-            <div class="cnd-variant" data-variant="formie.form" {% if condition.type != 'formie.form' %}hidden{% endif %}>
-                {{ forms.checkboxSelect({ name: prefix ~ '[ids]', options: formieFormOptions ?? [], values: condition.type == 'formie.form' ? (condition.ids ?? []) : [], showAllOption: false }) }}
-            </div>
-            <div class="cnd-variant" data-variant="freeform.form" {% if condition.type != 'freeform.form' %}hidden{% endif %}>
-                {{ forms.checkboxSelect({ name: prefix ~ '[ids]', options: freeformFormOptions ?? [], values: condition.type == 'freeform.form' ? (condition.ids ?? []) : [], showAllOption: false }) }}
-            </div>
-            <div class="cnd-variant cnd-inline" data-variant="commerce.orderTotal" {% if condition.type != 'commerce.orderTotal' %}hidden{% endif %}>
-                {{ forms.select({ name: prefix ~ '[operator]', options: operatorOptions, value: condition.type == 'commerce.orderTotal' ? (condition.operator ?? '>=') : '>=', class: 'op-select' }) }}
-                <span class="op-value">{{ forms.text({ name: prefix ~ '[value]', type: 'number', value: condition.type == 'commerce.orderTotal' ? (condition.value ?? '') : '' }) }}</span>
-                <span class="op-and cnd-suffix">{{ 'and'|t('points') }}</span>
-                <span class="op-value2">{{ forms.text({ name: prefix ~ '[value2]', type: 'number', value: condition.type == 'commerce.orderTotal' ? (condition.value2 ?? '') : '' }) }}</span>
-            </div>
-            <div class="cnd-variant cnd-inline" data-variant="commerce.orderItemCount" {% if condition.type != 'commerce.orderItemCount' %}hidden{% endif %}>
-                {{ forms.select({ name: prefix ~ '[operator]', options: operatorOptions, value: condition.type == 'commerce.orderItemCount' ? (condition.operator ?? '>=') : '>=', class: 'op-select' }) }}
-                <span class="op-value">{{ forms.text({ name: prefix ~ '[value]', type: 'number', value: condition.type == 'commerce.orderItemCount' ? (condition.value ?? '') : '' }) }}</span>
-                <span class="op-and cnd-suffix">{{ 'and'|t('points') }}</span>
-                <span class="op-value2">{{ forms.text({ name: prefix ~ '[value2]', type: 'number', value: condition.type == 'commerce.orderItemCount' ? (condition.value2 ?? '') : '' }) }}</span>
-            </div>
-            <div class="cnd-variant cnd-inline" data-variant="commerce.hasCoupon" {% if condition.type != 'commerce.hasCoupon' %}hidden{% endif %}>
-                {{ forms.select({
-                    name: prefix ~ '[hasCoupon]',
-                    options: [
-                        { label: 'has a coupon code'|t('points'), value: '1' },
-                        { label: 'has no coupon code'|t('points'), value: '0' },
-                    ],
-                    value: condition.type == 'commerce.hasCoupon' ? ((condition.hasCoupon ?? true) ? '1' : '0') : '1',
-                }) }}
-            </div>
-            <div class="cnd-variant" data-variant="commerce.containsProduct" {% if condition.type != 'commerce.containsProduct' %}hidden{% endif %}>
-                {% set selectedProducts = condition.type == 'commerce.containsProduct' ? (productLookup[index] ?? []) : [] %}
-                {{ forms.elementSelect({
-                    name: prefix ~ '[productIds]',
-                    elementType: 'craft\\commerce\\elements\\Product',
-                    elements: selectedProducts,
-                    limit: null,
-                    selectionLabel: 'Add products'|t('points'),
-                }) }}
-            </div>
+            {% for cond in allConditions %}
+                {% set isActive = (condition.type == cond.handle) %}
+                {% set inner = cond.renderConfigUi(index, isActive ? condition : {}) %}
+                {% if inner %}
+                    <div class="cnd-variant{% if cond.isInline() %} cnd-inline{% endif %}" data-variant="{{ cond.handle }}"{% if not isActive %} hidden{% endif %}>
+                        {{ inner|raw }}
+                    </div>
+                {% endif %}
+            {% endfor %}
         </div>
 
         <button type="button" class="cnd-remove" title="{{ 'Remove'|t('points') }}" aria-label="{{ 'Remove'|t('points') }}">×</button>

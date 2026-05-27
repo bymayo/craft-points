@@ -10,108 +10,6 @@
     { label: 'Rules'|t('points'), url: url('points/rules') },
 ] %}
 
-{% set operatorOptions = [
-    { label: 'is ≥', value: '>=' },
-    { label: 'is >', value: '>' },
-    { label: 'is ≤', value: '<=' },
-    { label: 'is <', value: '<' },
-    { label: 'is ='|t('points'), value: '=' },
-    { label: 'is ≠', value: '!=' },
-] %}
-
-{% set periodOptions = [
-    { label: 'hour'|t('points'), value: 'hour' },
-    { label: 'day'|t('points'), value: 'day' },
-    { label: 'week'|t('points'), value: 'week' },
-    { label: 'month'|t('points'), value: 'month' },
-    { label: 'year'|t('points'), value: 'year' },
-] %}
-
-
-{% macro conditionConfig(index, condition, ctx) %}
-    {% import '_includes/forms.twig' as forms %}
-    {% set prefix = 'conditions[' ~ index ~ ']' %}
-
-    <div class="cnd-variant" data-variant="section" {% if condition.type != 'section' %}hidden{% endif %}>
-        {{ forms.multiselect({ name: prefix ~ '[ids]', options: ctx.sectionOptions, values: condition.type == 'section' ? (condition.ids ?? []) : [] }) }}
-    </div>
-    <div class="cnd-variant" data-variant="userGroup" {% if condition.type != 'userGroup' %}hidden{% endif %}>
-        {{ forms.multiselect({ name: prefix ~ '[groupIds]', options: ctx.userGroupOptions, values: condition.type == 'userGroup' ? (condition.groupIds ?? []) : [] }) }}
-    </div>
-    <div class="cnd-variant" data-variant="formie.form" {% if condition.type != 'formie.form' %}hidden{% endif %}>
-        {{ forms.multiselect({ name: prefix ~ '[ids]', options: ctx.formieFormOptions ?? [], values: condition.type == 'formie.form' ? (condition.ids ?? []) : [] }) }}
-    </div>
-    <div class="cnd-variant" data-variant="freeform.form" {% if condition.type != 'freeform.form' %}hidden{% endif %}>
-        {{ forms.multiselect({ name: prefix ~ '[ids]', options: ctx.freeformFormOptions ?? [], values: condition.type == 'freeform.form' ? (condition.ids ?? []) : [] }) }}
-    </div>
-    <div class="cnd-variant" data-variant="userLevel" {% if condition.type != 'userLevel' %}hidden{% endif %}>
-        {{ forms.multiselect({ name: prefix ~ '[levelHandles]', options: ctx.levelOptions, values: condition.type == 'userLevel' ? (condition.levelHandles ?? []) : [] }) }}
-    </div>
-    <div class="cnd-variant cnd-inline" data-variant="commerce.orderTotal" {% if condition.type != 'commerce.orderTotal' %}hidden{% endif %}>
-        {{ forms.select({ name: prefix ~ '[operator]', options: ctx.operatorOptions, value: condition.type == 'commerce.orderTotal' ? (condition.operator ?? '>=') : '>=' }) }}
-        {{ forms.text({ name: prefix ~ '[value]', type: 'number', placeholder: 'Amount'|t('points'), value: condition.type == 'commerce.orderTotal' ? (condition.value ?? '') : '' }) }}
-    </div>
-    <div class="cnd-variant cnd-inline" data-variant="commerce.orderItemCount" {% if condition.type != 'commerce.orderItemCount' %}hidden{% endif %}>
-        {{ forms.select({ name: prefix ~ '[operator]', options: ctx.operatorOptions, value: condition.type == 'commerce.orderItemCount' ? (condition.operator ?? '>=') : '>=' }) }}
-        {{ forms.text({ name: prefix ~ '[value]', type: 'number', placeholder: 'Items'|t('points'), value: condition.type == 'commerce.orderItemCount' ? (condition.value ?? '') : '' }) }}
-    </div>
-    <div class="cnd-variant cnd-inline" data-variant="commerce.hasCoupon" {% if condition.type != 'commerce.hasCoupon' %}hidden{% endif %}>
-        {{ forms.select({
-            name: prefix ~ '[hasCoupon]',
-            options: [
-                { label: 'has a coupon code'|t('points'), value: '1' },
-                { label: 'has no coupon code'|t('points'), value: '0' },
-            ],
-            value: condition.type == 'commerce.hasCoupon' ? ((condition.hasCoupon ?? true) ? '1' : '0') : '1',
-        }) }}
-    </div>
-    <div class="cnd-variant" data-variant="commerce.containsProduct" {% if condition.type != 'commerce.containsProduct' %}hidden{% endif %}>
-        {% set selectedProducts = condition.type == 'commerce.containsProduct' ? (ctx.productLookup[index] ?? []) : [] %}
-        {{ forms.elementSelect({
-            name: prefix ~ '[productIds]',
-            elementType: 'craft\\commerce\\elements\\Product',
-            elements: selectedProducts,
-            limit: null,
-            selectionLabel: 'Add products'|t('points'),
-        }) }}
-    </div>
-{% endmacro %}
-
-{% macro limitConfig(index, limit, ctx) %}
-    {% import '_includes/forms.twig' as forms %}
-    {% set prefix = 'limits[' ~ index ~ ']' %}
-
-    <div class="cnd-variant" data-variant="oncePerUser" {% if limit.type != 'oncePerUser' %}hidden{% endif %}>
-        <span class="cnd-suffix cnd-note">{{ 'at most once per user, ever'|t('points') }}</span>
-    </div>
-    <div class="cnd-variant cnd-inline" data-variant="maxPerUser" {% if limit.type != 'maxPerUser' %}hidden{% endif %}>
-        {{ forms.text({ name: prefix ~ '[max]', type: 'number', placeholder: 'N'|t('points'), value: limit.type == 'maxPerUser' ? (limit.max ?? '') : '' }) }}
-        <span class="cnd-suffix">{{ 'times per user, ever'|t('points') }}</span>
-    </div>
-    <div class="cnd-variant cnd-inline" data-variant="perPeriod" {% if limit.type != 'perPeriod' %}hidden{% endif %}>
-        {{ forms.text({ name: prefix ~ '[max]', type: 'number', placeholder: 'N'|t('points'), value: limit.type == 'perPeriod' ? (limit.max ?? '') : '' }) }}
-        <span class="cnd-suffix">{{ 'per'|t('points') }}</span>
-        {{ forms.select({ name: prefix ~ '[period]', options: ctx.periodOptions, value: limit.type == 'perPeriod' ? (limit.period ?? 'day') : 'day' }) }}
-    </div>
-    <div class="cnd-variant cnd-inline" data-variant="cooldown" {% if limit.type != 'cooldown' %}hidden{% endif %}>
-        {{ forms.text({ name: prefix ~ '[seconds]', type: 'number', placeholder: 'Seconds'|t('points'), value: limit.type == 'cooldown' ? (limit.seconds ?? '') : '' }) }}
-        <span class="cnd-suffix">{{ 'seconds between awards'|t('points') }}</span>
-    </div>
-{% endmacro %}
-
-{% from _self import conditionConfig, limitConfig %}
-
-{% set macroCtx = {
-    sectionOptions: sectionOptions,
-    userGroupOptions: userGroupOptions,
-    formieFormOptions: formieFormOptions,
-    freeformFormOptions: freeformFormOptions,
-    levelOptions: levelOptions,
-    operatorOptions: operatorOptions,
-    periodOptions: periodOptions,
-    productLookup: conditionProductLookup,
-} %}
-
 {# Macro that renders a condition-type <select> with data-subjects on each option. #}
 {% macro conditionTypeSelect(index, currentType, types) %}
     <div class="select cnd-type-wrap">
@@ -196,12 +94,7 @@
                                 index: loop.index0,
                                 condition: condition,
                                 conditionTypes: conditionTypes,
-                                sectionOptions: sectionOptions,
-                                userGroupOptions: userGroupOptions,
-                                formieFormOptions: formieFormOptions,
-                                freeformFormOptions: freeformFormOptions,
-                                levelOptions: levelOptions,
-                                productLookup: conditionProductLookup,
+                                allConditions: allConditions,
                             } only %}
                         {% endfor %}
                         <button type="button" id="add-condition" class="add-cnd">{{ '+ Add a condition'|t('points') }}</button>

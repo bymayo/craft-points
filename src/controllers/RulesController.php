@@ -95,24 +95,12 @@ class RulesController extends Controller
             'conditionTypes' => $this->buildConditionTypeOptions($points->conditions->getAll()),
             'conditionMeta' => $conditionMeta,
             'hasApplicableConditions' => $hasApplicableConditions,
+            'allConditions' => $points->conditions->getAll(),
             'limitTypes' => $this->buildTypeOptions($points->limits->getAll()),
             'rewardTypes' => $this->buildRewardTypeOptions($points->rewards->getAll()),
-            'sectionOptions' => $this->elementOptions(
-                Craft::$app->getEntries()->getAllSections()
-            ),
-            'userGroupOptions' => $this->elementOptions(
-                Craft::$app->getUserGroups()->getAllGroups()
-            ),
-            'formieFormOptions' => $this->formieFormOptions(),
-            'freeformFormOptions' => $this->freeformFormOptions(),
-            'levelOptions' => array_map(
-                fn($l) => ['label' => $l->name, 'value' => $l->handle],
-                $points->levels->getAllLevels()
-            ),
             'activeFromDt' => $rule->activeFrom ? new \DateTime($rule->activeFrom) : null,
             'activeToDt' => $rule->activeTo ? new \DateTime($rule->activeTo) : null,
             'isPro' => $points->is(Points::EDITION_PRO),
-            'conditionProductLookup' => $this->buildConditionProductLookup($rule->conditions),
         ]);
     }
 
@@ -192,14 +180,7 @@ class RulesController extends Controller
             'index' => $index,
             'conditionTypes' => $this->buildConditionTypeOptions($points->conditions->getAll()),
             'limitTypes' => $this->buildTypeOptions($points->limits->getAll()),
-            'sectionOptions' => $this->elementOptions(Craft::$app->getEntries()->getAllSections()),
-            'userGroupOptions' => $this->elementOptions(Craft::$app->getUserGroups()->getAllGroups()),
-            'formieFormOptions' => $this->formieFormOptions(),
-            'freeformFormOptions' => $this->freeformFormOptions(),
-            'levelOptions' => array_map(
-                fn($l) => ['label' => $l->name, 'value' => $l->handle],
-                $points->levels->getAllLevels()
-            ),
+            'allConditions' => $points->conditions->getAll(),
         ]);
 
         return $this->asJson([
@@ -244,76 +225,6 @@ class RulesController extends Controller
     }
 
     /**
-     * Convert a list of objects with `name` and `id` into option arrays
-     * suitable for Craft's `forms.checkboxSelectField`.
-     *
-     * @param iterable<object> $items
-     * @return array<int, array{label: string, value: string}>
-     */
-    /**
-     * Build a `forms.checkboxSelect` options array for every Formie form, or
-     * an empty array if Formie isn't installed. Used by the
-     * `formie.form` condition's variant in the rule editor.
-     *
-     * @return array<int, array{label: string, value: string}>
-     */
-    private function formieFormOptions(): array
-    {
-        if (!Craft::$app->getPlugins()->isPluginEnabled('formie')) {
-            return [];
-        }
-        if (!class_exists('verbb\\formie\\elements\\Form')) {
-            return [];
-        }
-        /** @var iterable<object> $forms */
-        $forms = \verbb\formie\elements\Form::find()->all();
-        $options = [];
-        foreach ($forms as $form) {
-            $options[] = ['label' => (string) $form->title, 'value' => (string) $form->id];
-        }
-        return $options;
-    }
-
-    /**
-     * Same as {@see formieFormOptions} but for Freeform's forms.
-     *
-     * @return array<int, array{label: string, value: string}>
-     */
-    private function freeformFormOptions(): array
-    {
-        if (!Craft::$app->getPlugins()->isPluginEnabled('freeform')) {
-            return [];
-        }
-        // Freeform forms are managed via its FormsService rather than as
-        // first-class Craft elements, so we look them up through the API.
-        if (!class_exists('Solspace\\Freeform\\Freeform')) {
-            return [];
-        }
-        try {
-            $forms = \Solspace\Freeform\Freeform::getInstance()->forms->getAllForms();
-        } catch (\Throwable) {
-            return [];
-        }
-        $options = [];
-        foreach ($forms as $form) {
-            $options[] = [
-                'label' => (string) $form->getName(),
-                'value' => (string) $form->getId(),
-            ];
-        }
-        return $options;
-    }
-
-    private function elementOptions(iterable $items): array
-    {
-        $options = [];
-        foreach ($items as $item) {
-            $options[] = ['label' => $item->name, 'value' => (string) $item->id];
-        }
-        return $options;
-    }
-
-    /**
      * @param array<string, string> $byHandle
      * @return array<int, array{label: string, value: string}>
      */
@@ -327,38 +238,6 @@ class RulesController extends Controller
             ];
         }
         return $options;
-    }
-
-    /**
-     * Pre-fetch product elements referenced by any `commerce.containsProduct`
-     * conditions on this rule, indexed by the condition's position.
-     *
-     * @param array<int, array<string, mixed>> $conditions
-     * @return array<int, array<int, \craft\base\ElementInterface>>
-     */
-    private function buildConditionProductLookup(array $conditions): array
-    {
-        $lookup = [];
-        if (!class_exists('craft\\commerce\\elements\\Product')) {
-            return $lookup;
-        }
-        foreach ($conditions as $i => $cond) {
-            if (($cond['type'] ?? '') !== 'commerce.containsProduct') {
-                continue;
-            }
-            $ids = $cond['productIds'] ?? [];
-            if (!is_array($ids)) {
-                $ids = array_filter(array_map(
-                    fn($s) => (int) trim($s),
-                    explode(',', (string) $ids),
-                ));
-            }
-            $ids = array_map('intval', array_filter($ids));
-            $lookup[$i] = $ids
-                ? \craft\commerce\elements\Product::find()->id($ids)->all()
-                : [];
-        }
-        return $lookup;
     }
 
     /**

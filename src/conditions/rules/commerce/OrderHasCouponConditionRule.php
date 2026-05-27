@@ -4,6 +4,8 @@ namespace bymayo\points\conditions\rules\commerce;
 
 use bymayo\points\conditions\BaseConditionRule;
 use bymayo\points\conditions\RuleEvaluationContext;
+use Craft;
+use craft\helpers\Cp;
 
 /**
  * Passes if the order has a coupon code applied (when `hasCoupon` is true)
@@ -17,6 +19,8 @@ class OrderHasCouponConditionRule extends BaseConditionRule
     public function label(): string { return 'Coupon'; }
     public function group(): string { return 'Commerce'; }
     public function appliesToSubjects(): ?array { return ['order']; }
+
+    public function isInline(): bool { return true; }
 
     public function evaluate(array $config, RuleEvaluationContext $ctx): bool
     {
@@ -34,5 +38,17 @@ class OrderHasCouponConditionRule extends BaseConditionRule
         $expected = (bool) ($config['hasCoupon'] ?? true);
         $hasCoupon = !empty($order->couponCode ?? null);
         return $hasCoupon === $expected;
+    }
+
+    public function renderConfigUi(int $index, array $config): string
+    {
+        return Cp::selectHtml([
+            'name' => "conditions[{$index}][hasCoupon]",
+            'options' => [
+                ['label' => Craft::t('points', 'has a coupon code'), 'value' => '1'],
+                ['label' => Craft::t('points', 'has no coupon code'), 'value' => '0'],
+            ],
+            'value' => ($config['hasCoupon'] ?? true) ? '1' : '0',
+        ]);
     }
 }

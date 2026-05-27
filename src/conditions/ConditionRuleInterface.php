@@ -36,4 +36,27 @@ interface ConditionRuleInterface
      * @param array $config The condition's stored config (e.g. ['ids' => [1, 2]]).
      */
     public function evaluate(array $config, RuleEvaluationContext $ctx): bool;
+
+    /**
+     * Render the inner HTML for this condition's value picker in the rule
+     * builder. Points wraps the result in
+     * `<div class="cnd-variant" data-variant="{handle}" hidden>...</div>`
+     * automatically.
+     *
+     * Return `''` for conditions that take no further configuration.
+     *
+     * @param int   $index  Row index — use to build input names, e.g.
+     *                      `"conditions[{$index}][ids]"`.
+     * @param array $config Saved config when this condition is the row's
+     *                      active type; `[]` when not. Drives `value=""`
+     *                      defaults so non-active variants don't carry
+     *                      stale state into the form.
+     */
+    public function renderConfigUi(int $index, array $config): string;
+
+    /**
+     * Render the variant as a single-line layout (adds `cnd-inline` to the
+     * wrapper). Defaults to `false` (block layout).
+     */
+    public function isInline(): bool;
 }
