@@ -595,7 +595,7 @@ A few details worth knowing:
 - **`isAvailable()`** is your kill switch - return `false` to hide the trigger from the rule builder while a dependency is missing (e.g. a configured field handle that doesn't exist yet).
 - **Labels:** `subject()`, `subjectLabel()`, and `actionLabel()` are auto-inferred from `handle()` and `label()` - override them only if the inferred values read badly.
 - **Standalone conditions:** if you only want to add a condition (no trigger), call `Points::getInstance()->conditions->register(new MyCondition())` from your `init()`.
-- **Events too:** if you'd rather use Yii's event API directly, listen for `Triggers::EVENT_REGISTER_TRIGGERS` (and `Conditions::EVENT_REGISTER_CONDITION_RULES`) and append your instances to `$event->triggers` / `$event->conditionRules`.
+- **Use `register()`, not the event API:** Points also fires `Triggers::EVENT_REGISTER_TRIGGERS` and `Conditions::EVENT_REGISTER_CONDITION_RULES`, but those fire during Points' own `init()` - if your plugin loads alphabetically after `points`, your listener will be attached too late and your trigger/condition will silently never appear. Always use `Points::getInstance()->triggers->register(...)` and `->conditions->register(...)` from your `init()` - they work regardless of load order.
 
 ### Award lifecycle events
 

@@ -1,5 +1,10 @@
 # Release Notes for Points
 
+## 5.0.4 - 2026-05-27
+
+### Changed
+- README now flags the trigger/condition register events as load-order-sensitive — use `Points::getInstance()->triggers->register(...)` instead.
+
 ## 5.0.3 - 2026-05-26
 
 ### Added
